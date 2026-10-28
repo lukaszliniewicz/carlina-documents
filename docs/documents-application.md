@@ -1,31 +1,18 @@
 # Documents application
 
-Carlina Documents runs Document Processor and Translator through the same engines
-used by private Carlina. This repository owns their source, shared host and UI;
-private Workbench consumes a pinned revision. Documents uses native workers and
-prebuilt browser assets. It keeps PyMuPDF under the
-[AGPL distribution decision](adr/0012-documents-agpl-distribution.md).
-The [packaging and source-delivery requirements](#maintainer-packaging-and-source-delivery)
-describe the remaining publication gates.
-Direct provider UI calls remain best effort; authenticated MCP and passive
-workflow acceptance remain required.
+Use Carlina Documents to extract and review documents, translate them, and export
+the results. Document Processor, Translator and Sentence Segmenter share the same
+browser application. You can configure a model API connection or let an external
+AI client handle model responses through MCP.
 
 ## Current launch and first use
 
-The current native online installers are shell/PowerShell scripts. The initial
-release path is a source preview, then a technical native-installer preview using
-standard bundles. Linux desktop delivery uses a small AppImage setup/launch
-adapter; its source prototype is undergoing native qualification. An unsigned
-Windows setup EXE and complete desktop integration follow later. The commands below describe the implemented
-maintainer/source path. See the [release plan](implementation-plan.md).
-
-There is no accepted public release channel yet. For maintainer previews, use the
-exact signed preview manifest supplied with the reviewed artifact. The current
-stable-channel fallback selects the Documents repository for Documents and the
-existing Workbench repository for Workbench. Explicit manifest/environment
-sources retain precedence, and the profile guard rejects an incompatible index.
-Public source/trust delivery and installed-candidate acceptance remain release
-gates; correct routing does not create public release assets.
+The [public release](https://github.com/lukaszliniewicz/carlina-documents/releases)
+currently provides source downloads. Linux AppImage and script installers are
+being prepared; Windows downloads will be unsigned. Follow the
+[source setup instructions](https://github.com/lukaszliniewicz/carlina-documents/blob/main/.github/CONTRIBUTING.md#set-up-an-isolated-checkout)
+to try this preview. The commands below also describe management of an installed
+application once packaged downloads are available.
 
 The Python `install`, applying `update` and `rollback` commands also support opt-in
 `--events-jsonl`, with a closed [event schema](../carlina/core/installation-event-v1.schema.json).

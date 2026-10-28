@@ -1,12 +1,16 @@
 # Documents release plan
 
-Last reviewed: 2026-10-28
+Last reviewed: 2026-10-29
 
 Prepare a useful public project in small releases. The shared runtime, document
 engines, browser interface, script installers and application-source delivery
 already exist. The [ledger](project-ledger.md) distinguishes that evidence from
 unfinished release work. Component contracts describe implemented behavior;
 completed implementation diaries remain in Git history.
+
+The source preview is published as `v0.2.0a1`. The next release work is Linux
+installer/AppImage qualification and public download preparation. Resolve the
+new public CI portability failures before advertising packaged downloads.
 
 ## Release scope
 

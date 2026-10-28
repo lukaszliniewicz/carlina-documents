@@ -1,10 +1,8 @@
 # Contributing to Carlina Documents
 
-Documents starts with a source preview, followed by packaged downloads.
-Windows 11 x86-64 and Linux x86-64 are the release targets. Linux AppImage setup
-has an existing-host trial; cold-machine acceptance, desktop integration and
-guided product preparation remain open. Windows executables will be unsigned. See the
-[release plan](../docs/implementation-plan.md).
+Carlina Documents is available as an early source preview. Packaged downloads
+for Windows 11 x86-64 and Linux x86-64 are being prepared. See the
+[release plan](../docs/implementation-plan.md) for the remaining work.
 
 ## Set up an isolated checkout
 

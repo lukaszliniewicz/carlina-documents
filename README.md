@@ -1,64 +1,87 @@
 # Carlina Documents
 
-Extract, review and translate PDF, EPUB and DOCX documents on your own computer.
-Keep headings, tables, lists, linked notes and page references, then export EPUB,
-DOCX, HTML or PDF.
+Carlina Documents helps you extract, review and translate documents on your own
+computer, then turn the results into EPUB, DOCX, HTML or PDF.
 
-- **Document Processor** extracts PDF content and imports EPUB/DOCX for review.
-- **Translator** manages aligned translation, terminology and revision-bound
-  review, with the same publishing tools as the extractor.
-- **Sentence Segmenter** prepares text locally using native SaT models.
+## What you can do
 
-Use your own model API connection, or connect an external AI client through
-authenticated MCP and let it supply model responses. Passive MCP work does not
-require a direct API credential in Carlina.
+- **Extract and review documents.** Import PDF, EPUB or DOCX files. Review text,
+  headings, tables, images and linked notes before publishing.
+- **Translate with the source alongside.** Keep source and translation aligned,
+  maintain a glossary, and review changes before exporting.
+- **Prepare and publish text.** Split text into sentences locally, edit edition
+  details and covers, and export in several formats.
+- **Work with your choice of AI.** Configure a model API in Carlina, or connect an
+  AI client through MCP and let that client handle the model responses. The MCP
+  option does not require a separate model API key in Carlina.
 
-## Project status
+The three tools—Document Processor, Translator and Sentence Segmenter—share one
+browser interface. The application runs locally; your chosen AI provider may
+process document content remotely. Local sentence segmentation does not need a
+model API.
 
-**Source preview, version 0.2.0a1.** Start with a source checkout using the
-instructions below. Packaged downloads are being prepared. Native Windows/Linux
-script installers and matching application-source delivery have been exercised;
-the Linux AppImage has passed an existing-host graphical installation trial.
-Desktop integration and guided product preparation remain in progress. The
-[release plan](docs/implementation-plan.md) separates the source preview, native
-installer preview and desktop beta.
+## Download
 
-The release targets are Windows 11 x86-64 and Linux x86-64. The installed runtime
-uses prebuilt browser assets and native workers; it needs no WSL, Docker or office
-suite. Initial setup downloads runtime packages and model assets. Direct APIs
-need network access; passive work needs a compatible external MCP client.
-Windows installers will be unsigned.
+**Version 0.2.0a1 is an early source preview.** You can try it from a source
+checkout using the steps below. Ready-to-run downloads are still being prepared
+and will appear under **Assets** on the
+[Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
+
+Planned downloads include a Linux x86-64 AppImage and installers for Linux x86-64
+and Windows 11 x86-64. Initial setup will need an internet connection to download
+runtime packages and model files. Windows downloads will be unsigned.
+
+Expect rough edges in this preview, including manual activation of the document
+tools. Feedback and reproducible bug reports are welcome in
+[Issues](https://github.com/lukaszliniewicz/carlina-documents/issues).
 
 ## Get started
 
-For a source checkout, install Git and Pixi 0.81.0 and follow the
-[contributor setup](.github/CONTRIBUTING.md). It includes Linux and PowerShell
-commands, an isolated development data root, ports and verification tasks.
+Install Git and [Pixi 0.81.0](https://github.com/prefix-dev/pixi/releases/tag/v0.81.0)
+first. On Linux:
 
-The [Documents guide](docs/documents-application.md) explains launch, product
-activation, model connections, passive MCP and exports. Fresh Documents roots
-store ordinary document content in plaintext and protect credentials separately.
-Use appropriate disk protection and keep recovery keys safe. See the
-[security policy](.github/SECURITY.md) for the supported local topology.
+```bash
+git clone https://github.com/lukaszliniewicz/carlina-documents.git
+cd carlina-documents
+export CARLINA_HOME="$PWD/.workspace/development-data"
+export CARLINA_PORT=5015
+export CARLINA_MCP_PORT=5016
+pixi run --locked setup
+pixi run --locked start
+```
+
+Setup creates your administrator account; start opens the application in your
+browser. Keep the same terminal open for later commands, and use different ports
+if these are already taken. The dedicated data folder keeps this checkout
+separate from any existing installation.
+
+In **Settings → Add-ons**, activate Document Processor, Translator and Sentence
+Segmenter. Then configure a model connection in Settings, or choose **Connect AI
+client** on the home page to use MCP. Some tools download additional models on
+first use.
+
+See the [setup guide](.github/CONTRIBUTING.md#set-up-an-isolated-checkout) for
+Windows PowerShell commands and development checks, and the
+[Documents guide](docs/documents-application.md) for connections, first use and
+exports.
+
+Documents are stored locally in plaintext by default; credentials are protected
+separately. Keep backups and protect your disk as you would for other private
+documents. See the [security policy](.github/SECURITY.md) for details.
 
 ## Documentation and development
 
-Start with the [documentation index](docs/README.md),
-[architecture](docs/architecture.md) and [current status](docs/project-ledger.md).
-The [contributor guide](.github/CONTRIBUTING.md) covers checks and pull requests;
-report vulnerabilities through [security reporting](.github/SECURITY.md).
+The [documentation index](docs/README.md) links to user guides and technical
+references. To contribute, start with the [contributor guide](.github/CONTRIBUTING.md).
+The [release plan](docs/implementation-plan.md) describes upcoming work.
 
-This repository also owns the runtime and authored UI shared with the private
-Carlina Workbench. Workbench consumes a reviewed source pin, adds its own products
-and keeps separate program/data roots. Changes here must preserve that consumer;
-its private add-ons and operational records are outside this project.
+Please report sensitive security issues through
+[private vulnerability reporting](.github/SECURITY.md).
 
 ## Licence
 
-Carlina's own source retains its [MIT licence](LICENSE). The assembled Documents
-application uses PyMuPDF and follows the
-[AGPL distribution decision](docs/adr/0012-documents-agpl-distribution.md).
-Dependencies retain their separate terms; see
-[third-party notices](THIRD_PARTY_NOTICES.md) and the
-[AGPL text](COPYING-AGPL-3.0.txt). Binary releases require matching source and
-component notices; the application is not described as MIT-only.
+Carlina's own code is [MIT licensed](LICENSE). The complete Documents application
+includes PyMuPDF and is distributed under the
+[AGPL terms described here](docs/adr/0012-documents-agpl-distribution.md).
+Other dependencies retain their own licences; see the
+[third-party notices](THIRD_PARTY_NOTICES.md) and [AGPL text](COPYING-AGPL-3.0.txt).

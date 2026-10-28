@@ -1,6 +1,6 @@
 # Documents project status
 
-Last reviewed: 2026-10-28
+Last reviewed: 2026-10-29
 
 The [release plan](implementation-plan.md) owns sequencing; component contracts
 and tests own behavior. Release assets identify their own source revision,
@@ -8,9 +8,12 @@ checksums and tested platforms. Superseded implementation diaries stay in Git.
 
 ## Current scope
 
-Version **0.2.0a1** begins with a source preview. The maintainer has selected a
-fresh public history and will retain the earlier repository privately. Private
-Workbench continues to consume a reviewed shared-source pin with its own add-ons,
+Version **0.2.0a1** is published as a
+[source preview](https://github.com/lukaszliniewicz/carlina-documents/releases/tag/v0.2.0a1).
+The public repository starts with a reviewed snapshot; the earlier repository
+and history remain private. The application source archive and checksums have
+been downloaded anonymously and verified. No installer or AppImage is published
+yet. Private Workbench continues to consume a reviewed shared-source pin with its own add-ons,
 configuration, compiled assets, program generations and data root.
 
 | Area | Implemented behavior and remaining limit |
@@ -47,6 +50,13 @@ behavior, but does not qualify newly assembled public binaries. Blocking static,
 typing, dependency, import-boundary, dead-code and closure gates remain in force;
 current policy files own their budgets.
 
+The frozen public source passes 6,092 offline tests and 53 subtests in an isolated
+local checkout, with 127 skips. Its first public CI run passes the frontend lane
+but fails 22 backend tests: the runner supplies uutils `tail` where supervised
+publisher progress currently requires GNU `tail`, and one packaging fixture
+relies on a global Git identity. The identity defect is reproduced and repaired
+on a diagnostic branch; the final portability repair and full CI run remain open.
+
 ## Binary release limits
 
 The existing standard bundles and AppImage were tested on existing hosts with
@@ -55,6 +65,13 @@ controlled browser handler. Its cleanup required a separate stopped-state
 readback after the controller encountered an exited child. This is neither a
 cold-machine trial nor an accepted public download or complete installed workflow.
 Exact operational receipts remain outside the public project.
+
+A publisher-download Linux candidate built from the public source now passes
+native installation, administrator initialization and exact installed-source HTTP
+retrieval in an isolated synthetic root. It downloads third-party packages from
+their publishers rather than embedding their payloads. Its complete installed
+document workflow and final public-input/AppImage checks remain open; this does
+not yet replace the selected release route or qualify a public installer.
 
 The inspected Linux bundle contains 108 Conda packages and 100 Python wheels,
 including Carlina itself. All 207 third-party archives match the exact selected
@@ -77,8 +94,8 @@ public download, verification, source and notice inputs pass.
 
 ## Next actions
 
-1. Finish the 0.2.0a1 source build and fresh-history publication, retaining the old
-   private repository and all Workbench recovery pins.
+1. Finish the CI portability repair and run the full affected lane. Preserve the
+   published source assets, private history and Workbench recovery pins.
 2. Complete actual binary notices/source, stable release-key and versioned URL
    inputs; build the Linux preview from that public source.
 3. Exercise the exact installed workflow, source retrieval and public download
