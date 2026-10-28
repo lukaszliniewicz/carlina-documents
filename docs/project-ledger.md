@@ -52,10 +52,11 @@ current policy files own their budgets.
 
 The frozen public source passes 6,092 offline tests and 53 subtests in an isolated
 local checkout, with 127 skips. Its first public CI run passes the frontend lane
-but fails 22 backend tests: the runner supplies uutils `tail` where supervised
-publisher progress currently requires GNU `tail`, and one packaging fixture
-relies on a global Git identity. The identity defect is reproduced and repaired
-on a diagnostic branch; the final portability repair and full CI run remain open.
+but fails 22 backend tests: the runner supplies uutils `tail`, rejected by the
+installer's GNU branding check, and one packaging fixture relies on a global Git
+identity. The fixture now sets its own identity and the installer checks the
+required `tail` options instead of its vendor. All 46 affected installer/build
+tests and blocking Python audits pass locally; the complete CI rerun remains open.
 
 ## Binary release limits
 

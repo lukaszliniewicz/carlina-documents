@@ -1497,8 +1497,8 @@ if [ "$SUPERVISED_PREPARATION" -eq 1 ]; then
     echo 'Native preparation supervision is unavailable.' >&2; exit 1
   fi
   if [ "$ARTIFACT_KIND" = publisher-bootstrap-executable ]; then
-    if ! command -v tail >/dev/null 2>&1 || ! tail --version 2>/dev/null | head -n 1 | LC_ALL=C grep -q 'GNU coreutils'; then
-      echo 'GNU tail is required for supervised publisher progress.' >&2; exit 1
+    if ! command -v tail >/dev/null 2>&1 || ! LC_ALL=C tail --help 2>/dev/null | grep -q -- '--pid' || ! LC_ALL=C tail --help 2>/dev/null | grep -q -- '--sleep-interval'; then
+      echo 'tail must support --pid and --sleep-interval for supervised publisher progress.' >&2; exit 1
     fi
   fi
   BOOTSTRAP_OWNERSHIP_MODE=prepared-bind

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -236,6 +238,57 @@ def test_supervision_requires_event_mode(
     assert "requires event mode and a supported runtime payload" in result.stderr
     assert not program.joinpath("versions/1.2.3").exists()
     assert not tuple(program.glob(".carlina-install.*"))
+
+
+@pytest.mark.parametrize(
+    ("tail_help", "supported"),
+    [
+        ("--pid=PID --sleep-interval=N", True),
+        ("--sleep-interval=N", False),
+        ("--pid=PID", False),
+    ],
+)
+def test_supervised_publisher_checks_tail_capabilities_before_preparation(
+    tmp_path: Path, tail_help: str, supported: bool
+) -> None:
+    _require_native_scope()
+    real_tail = shutil.which("tail")
+    assert real_tail is not None
+    installer, program, environment = _event_fixture(
+        tmp_path,
+        "documents",
+        "linux-64",
+        "success",
+        publisher_payload=_publisher_fixture_payload("linux-64", "success"),
+    )
+    tail = tmp_path / "shim" / "tail"
+    tail.write_text(
+        "#!/bin/sh\nset -eu\n"
+        'case "$1" in\n'
+        f"  --help) printf '%s\\n' {shlex.quote(tail_help)} ;;\n"
+        "  --version) printf '%s\\n' 'compatible tail' ;;\n"
+        f'  *) exec {shlex.quote(real_tail)} "$@" ;;\n'
+        "esac\n",
+        encoding="utf-8",
+    )
+    tail.chmod(0o700)
+    result = subprocess.run(
+        _supervised_command(installer, program),
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=40,
+        check=False,
+    )
+    if supported:
+        _assert_event_outcome(result, program, "documents", "success")
+        assert any(
+            json.loads(line)["bytes_total"] == 17 for line in result.stdout.splitlines()
+        )
+    else:
+        assert result.returncode == 1
+        assert "tail must support --pid and --sleep-interval" in result.stderr
+        assert not program.joinpath("versions/1.2.3").exists()
 
 
 @pytest.mark.parametrize(
