@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iarf.local/contracts/workspace-inspector.schema.json",
+  "title": "IARF frontend workspace summary",
+  "type": "object",
+  "required": [
+    "session",
+    "revision",
+    "updated_at",
+    "server_time",
+    "counts",
+    "focus_run",
+    "recent_runs",
+    "recent_artifacts",
+    "attention"
+  ],
+  "properties": {
+    "session": {
+      "type": "object",
+      "required": ["id", "title"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "revision": { "type": "string", "minLength": 1 },
+    "updated_at": { "type": ["string", "null"] },
+    "server_time": { "type": "string" },
+    "counts": {
+      "type": "object",
+      "required": [
+        "runs",
+        "active_runs",
+        "artifacts",
+        "artifact_reviews",
+        "session_memory",
+        "personal_memory",
+        "context_items",
+        "active_context_items",
+        "archived_context_items",
+        "excluded_context_items",
+        "attention"
+      ],
+      "properties": {
+        "runs": { "type": "integer", "minimum": 0 },
+        "active_runs": { "type": "integer", "minimum": 0 },
+        "artifacts": { "type": "integer", "minimum": 0 },
+        "artifact_reviews": { "type": "integer", "minimum": 0 },
+        "session_memory": { "type": "integer", "minimum": 0 },
+        "personal_memory": { "type": "integer", "minimum": 0 },
+        "context_items": { "type": "integer", "minimum": 0 },
+        "active_context_items": { "type": "integer", "minimum": 0 },
+        "archived_context_items": { "type": "integer", "minimum": 0 },
+        "excluded_context_items": { "type": "integer", "minimum": 0 },
+        "attention": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "focus_run": {
+      "oneOf": [
+        { "$ref": "#/$defs/runSummary" },
+        { "type": "null" }
+      ]
+    },
+    "recent_runs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/runSummary" }
+    },
+    "recent_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/artifactSummary" }
+    },
+    "attention": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "title", "summary", "target_tab"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string" },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "target_tab": {
+            "enum": ["overview", "runs", "memory", "context", "artifacts"]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "runSummary": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "summary",
+        "kind",
+        "status",
+        "active",
+        "needs_attention",
+        "current_step_label",
+        "progress",
+        "artifact_count",
+        "pending_approval_count",
+        "created_at",
+        "updated_at",
+        "completed_at",
+        "open_url"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "kind": { "type": "string" },
+        "status": { "type": "string" },
+        "active": { "type": "boolean" },
+        "needs_attention": { "type": "boolean" },
+        "current_step_label": { "type": ["string", "null"] },
+        "progress": {
+          "type": "object",
+          "required": ["completed", "total", "percent"],
+          "properties": {
+            "completed": { "type": "integer", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 },
+            "percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "additionalProperties": false
+        },
+        "artifact_count": { "type": "integer", "minimum": 0 },
+        "pending_approval_count": { "type": "integer", "minimum": 0 },
+        "created_at": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"] },
+        "completed_at": { "type": ["string", "null"] },
+        "open_url": { "type": "string", "pattern": "^/" }
+      },
+      "additionalProperties": false
+    },
+    "artifactSummary": {
+      "type": "object",
+      "required": [
+        "id",
+        "run_id",
+        "label",
+        "type",
+        "mime_type",
+        "size_bytes",
+        "review_status",
+        "preview_kind",
+        "version_number",
+        "source_addon_id",
+        "created_at",
+        "updated_at",
+        "download_url"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "run_id": { "type": ["string", "null"] },
+        "label": { "type": "string" },
+        "type": { "type": "string" },
+        "mime_type": { "type": "string" },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "review_status": { "type": "string" },
+        "preview_kind": {
+          "enum": [
+            "image",
+            "audio",
+            "video",
+            "pdf",
+            "markdown",
+            "html",
+            "structured",
+            "text",
+            "download"
+          ]
+        },
+        "version_number": { "type": ["integer", "null"], "minimum": 1 },
+        "source_addon_id": { "type": ["string", "null"] },
+        "created_at": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"] },
+        "download_url": {
+          "type": ["string", "null"],
+          "pattern": "^/api/runtime/artifacts/"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

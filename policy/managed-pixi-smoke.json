@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "environments": {
+    "doc_processor:document_processing": {
+      "imports": [
+        "bs4",
+        "defusedxml",
+        "ebooklib",
+        "extract_msg",
+        "lxml.etree",
+        "markdownify",
+        "mistune",
+        "numpy",
+        "PIL",
+        "pymupdf",
+        "pypandoc"
+      ],
+      "forbidden_imports": [
+        "iarf_assistant"
+      ],
+      "version_prefixes": {
+        "numpy": "2."
+      },
+      "commands": [
+        [
+          "pandoc",
+          "--version"
+        ],
+        [
+          "dot",
+          "-V"
+        ]
+      ]
+    },
+    "sentence_segmenter:native_segmentation": {
+      "imports": [
+        "huggingface_hub",
+        "numpy",
+        "onnxruntime",
+        "tokenizers",
+        "wtpsplit_lite"
+      ],
+      "forbidden_imports": [
+        "iarf_assistant",
+        "docker",
+        "torch"
+      ],
+      "version_prefixes": {
+        "huggingface-hub": "0.32.6",
+        "numpy": "2.5.2",
+        "onnxruntime": "1.26.0",
+        "tokenizers": "0.21.1",
+        "wtpsplit-lite": "0.2.0"
+      },
+      "commands": []
+    }
+  }
+}

@@ -1,0 +1,159 @@
+<aside id="sidebar" class="border-r border-rule bg-surface">
+    {% set sidebar_workspaces = workspace_ui_contributions|default(automations|default([])) %}
+    {% set sidebar_pages = page_ui_contributions|default(addon_pages|default([])) %}
+    {% set sidebar_ui_components = ui_components|default(helpers|default([])) %}
+    {% set workspace_ids = sidebar_workspaces|map(attribute='id')|list %}
+    {% set workspace_stable_ids = sidebar_workspaces|map(attribute='stable_id')|list %}
+    {% set is_chat_page = active_page == 'chat' %}
+    {% set is_workspace_page = active_page == 'automations_index' or active_page in workspace_ids or active_page in workspace_stable_ids %}
+    {% set is_runtime_page = active_page == 'runtime' or active_page == 'approvals' or active_page == 'workflow_runs' or active_page == 'system_monitor' %}
+    {% set runtime_tab = request.args.get('tab', default_runtime_tab|default('runs')) %}
+    <div id="sidebar-header" class="border-b border-rule/70">
+        <h1 class="sidebar-title font-serif text-ink">{{ product.name }}</h1>
+        <h2 class="sidebar-subtitle uppercase tracking-[0.18em] text-ink-muted">
+            {% if active_page == 'settings' %}Settings
+            {% elif active_page == 'knowledge' %}Knowledge
+            {% elif is_workspace_page %}Workspaces
+            {% elif active_page == 'logs' %}Logs
+            {% elif is_runtime_page %}Runtime
+            {% elif active_page == 'terms' %}Terms
+            {% else %}Chat
+            {% endif %}
+        </h2>
+    </div>
+    <nav id="sidebar-nav">
+        <a href="{{ url_for('index') }}" class="nav-icon-btn {% if is_chat_page %}active{% endif %}" title="Chat"><i class="fa-solid fa-comments"></i></a>
+        <a href="{{ url_for('automations') }}" class="nav-icon-btn {% if is_workspace_page %}active{% endif %}" title="Workspaces"><i class="fa-solid fa-briefcase"></i></a>
+        <a href="{{ url_for('knowledge.index') }}" class="nav-icon-btn {% if active_page == 'knowledge' %}active{% endif %}" title="Knowledge"><i class="fa-solid fa-book-open"></i></a>
+        <a href="{{ url_for('workflow_runs_page') }}" class="nav-icon-btn {% if is_runtime_page %}active{% endif %}" title="Runtime"><i class="fa-solid fa-diagram-project"></i></a>
+        <a href="{{ url_for('settings_page') }}" class="nav-icon-btn {% if active_page == 'settings' %}active{% endif %}" title="Settings"><i class="fa-solid fa-gear"></i></a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('logs_page') }}" class="nav-icon-btn {% if active_page == 'logs' %}active{% endif %}" title="Logs"><i class="fa-solid fa-clipboard-list"></i></a>
+        {% endif %}
+    </nav>
+    <div class="sidebar-content">
+        {% if is_runtime_page %}
+            <div class="sidebar-section">
+                <label class="sidebar-label">Runtime Views</label>
+                <div class="flex flex-col gap-2">
+                    <a href="{{ url_for('workflow_runs_page') }}?tab=runs" class="sidebar-button {% if active_page == 'runtime' and runtime_tab == 'runs' %}active{% endif %}">
+                        <i class="fa-solid fa-play"></i>
+                        <span class="button-text">Workflow Runs</span>
+                    </a>
+                    <a href="{{ url_for('workflow_runs_page') }}?tab=approvals" class="sidebar-button {% if active_page == 'runtime' and runtime_tab == 'approvals' %}active{% endif %}">
+                        <i class="fa-solid fa-key"></i>
+                        <span class="button-text">Approvals</span>
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('runtime_processes_page') }}" class="sidebar-button {% if active_page == 'system_monitor' %}active{% endif %}">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                        <span class="button-text">System Monitor</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if is_chat_page %}
+            <div class="sidebar-section">
+                <button id="new-chat-button" class="sidebar-button">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="button-text">New Chat</span>
+                </button>
+            </div>
+            <div class="sidebar-section">
+                <label for="chat-sessions-select" class="sidebar-label">Chat History</label>
+                <select id="chat-sessions-select" title="Load a past chat session"></select>
+                <div class="chat-actions">
+                    <button id="rename-chat-button" title="Rename selected chat">Rename</button>
+                    <div class="chat-action-dropdown">
+                        <button id="fork-chat-button" title="Create a new chat based on this one">Fork <i class="fa-solid fa-caret-down fa-xs"></i></button>
+                        <div class="chat-action-dropdown-content">
+                            <a href="#" id="fork-ui-content-btn" title="Copy visible chat content to a new prompt">UI Content</a>
+                            <a href="#" id="fork-full-branch-btn" title="Create a complete, independent copy of this chat">Full Branch</a>
+                            <a href="#" id="fork-customise-btn" title="Select specific messages to copy to a new prompt">Customise...</a>
+                        </div>
+                    </div>
+                    <button id="delete-chat-button" title="Delete selected chat">Delete</button>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if is_workspace_page %}
+            <div class="sidebar-section">
+                <label class="sidebar-label">Workspaces</label>
+                <div class="flex flex-col gap-2">
+                {% for ui_contribution in sidebar_workspaces %}
+                    {% set contribution_active_ids = ui_contribution.active_ids|default([ui_contribution.id, ui_contribution.stable_id]) %}
+                    <a href="{{ url_for(ui_contribution.view_func) }}" class="sidebar-button {% if active_page in contribution_active_ids %}active{% endif %}"{% if ui_contribution.stable_id %} data-ui-contribution-id="{{ ui_contribution.stable_id }}"{% endif %}{% if ui_contribution.addon_id %} data-addon-id="{{ ui_contribution.addon_id }}"{% endif %}>
+                        <i class="fa-solid {{ ui_contribution.icon }}"></i><span class="button-text">{{ ui_contribution.name }}</span>
+                    </a>
+                {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if sidebar_pages %}
+            <div class="sidebar-section">
+                <label class="sidebar-label">Tools</label>
+                <div class="flex flex-col gap-2">
+                {% for ui_contribution in sidebar_pages %}
+                    {% set contribution_active_ids = ui_contribution.active_ids|default([ui_contribution.id, ui_contribution.stable_id]) %}
+                    <a href="{{ url_for(ui_contribution.view_func) }}" class="sidebar-button {% if active_page in contribution_active_ids %}active{% endif %}"{% if ui_contribution.stable_id %} data-ui-contribution-id="{{ ui_contribution.stable_id }}"{% endif %}{% if ui_contribution.addon_id %} data-addon-id="{{ ui_contribution.addon_id }}"{% endif %}>
+                        <i class="fa-solid {{ ui_contribution.icon }}"></i><span class="button-text">{{ ui_contribution.name }}</span>
+                    </a>
+                {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if is_chat_page %}
+            <details class="sidebar-section" id="knowledge-collections-section">
+                <summary class="sidebar-label">Library/Data</summary>
+                <div id="knowledge-collections-container">
+                    <!-- RAG and regular collection options will be loaded here. -->
+                </div>
+            </details>
+            <details class="sidebar-section" open>
+                <summary class="sidebar-label">Quick Access</summary>
+                <div id="ui-components-container" class="flex flex-col gap-2" data-legacy-helper-container-id="helpers-container">
+                    {% if sidebar_ui_components %}
+                        {% for ui_component in sidebar_ui_components %}
+                            <button id="ui-component-btn-{{ ui_component.id }}" class="sidebar-button open-ui-component-btn open-helper-btn" data-ui-component-loader-id="{{ ui_component.id }}" data-helper-id="{{ ui_component.id }}"{% if ui_component.stable_id %} data-ui-component-id="{{ ui_component.stable_id }}"{% endif %}{% if ui_component.ui_contribution_id %} data-ui-contribution-id="{{ ui_component.ui_contribution_id }}"{% endif %} title="{{ ui_component.description }}">
+                                <i class="fa-solid {{ ui_component.icon }}"></i>
+                                <span class="button-text">{{ ui_component.name }}</span>
+                            </button>
+                        {% endfor %}
+                    {% else %}
+                        <p class="px-3 text-sm text-ink-muted">No UI components available.</p>
+                    {% endif %}
+                </div>
+            </details>
+        {% endif %}
+
+        {% if is_workspace_page or active_page == 'settings' or active_page == 'knowledge' %}
+              <details class="sidebar-section" open>
+                <summary class="sidebar-label">Quick Access</summary>
+                <div id="ui-components-container" class="flex flex-col gap-2" data-legacy-helper-container-id="helpers-container">
+                    {% if sidebar_ui_components %}
+                        {% for ui_component in sidebar_ui_components %}
+                            <button class="sidebar-button open-ui-component-btn open-helper-btn" data-ui-component-loader-id="{{ ui_component.id }}" data-helper-id="{{ ui_component.id }}"{% if ui_component.stable_id %} data-ui-component-id="{{ ui_component.stable_id }}"{% endif %}{% if ui_component.ui_contribution_id %} data-ui-contribution-id="{{ ui_component.ui_contribution_id }}"{% endif %} title="{{ ui_component.description }}">
+                                <i class="fa-solid {{ ui_component.icon }}"></i>
+                                <span class="button-text">{{ ui_component.name }}</span>
+                            </button>
+                        {% endfor %}
+                    {% else %}
+                        <p class="px-3 text-sm text-ink-muted">No UI components available.</p>
+                    {% endif %}
+                </div>
+              </details>
+        {% endif %}
+    </div>
+    <div class="sidebar-footer">
+        {% if show_terms_link %}
+        <div class="text-center text-xs leading-5">
+            <a href="{{ url_for('terms') }}" class="tw-editorial-link underline">Terms of Service & Privacy Policy</a>
+        </div>
+        {% endif %}
+    </div>
+</aside>

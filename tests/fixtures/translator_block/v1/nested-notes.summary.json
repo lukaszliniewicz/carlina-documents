@@ -1,0 +1,1 @@
+{"roles":["blockquote","list_item","note_body"],"role_projections":{"blockquote":["Lead one","Child.","Tail."],"list_item":["Before","Nested.","After."]},"literal_policy":"note-reference"}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iarf.local/contracts/addon-module-descriptor.schema.json",
+  "title": "IARF addon application module descriptor",
+  "type": "object",
+  "required": ["id", "module_url", "frontend_api_range"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "module_url": {
+      "type": "string",
+      "pattern": "^/addons/[^/]+/"
+    },
+    "frontend_api_range": {
+      "type": "string",
+      "pattern": "^\\^[0-9]+\\.[0-9]+$"
+    }
+  },
+  "additionalProperties": true
+}

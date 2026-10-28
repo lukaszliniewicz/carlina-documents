@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "policy": "Packages marked private are excluded from public catalogs and publication artifacts by default.",
+  "status_semantics": "Package status records schema-2 contract migration only; it is not evidence that runtime behavior, capability use, Connections, UI, lifecycle, or functional tests have migrated.",
+  "packages": {
+    "doc_processor": {
+      "kind": "application",
+      "distribution": "built_in",
+      "status": "migrated"
+    },
+    "sentence_segmenter": {
+      "kind": "engine",
+      "distribution": "first_party",
+      "status": "migrated"
+    },
+    "translator": {
+      "kind": "application",
+      "distribution": "first_party",
+      "status": "migrated"
+    }
+  }
+}

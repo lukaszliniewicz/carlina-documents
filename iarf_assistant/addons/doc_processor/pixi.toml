@@ -1,0 +1,37 @@
+[workspace]
+name = "doc-processor"
+version = "2.0.0"
+description = "Carlina Add-on"
+authors = ["Carlina contributors"]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-arm64", "osx-64"]
+
+[activation.env]
+# The worker owns its native libraries; ambient user-site packages must not win.
+PYTHONNOUSERSITE = "1"
+
+[dependencies]
+python = "3.14.*"
+pip = "*"
+pandoc = "*"
+graphviz = "==14.1.2"
+beautifulsoup4 = "*"
+defusedxml = "*"
+pymupdf = ">=1.27,<2"
+pillow = "*"
+numpy = ">=2.5,<3"
+
+[pypi-dependencies]
+# Application packages come from the explicit host_v1 runtime bridge declared
+# by the worker contract. This environment owns only document-native packages.
+ebooklib = "*"
+lxml = "==6.1.1"
+pypandoc = "*"
+mistune = "*"
+markdownify = "*"
+extract-msg = ">=0.56,<0.57"
+pyjpegli = "==0.3.2"
+
+[target.win-64.dependencies]
+# Keep Windows on the OpenBLAS backend already selected by the Linux worker.
+libblas = { version = "*", build = "*openblas" }

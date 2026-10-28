@@ -1,0 +1,494 @@
+{
+  "schema_version": 2,
+  "source": {
+    "groups": {
+      "carlina": {
+        "member_count": 65,
+        "bytes": 745000
+      },
+      "iarf_assistant.host": {
+        "member_count": 247,
+        "bytes": 4200000
+      },
+      "iarf_assistant.addons.doc_processor": {
+        "member_count": 85,
+        "bytes": 2295000
+      },
+      "iarf_assistant.addons.sentence_segmenter": {
+        "member_count": 16,
+        "bytes": 155000
+      },
+      "iarf_assistant.addons.translator": {
+        "member_count": 136,
+        "bytes": 4000000
+      }
+    }
+  },
+  "locks": {
+    "platforms": {
+      "linux-64": {
+        "documents": 208,
+        "doc_processor:host": 8,
+        "doc_processor:document_processing": 171,
+        "sentence_segmenter:native_segmentation": 44,
+        "translator:host": 8
+      },
+      "win-64": {
+        "documents": 169,
+        "doc_processor:host": 8,
+        "doc_processor:document_processing": 116,
+        "sentence_segmenter:native_segmentation": 39,
+        "translator:host": 8
+      }
+    }
+  },
+  "wheel": {
+    "file_bytes": 33610000,
+    "file_count": 652
+  },
+  "fresh_documents_host_module_limit": 140,
+  "host_retention": {
+    "notices": {
+      "reason": "Original copyright and third-party notices remain with both namespaces and selected document products.",
+      "members": [
+        "LICENSE",
+        "THIRD_PARTY_NOTICES.md"
+      ]
+    },
+    "public_composition": {
+      "reason": "Stable public entry points resolve application profile, owned roots and one runtime owner. Private Workbench consumes the same source; profile selection cannot silently change an existing installation.",
+      "members": [
+        "carlina/__init__.py",
+        "carlina/_compat.py",
+        "carlina/bootstrap.py",
+        "carlina/bootstrap_manager.py",
+        "carlina/documents.py",
+        "carlina/managed_launcher.py",
+        "carlina/mcp_profiles.py",
+        "carlina/migration_rendering.py",
+        "carlina/product_identity.py",
+        "carlina/profile_binding.py",
+        "carlina/runtime_composition.py",
+        "carlina/runtime_environment.py",
+        "carlina/runtime_profiles.py",
+        "carlina/runtime_restart.py"
+      ]
+    },
+    "public_delivery": {
+      "reason": "Managed application generations use verified release/source identities, companion metadata, recovery policy, publisher bootstrap and native Windows artifact controls. These shared mechanisms support online install, update and source delivery.",
+      "members": [
+        "carlina/application_companions.py",
+        "carlina/application_source.py",
+        "carlina/core/application_distribution.py",
+        "carlina/core/bootstrap_ownership.py",
+        "carlina/core/database_checkpoint.py",
+        "carlina/core/initial_admin.py",
+        "carlina/core/installation-event-v1.schema.json",
+        "carlina/core/installation_handoff.py",
+        "carlina/core/installation_lifecycle.py",
+        "carlina/core/managed_probe.py",
+        "carlina/core/managed_target_recovery.py",
+        "carlina/core/native_download_scripts.py",
+        "carlina/core/native_preparation.py",
+        "carlina/core/native_preparation_shell.py",
+        "carlina/core/native_preparation_windows.py",
+        "carlina/core/publisher_bootstrap.py",
+        "carlina/core/publisher_bootstrap_scripts.py",
+        "carlina/core/publisher_installation.py",
+        "carlina/core/recovery_policy.py",
+        "carlina/core/windows_artifacts.py",
+        "carlina/distribution.py",
+        "carlina/managed_release_probe.py"
+      ]
+    },
+    "public_semantics": {
+      "reason": "Document and translation ingestion/export use the common semantic HTML, numbering, notes, bounded image descriptions, diagram and format helpers; duplicating them by product would split parsable output contracts.",
+      "members": [
+        "carlina/core/diagram_rendering.py",
+        "carlina/core/epub_cover.py",
+        "carlina/core/epub_export.py",
+        "carlina/core/export_notes.py",
+        "carlina/core/semantic_diagrams.py",
+        "carlina/core/semantic_export.py",
+        "carlina/core/semantic_html.py",
+        "carlina/core/semantic_images.py",
+        "carlina/core/semantic_numbering.py"
+      ]
+    },
+    "public_state": {
+      "reason": "Content storage and codecs preserve plaintext Documents content and existing encrypted-root compatibility without changing stored data or key lineage.",
+      "members": [
+        "carlina/content_codec.py",
+        "carlina/content_storage.py"
+      ]
+    },
+    "public_core_contracts": {
+      "reason": "Existing public core imports expose HTTP/language/model-runtime, policy/risk, format/URL and UTC contracts used by products and the native host. Compatibility aliases do not activate Workbench services.",
+      "members": [
+        "carlina/core/__init__.py",
+        "carlina/core/http_client.py",
+        "carlina/core/language.py",
+        "carlina/core/litellm_runtime.py",
+        "carlina/core/runtime_policy.py",
+        "carlina/core/text_formats.py",
+        "carlina/core/tool_risk.py",
+        "carlina/core/url_safety.py",
+        "carlina/core/utc.py"
+      ]
+    },
+    "host_composition": {
+      "reason": "Common initialization, profile-controlled route/scheduler/CLI registration, bootstrap state and managed entry points remain shared. Their guarded Workbench branches are retained in Git but corresponding optional implementations are excluded from Documents.",
+      "members": [
+        "iarf_assistant/__init__.py",
+        "iarf_assistant/addon_dispatch.py",
+        "iarf_assistant/app.py",
+        "iarf_assistant/blueprints.py",
+        "iarf_assistant/bootstrap.py",
+        "iarf_assistant/bootstrap_manager.py",
+        "iarf_assistant/bootstrap_state.py",
+        "iarf_assistant/cli.py",
+        "iarf_assistant/distribution_cli.py",
+        "iarf_assistant/product_identity.py",
+        "iarf_assistant/restart.py",
+        "iarf_assistant/scheduler.py",
+        "iarf_assistant/startup.py",
+        "iarf_assistant/wsgi.py"
+      ]
+    },
+    "common_browser": {
+      "reason": "Documents reuses authentication, account/provider/credential/add-on settings, MCP access and the browser shell. Settings now reads dependency-free memory defaults rather than importing chat execution.",
+      "members": [
+        "iarf_assistant/addon_routes.py",
+        "iarf_assistant/auth.py",
+        "iarf_assistant/credential_routes.py",
+        "iarf_assistant/frontend_routes.py",
+        "iarf_assistant/llm_routes.py",
+        "iarf_assistant/mcp_access_routes.py",
+        "iarf_assistant/pages.py",
+        "iarf_assistant/security.py",
+        "iarf_assistant/settings_frontend.py",
+        "iarf_assistant/settings_routes.py",
+        "iarf_assistant/template_context.py"
+      ]
+    },
+    "host_ui_contracts": {
+      "reason": "Shared browser and native add-on generations need frontend contracts, prebuilt asset verification, cache/build lifecycle and discovery policy. Maintainer build support remains part of that compatible generation contract; quality-tool dependencies are not Documents runtime dependencies.",
+      "members": [
+        "iarf_assistant/core/discovery_policy.py",
+        "iarf_assistant/core/frontend_builds.py",
+        "iarf_assistant/core/frontend_contracts.py",
+        "iarf_assistant/core/frontend_orchestration.py"
+      ]
+    },
+    "host_state": {
+      "reason": "The common ORM, SQLite persistence, database migration, encryption and secret compatibility services preserve identity and existing data policies. ORM records for omitted Workbench services remain deliberately compatible rather than being removed with their executors.",
+      "members": [
+        "iarf_assistant/core/data_migration.py",
+        "iarf_assistant/core/encryption.py",
+        "iarf_assistant/core/encryption_migration.py",
+        "iarf_assistant/core/legacy_secret.py",
+        "iarf_assistant/core/migration_runtime.py",
+        "iarf_assistant/core/safe_sqlite_store.py",
+        "iarf_assistant/core/settings_cache.py",
+        "iarf_assistant/database_utils.py",
+        "iarf_assistant/extensions.py",
+        "iarf_assistant/models.py"
+      ]
+    },
+    "model_services": {
+      "reason": "Document extraction and Translator use configured provider/model capabilities, access/readiness/routing, reasoning and embeddings. Shared vector backends remain lazy; these services do not construct the omitted assistant RAG service.",
+      "members": [
+        "iarf_assistant/core/embedding_model_registry.py",
+        "iarf_assistant/core/litellm_runtime.py",
+        "iarf_assistant/core/model_access.py",
+        "iarf_assistant/core/model_capabilities.py",
+        "iarf_assistant/core/model_readiness.py",
+        "iarf_assistant/core/model_router.py",
+        "iarf_assistant/core/prompt_telemetry.py",
+        "iarf_assistant/core/vector_backend.py",
+        "iarf_assistant/embedding_profiles.py",
+        "iarf_assistant/llm_logging.py",
+        "iarf_assistant/llm_provider_utils.py",
+        "iarf_assistant/llm_service.py",
+        "iarf_assistant/prompts.py",
+        "iarf_assistant/reasoning.py"
+      ]
+    },
+    "execution_contracts": {
+      "reason": "Translator research and native capability invocation use the common execution kernel and agent loop/events, scopes, runtime state and durable evidence. Workflow templates are a manager declaration contract; workspace-root metadata supports its compatible runtime inventory. Workbench chat/run/workspace executors are excluded separately.",
+      "members": [
+        "iarf_assistant/core/agent_events.py",
+        "iarf_assistant/core/agent_loop.py",
+        "iarf_assistant/core/artifact_retention.py",
+        "iarf_assistant/core/artifact_store.py",
+        "iarf_assistant/core/execution_kernel.py",
+        "iarf_assistant/core/execution_scope.py",
+        "iarf_assistant/core/executor_profile.py",
+        "iarf_assistant/core/memory_defaults.py",
+        "iarf_assistant/core/project_workspace_roots.py",
+        "iarf_assistant/core/runtime_contracts.py",
+        "iarf_assistant/core/runtime_data_store.py",
+        "iarf_assistant/core/runtime_policy.py",
+        "iarf_assistant/core/runtime_state.py",
+        "iarf_assistant/core/source_ledger.py",
+        "iarf_assistant/core/task_queue.py",
+        "iarf_assistant/core/worker_runtime.py",
+        "iarf_assistant/core/workflow_templates.py"
+      ]
+    },
+    "knowledge_publication": {
+      "reason": "Document Processor publishes through canonical document Knowledge services and compatible projections/indexing. This preserves source provenance and queries without shipping the separate Knowledge parser, worker or Workbench routes.",
+      "members": [
+        "iarf_assistant/core/document_knowledge.py",
+        "iarf_assistant/core/document_service.py",
+        "iarf_assistant/core/knowledge_fabric.py",
+        "iarf_assistant/core/knowledge_indexing.py",
+        "iarf_assistant/knowledge/__init__.py"
+      ]
+    },
+    "mcp_services": {
+      "reason": "The selected document/translation tool catalog shares the gateway, authenticated runtime, durable jobs, retained context, completion acceptance and work projection. News tool registration remains behind profile selection and its implementation is omitted.",
+      "members": [
+        "iarf_assistant/core/mcp_completion.py",
+        "iarf_assistant/core/mcp_gateway.py",
+        "iarf_assistant/core/mcp_gateway_runtime.py",
+        "iarf_assistant/core/mcp_jobs.py",
+        "iarf_assistant/core/mcp_retained_context.py",
+        "iarf_assistant/core/mcp_tool_runtime.py",
+        "iarf_assistant/core/mcp_work_projection.py"
+      ]
+    },
+    "managed_operations": {
+      "reason": "Native program and worker generations share owned paths, backup/restore/recovery, health/readiness, release verification/download, restart and runtime ownership. These are required operational contracts for isolated install, update and retained data.",
+      "members": [
+        "iarf_assistant/core/app_paths.py",
+        "iarf_assistant/core/backup_service.py",
+        "iarf_assistant/core/doctor.py",
+        "iarf_assistant/core/health.py",
+        "iarf_assistant/core/logging_observability.py",
+        "iarf_assistant/core/managed_bundle.py",
+        "iarf_assistant/core/managed_install.py",
+        "iarf_assistant/core/managed_worker_bootstrap.py",
+        "iarf_assistant/core/managed_worker_quiescence.py",
+        "iarf_assistant/core/release_downloads.py",
+        "iarf_assistant/core/release_manifest.py",
+        "iarf_assistant/core/release_manifest_schema.json",
+        "iarf_assistant/core/release_manifest_schema_v2.json",
+        "iarf_assistant/core/release_manifest_schema_v3.json",
+        "iarf_assistant/core/release_trust.json",
+        "iarf_assistant/core/restart_state.py",
+        "iarf_assistant/core/restore_service.py",
+        "iarf_assistant/core/runtime_ownership.py",
+        "iarf_assistant/core/startup_readiness.py",
+        "iarf_assistant/core/storage_report.py"
+      ]
+    },
+    "host_utilities": {
+      "reason": "Products and common host services reuse sanitized text/markdown, HTTP delivery, safe URLs/images/uploads, login/web security, language, policy/risk and time helpers.",
+      "members": [
+        "iarf_assistant/core/http_client.py",
+        "iarf_assistant/core/http_delivery.py",
+        "iarf_assistant/core/language.py",
+        "iarf_assistant/core/login_security.py",
+        "iarf_assistant/core/remote_images.py",
+        "iarf_assistant/core/text_formats.py",
+        "iarf_assistant/core/tool_risk.py",
+        "iarf_assistant/core/upload_paths.py",
+        "iarf_assistant/core/url_safety.py",
+        "iarf_assistant/core/utc.py",
+        "iarf_assistant/core/web_security.py",
+        "iarf_assistant/html_sanitizer.py",
+        "iarf_assistant/markdown.py"
+      ]
+    },
+    "native_addon_host": {
+      "reason": "The native manager shares manifest/API admission, immutable generation installation, dependency ownership, migration, registry, capability, connection, planning and owned cleanup contracts. ContainerLifecycleSupportMixin supplies marker naming and required-container rejection without a container backend; legacy facade, runtime, orchestration and audio spokes are omitted.",
+      "members": [
+        "iarf_assistant/core/addon_base.py",
+        "iarf_assistant/core/addon_contracts.py",
+        "iarf_assistant/core/addon_manager_core.py",
+        "iarf_assistant/core/addons/__init__.py",
+        "iarf_assistant/core/addons/admission.py",
+        "iarf_assistant/core/addons/alembic_runtime/__init__.py",
+        "iarf_assistant/core/addons/alembic_runtime/env.py",
+        "iarf_assistant/core/addons/builtin_reconciliation.py",
+        "iarf_assistant/core/addons/capabilities.py",
+        "iarf_assistant/core/addons/capability_discovery.py",
+        "iarf_assistant/core/addons/capability_matching.py",
+        "iarf_assistant/core/addons/capability_runtime.py",
+        "iarf_assistant/core/addons/catalog.py",
+        "iarf_assistant/core/addons/catalog_release_schema.json",
+        "iarf_assistant/core/addons/catalog_schema.json",
+        "iarf_assistant/core/addons/catalog_service.py",
+        "iarf_assistant/core/addons/catalog_trust.json",
+        "iarf_assistant/core/addons/connection_migration.py",
+        "iarf_assistant/core/addons/connections.py",
+        "iarf_assistant/core/addons/container_lifecycle_support.py",
+        "iarf_assistant/core/addons/contracts.py",
+        "iarf_assistant/core/addons/database_migrations.py",
+        "iarf_assistant/core/addons/dependency_contracts.py",
+        "iarf_assistant/core/addons/dependency_orchestration.py",
+        "iarf_assistant/core/addons/discovery.py",
+        "iarf_assistant/core/addons/doctor.py",
+        "iarf_assistant/core/addons/environments.py",
+        "iarf_assistant/core/addons/frontend_build_orchestration.py",
+        "iarf_assistant/core/addons/frontend_cache_generation.py",
+        "iarf_assistant/core/addons/imports.py",
+        "iarf_assistant/core/addons/installation.py",
+        "iarf_assistant/core/addons/installer.py",
+        "iarf_assistant/core/addons/inventory_metadata.py",
+        "iarf_assistant/core/addons/inventory_projection.py",
+        "iarf_assistant/core/addons/lifecycle.py",
+        "iarf_assistant/core/addons/lifecycle_orchestration.py",
+        "iarf_assistant/core/addons/lifecycle_teardown.py",
+        "iarf_assistant/core/addons/managed_process_orchestration.py",
+        "iarf_assistant/core/addons/managed_process_runtime.py",
+        "iarf_assistant/core/addons/manager_selection.py",
+        "iarf_assistant/core/addons/migration_capsules.py",
+        "iarf_assistant/core/addons/migration_contracts.py",
+        "iarf_assistant/core/addons/migration_inventory.py",
+        "iarf_assistant/core/addons/native_manager.py",
+        "iarf_assistant/core/addons/operations.py",
+        "iarf_assistant/core/addons/package_runtime.py",
+        "iarf_assistant/core/addons/planning_inputs.py",
+        "iarf_assistant/core/addons/private_overlays.py",
+        "iarf_assistant/core/addons/registry_rebuild.py",
+        "iarf_assistant/core/addons/runtime_model_roles.py",
+        "iarf_assistant/core/addons/runtime_planning.py",
+        "iarf_assistant/core/addons/schema_ownership.py",
+        "iarf_assistant/core/addons/settings.py",
+        "iarf_assistant/core/addons/source_coverage.py",
+        "iarf_assistant/core/addons/startup_loading.py",
+        "iarf_assistant/core/addons/storage.py",
+        "iarf_assistant/core/manifest_schema.json",
+        "iarf_assistant/core/manifest_schema.py"
+      ]
+    },
+    "public_addon_api": {
+      "reason": "The public native add-on API, runtime ports and its dependency-light testing helpers retain supported import compatibility; no separate development tool environment is shipped.",
+      "members": [
+        "carlina/addons/__init__.py",
+        "carlina/addons/api/__init__.py",
+        "carlina/addons/api/testing.py",
+        "carlina/addons/package_runtime_ports.py"
+      ]
+    },
+    "legacy_addon_api": {
+      "reason": "Legacy API imports delegate to the public SDK, including its testing helper, so compatible native integrations can consume one implementation.",
+      "members": [
+        "iarf_assistant/addon_api/__init__.py",
+        "iarf_assistant/addon_api/testing.py"
+      ]
+    },
+    "segmentation": {
+      "reason": "Native sentence segmentation and pinned SaT preparation/protocol support Translator without Docker or WSL.",
+      "members": [
+        "carlina/segmentation/__init__.py",
+        "carlina/segmentation/native_engine.py",
+        "carlina/segmentation/native_protocol.py",
+        "carlina/segmentation/prepare.py",
+        "carlina/segmentation/sat_assets.py"
+      ]
+    },
+    "migration_lineage": {
+      "reason": "All core migration IDs and Alembic templates remain byte-compatible, including historical Workbench records. Removing executor payloads must not fork the database schema or block an existing root's forward migration.",
+      "members": [
+        "iarf_assistant/migrations/alembic.ini",
+        "iarf_assistant/migrations/env.py",
+        "iarf_assistant/migrations/script.py.mako",
+        "iarf_assistant/migrations/versions/0236dd4bd4ac_add_speech_timing_dataset_models.py",
+        "iarf_assistant/migrations/versions/1549076a28cb_add_documentmetadata_model_for_doc_.py",
+        "iarf_assistant/migrations/versions/1e63bec4585b_add_cached_input_pricing_to_llmmodel.py",
+        "iarf_assistant/migrations/versions/20260416_add_supports_reasoning.py",
+        "iarf_assistant/migrations/versions/20260512_artifact_versions_review.py",
+        "iarf_assistant/migrations/versions/20260512_chat_active_capability_ids.py",
+        "iarf_assistant/migrations/versions/20260512_phase4_runtime_state.py",
+        "iarf_assistant/migrations/versions/20260512_run_kind_ad_hoc.py",
+        "iarf_assistant/migrations/versions/20260512_run_planning_provenance.py",
+        "iarf_assistant/migrations/versions/20260513_multi_openai_endpoints.py",
+        "iarf_assistant/migrations/versions/20260514_workflow_dag_schema.py",
+        "iarf_assistant/migrations/versions/20260514_workflow_run_titles.py",
+        "iarf_assistant/migrations/versions/20260515_workflow_run_chat_session.py",
+        "iarf_assistant/migrations/versions/20260515_workflow_run_chat_session_fk.py",
+        "iarf_assistant/migrations/versions/20260518_doc_metadata_add_issn.py",
+        "iarf_assistant/migrations/versions/20260518_doc_metadata_create_if_missing.py",
+        "iarf_assistant/migrations/versions/20260519_runtime_source_record_columns.py",
+        "iarf_assistant/migrations/versions/20260520_org_memory_system_encryption.py",
+        "iarf_assistant/migrations/versions/20260524_rm_custom_openai.py",
+        "iarf_assistant/migrations/versions/20260529_setting_value_text.py",
+        "iarf_assistant/migrations/versions/20260724_execution_kernel.py",
+        "iarf_assistant/migrations/versions/20260724_runtime_interactions.py",
+        "iarf_assistant/migrations/versions/20260725_runtime_collections.py",
+        "iarf_assistant/migrations/versions/20260726_workflow_template.py",
+        "iarf_assistant/migrations/versions/20260728_context_fabric_v2.py",
+        "iarf_assistant/migrations/versions/20260728_knowledge_fabric_v2.py",
+        "iarf_assistant/migrations/versions/20260729_chat_history_indexes.py",
+        "iarf_assistant/migrations/versions/20260731_addon_api_v1.py",
+        "iarf_assistant/migrations/versions/20260731_backend_performance.py",
+        "iarf_assistant/migrations/versions/20260801_addon_connections.py",
+        "iarf_assistant/migrations/versions/20260804_addon_lifecycle_state.py",
+        "iarf_assistant/migrations/versions/20260812_compass_client_auth.py",
+        "iarf_assistant/migrations/versions/20260901_mcp_external_jobs.py",
+        "iarf_assistant/migrations/versions/20260904_mcp_batch_dispatch.py",
+        "iarf_assistant/migrations/versions/20260904_mcp_request_retention.py",
+        "iarf_assistant/migrations/versions/20260920_mcp_claim_receipts.py",
+        "iarf_assistant/migrations/versions/20260920_news_mcp.py",
+        "iarf_assistant/migrations/versions/20260926_mcp_transport.py",
+        "iarf_assistant/migrations/versions/20260930_mcp_suspension.py",
+        "iarf_assistant/migrations/versions/20261004_llm_audio_input.py",
+        "iarf_assistant/migrations/versions/2712fe83eb9d_add_orgmemory_and_usermemory.py",
+        "iarf_assistant/migrations/versions/497401de4bc9_add_supports_audio_in.py",
+        "iarf_assistant/migrations/versions/60e8bba8d4f3_add_subtitle_studio_parent_id.py",
+        "iarf_assistant/migrations/versions/70bd868428a2_add_speech_timing_media_file.py",
+        "iarf_assistant/migrations/versions/74b2ac55712f_add_embedding_custom_fields.py",
+        "iarf_assistant/migrations/versions/78bb22784079_add_supports_audio_in.py",
+        "iarf_assistant/migrations/versions/7d39a8bd45c5_add_working_memory_to_chatsession.py",
+        "iarf_assistant/migrations/versions/7ecca68e4a32_add_supported_reasoning_levels.py",
+        "iarf_assistant/migrations/versions/add_tts_audio_path_001.py",
+        "iarf_assistant/migrations/versions/b3dd8694c5b4_add_useralert_table.py",
+        "iarf_assistant/migrations/versions/dd2d3e720c4b_add_workflowtemplate.py",
+        "iarf_assistant/migrations/versions/ed60d16b91d6_added_api_version_to_apikey_for_azure_.py",
+        "iarf_assistant/migrations/versions/f89bb6ee5cd6_remove_scrapedorganisation_from_core_.py",
+        "iarf_assistant/migrations/versions/fc3d23859b3b_initial_migration.py"
+      ]
+    },
+    "migration_templates": {
+      "reason": "Native add-on generation migrations use the common Alembic environment and templates; these remain separate from removing Workbench workflow executors.",
+      "members": [
+        "iarf_assistant/core/alembic_templates/alembic.ini.mako",
+        "iarf_assistant/core/alembic_templates/env.py.mako",
+        "iarf_assistant/core/alembic_templates/main_env.py",
+        "iarf_assistant/core/alembic_templates/script.py.mako"
+      ]
+    },
+    "database_types": {
+      "reason": "Shared encrypted/plaintext ORM types preserve recorded root policy and existing values.",
+      "members": [
+        "iarf_assistant/database/__init__.py",
+        "iarf_assistant/database/types.py"
+      ]
+    },
+    "sqlite_persistence": {
+      "reason": "Common SQLite initialization and bounded query instrumentation support the shared ORM and product-owned stores.",
+      "members": [
+        "iarf_assistant/core/persistence/__init__.py",
+        "iarf_assistant/core/persistence/query_metrics.py",
+        "iarf_assistant/core/persistence/sqlite.py"
+      ]
+    },
+    "state_projections": {
+      "reason": "Shared models/runtime_state serialize compatible collection/run records through these pure projections. Translator capability research reaches runtime_state; the broad Workbench orchestrator/compiler is excluded.",
+      "members": [
+        "iarf_assistant/core/collections/__init__.py",
+        "iarf_assistant/core/collections/projections.py"
+      ]
+    },
+    "run_projections": {
+      "reason": "Run record projections remain a model/runtime_state compatibility dependency reached by the common execution kernel; Workbench run compilation and orchestration are excluded.",
+      "members": [
+        "iarf_assistant/core/runs/__init__.py",
+        "iarf_assistant/core/runs/projections.py"
+      ]
+    }
+  }
+}

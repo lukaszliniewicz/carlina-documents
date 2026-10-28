@@ -1,0 +1,29 @@
+{
+  "addon_id": "sentence_segmenter",
+  "addon_version": "1.2.4",
+  "build_command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "built_at": "2026-10-28T22:00:59Z",
+  "frontend_api_range": "^1.0",
+  "lockfile_hash": "4d9f71c349b8583611052cc777786eb1ee0048cf5cc42e31d761a753525f7b46",
+  "lockfile_paths": [
+    "@workspace/package-lock.json"
+  ],
+  "output_paths": [
+    "static/dist/segmenter-tester.js",
+    "static/dist/segmenter-tester.css"
+  ],
+  "schema_version": 3,
+  "source_hash": "f08f2bacc158c749748ccae474b42f1dd43ca27752f4af2030afca087d168a64",
+  "source_paths": [
+    "frontend/src",
+    "frontend/package.json",
+    "frontend/tsconfig.json",
+    "frontend/vite.config.ts",
+    "@workspace/frontend/packages/sdk/src",
+    "@workspace/frontend/packages/sdk/package.json"
+  ]
+}

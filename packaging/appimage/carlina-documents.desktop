@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Carlina Documents
+Comment=Extract, review and translate documents
+Exec=AppRun
+Icon=carlina-documents
+Terminal=false
+Categories=Office;
+StartupNotify=true
+StartupWMClass=CarlinaDocuments

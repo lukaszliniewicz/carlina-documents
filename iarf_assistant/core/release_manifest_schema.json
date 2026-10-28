@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/schemas/release-index-v1.json",
+  "title": "Carlina signed release index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schema_version",
+    "channel",
+    "generated_at",
+    "releases",
+    "signatures"
+  ],
+  "properties": {
+    "format": {"const": "carlina.release-index"},
+    "schema_version": {"const": 1},
+    "application_profile": {"enum": ["workbench", "documents"]},
+    "channel": {"enum": ["stable", "preview"]},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "releases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/release"}
+    },
+    "signatures": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/signature"}
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "kind", "filename", "url", "sha256", "size"],
+      "properties": {
+        "platform": {
+          "enum": [
+            "win-64",
+            "win-arm64",
+            "linux-64",
+            "linux-aarch64",
+            "osx-64",
+            "osx-arm64"
+          ]
+        },
+        "kind": {"enum": ["pixi-pack-bundle", "pixi-pack-executable"]},
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "url": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size": {"type": "integer", "minimum": 1, "maximum": 21474836480}
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known_revisions", "heads", "rollback"],
+      "properties": {
+        "known_revisions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 128}
+        },
+        "heads": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 128}
+        },
+        "rollback": {"enum": ["compatible", "restore_required"]}
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "published_at",
+        "addon_api_version",
+        "database",
+        "artifacts"
+      ],
+      "properties": {
+        "version": {"type": "string", "minLength": 1, "maxLength": 80},
+        "published_at": {"type": "string", "format": "date-time"},
+        "addon_api_version": {"type": "string", "minLength": 1, "maxLength": 40},
+        "database": {"$ref": "#/$defs/database"},
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/artifact"}
+        },
+        "notes_url": {"type": ["string", "null"], "maxLength": 2048}
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "value"],
+      "properties": {
+        "key_id": {"type": "string", "pattern": "^ed25519:[0-9a-f]{16}$"},
+        "algorithm": {"const": "ed25519"},
+        "value": {"type": "string", "minLength": 80, "maxLength": 120}
+      }
+    }
+  }
+}

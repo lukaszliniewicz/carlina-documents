@@ -1,0 +1,290 @@
+{
+  "id": "translator",
+  "name": "AI Translator Workspace",
+  "version": "2.10.0",
+  "package_format_version": 1,
+  "addon_api": {
+    "requires": ">=1,<2"
+  },
+  "kind": "application",
+  "distribution": {
+    "channel": "first_party",
+    "publisher": "Carlina Project"
+  },
+  "runtime": {
+    "units": [
+      {
+        "id": "host",
+        "mode": "in_process",
+        "entry_point": {
+          "module": ".",
+          "class": "TranslatorAddon"
+        },
+        "lifecycle": "host_managed"
+      },
+      {
+        "id": "translation_processing",
+        "mode": "managed_process",
+        "lifecycle": "always_on",
+        "config": {
+          "script": "worker.py",
+          "environment": "app"
+        }
+      }
+    ]
+  },
+  "ui": {
+    "entries": [
+      {
+        "id": "workspace",
+        "mode": "svelte_application",
+        "module": "static/dist/application.js",
+        "route": "/addons/translator/",
+        "css_assets": [
+          "static/dist/application.css",
+          "static/dist/WorkspaceGate.css"
+        ]
+      }
+    ]
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "translator",
+        "capability": "document.translation",
+        "version": "1.0.0",
+        "operations": [
+          "translate",
+          "review",
+          "export"
+        ],
+        "runtime_unit": "translation_processing"
+      }
+    ]
+  },
+  "requires": {
+    "packages": [],
+    "capabilities": [
+      {
+        "id": "document_processor",
+        "capability": "document.processing",
+        "version": ">=1,<2",
+        "operations": [
+          "list",
+          "read",
+          "job_status"
+        ],
+        "cardinality": "optional",
+        "activation": "on_first_use",
+        "scope": "user"
+      },
+      {
+        "id": "semantic_export",
+        "capability": "document.semantic_export",
+        "version": ">=1,<2",
+        "operations": [
+          "export"
+        ],
+        "cardinality": "optional",
+        "activation": "on_first_use",
+        "scope": "user"
+      },
+      {
+        "id": "subtitle_source",
+        "capability": "subtitles.authoring",
+        "version": ">=1,<2",
+        "operations": [
+          "list",
+          "read",
+          "translation_units",
+          "render",
+          "export"
+        ],
+        "cardinality": "optional",
+        "activation": "on_first_use",
+        "scope": "user"
+      },
+      {
+        "id": "sentence_segmentation",
+        "capability": "text.segmentation",
+        "version": ">=1,<2",
+        "operations": [
+          "segment"
+        ],
+        "cardinality": "optional",
+        "activation": "on_first_use",
+        "scope": "user"
+      }
+    ]
+  },
+  "permissions": [
+    {
+      "id": "ui.serve",
+      "reason": "Serve the declared Svelte or schema-driven user interface."
+    },
+    {
+      "id": "process.spawn",
+      "reason": "Run declared supervised background workers."
+    },
+    {
+      "id": "model.invoke",
+      "reason": "Invoke configured language or multimodal models for the declared workflow."
+    },
+    {
+      "id": "filesystem.user_files",
+      "reason": "Read or write files explicitly selected or produced by the user."
+    },
+    {
+      "id": "database.shared",
+      "reason": "Persist the add-on's declared application records."
+    }
+  ],
+  "resources": [
+    {
+      "id": "translator.user_files",
+      "access": [
+        "read",
+        "write"
+      ],
+      "description": "Files selected or generated through this add-on."
+    }
+  ],
+  "storage": {
+    "state": "persistent",
+    "worker_temp": "temporary",
+    "artifacts": "user_managed"
+  },
+  "roles": [
+    "workspace"
+  ],
+  "categories": [
+    "translation",
+    "documents",
+    "productivity"
+  ],
+  "visibility": "user",
+  "author": "Carlina Project",
+  "description": "Editorial translation workspace for immutable semantic documents, with optional terminology research and source-target block review.",
+  "frontend": {
+    "tier": "compiled_workspace",
+    "api_version": "^1.0",
+    "module": "static/dist/application.js",
+    "css_assets": [
+      "static/dist/application.css",
+      "static/dist/WorkspaceGate.css"
+    ],
+    "build": {
+      "source_dir": "frontend",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "watch_command": [
+        "npm",
+        "run",
+        "dev"
+      ],
+      "source_paths": [
+        "frontend/src",
+        "frontend/package.json",
+        "frontend/vite.config.js",
+        "frontend/tsconfig.json"
+      ],
+      "workspace_lockfiles": [
+        "package-lock.json"
+      ],
+      "workspace_source_paths": [
+        "frontend/packages/sdk/src",
+        "frontend/packages/sdk/package.json",
+        "frontend/packages/ui/src",
+        "frontend/packages/ui/package.json"
+      ],
+      "outputs": [
+        "dist/application.js",
+        "dist/workspace.js",
+        "dist/application.css",
+        "dist/WorkspaceGate.css"
+      ]
+    }
+  },
+  "ui_contributions": [
+    {
+      "id": "workspace",
+      "kind": "workspace",
+      "title": "Translator",
+      "description": "Manage agentic translation projects, terminology analysis, segments, glossary, and exports.",
+      "surfaces": [
+        {
+          "kind": "page",
+          "view_func": "translator.index",
+          "active_page": "translator"
+        }
+      ],
+      "entrypoints": [
+        {
+          "kind": "workspace_launcher",
+          "section": "Workspaces",
+          "icon": "fa-language"
+        }
+      ]
+    }
+  ],
+  "entry_point_class": "TranslatorAddon",
+  "settings_schema": [
+    {
+      "id": "prompt_terminology_analyzer",
+      "name": "Pre-Translation Analyzer Prompt",
+      "description": "System prompt for the agent that scans the document to build the initial glossary.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_translator_agent",
+      "name": "Main Translation Agent Prompt",
+      "description": "System prompt for the main translating agent translating the segments.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    }
+  ],
+  "workers": [
+    {
+      "id": "translation_processing",
+      "name": "Translation Workspace Worker",
+      "entrypoint": "worker.py",
+      "runtime": "python",
+      "execution_environment": "app",
+      "allow_environment_fallback": false
+    }
+  ],
+  "dependencies": {
+    "addons": [],
+    "python": {
+      "environments": [
+        {
+          "id": "host",
+          "environment": "in_process_vendor",
+          "runtime_units": [
+            "host"
+          ],
+          "python_version": "3.14",
+          "lockfile": "requirements.lock",
+          "lock_format": "pip_requirements",
+          "require_hashes": true,
+          "pip_packages": [
+            "beautifulsoup4>=4.13,<5",
+            "mistune>=3.3.4,<4",
+            "Pillow>=12.3,<13",
+            "pysbd>=0.3.4,<0.4",
+            "pyenchant>=3.3,<4",
+            "regex==2026.7.19"
+          ]
+        }
+      ]
+    }
+  },
+  "manifest_schema_version": 2,
+  "migration_status": "explicit_migrated"
+}

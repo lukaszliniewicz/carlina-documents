@@ -1,0 +1,22 @@
+{
+  "name": "@carlina/runtime-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./graph": "./src/RunGraph.svelte",
+    "./schema-fields": "./src/SchemaFields.svelte",
+    "./status-mark": "./src/StatusMark.svelte"
+  },
+  "dependencies": {
+    "@carlina/sdk": "*",
+    "@carlina/ui": "*",
+    "@xyflow/svelte": "1.6.2",
+    "elkjs": "0.12.0"
+  },
+  "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --test ./test/*.test.ts"
+  }
+}

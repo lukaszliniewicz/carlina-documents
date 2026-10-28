@@ -1,0 +1,33 @@
+{% extends "public_layout.html" %}
+
+{% block title %}Frontend unavailable · {{ product.name }}{% endblock %}
+{% block eyebrow %}Local maintenance{% endblock %}
+{% block heading %}The interface needs attention.{% endblock %}
+{% block introduction %}
+    <p class="public-lede">
+        The server is running, but its compiled Svelte assets are missing,
+        stale, or temporarily disabled.
+    </p>
+{% endblock %}
+
+{% block content %}
+    <div class="public-panel public-form">
+        <p class="public-note">
+            From the repository root, run
+            <code>python scripts/setup_dev.py --repair</code>, then refresh this
+            page. The repair is idempotent and keeps application data intact.
+        </p>
+        <a class="public-action" href="{{ request.path }}">Check the interface again</a>
+        <p class="public-note">
+            Route: {{ route_id }}. If repair reports a dependency problem, review
+            its terminal output before restarting the launcher.
+        </p>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <form method="post" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+        <button type="submit" class="public-link">Sign out</button>
+    </form>
+{% endblock %}

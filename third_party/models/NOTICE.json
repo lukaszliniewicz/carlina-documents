@@ -1,0 +1,63 @@
+{
+  "asset_delivery": "Explicit preparation downloads the three pinned inference files directly from the publisher; model weights and tokenizer data are not bundled in the application wheel.",
+  "asset_manifest_sha256": "cb214bc3ef1ef8704fe8d40f9211f5cb261b04be12df44f4548fc7630d2ec134",
+  "assets": [
+    {
+      "byte_length": 556287754,
+      "filename": "model_optimized.onnx",
+      "path": "model/model_optimized.onnx",
+      "repository": "segment-any-text/sat-12l-sm",
+      "revision": "d70c72a9331b2d5a9e82baad00c64964a23a09bb",
+      "sha256": "0bb8cf275f98e1c337138bcecdf007876fb2a2b0eb4b5756ce627b2b0510c2c7",
+      "url": "https://huggingface.co/segment-any-text/sat-12l-sm/resolve/d70c72a9331b2d5a9e82baad00c64964a23a09bb/model_optimized.onnx"
+    },
+    {
+      "byte_length": 967,
+      "filename": "config.json",
+      "path": "model/config.json",
+      "repository": "segment-any-text/sat-12l-sm",
+      "revision": "d70c72a9331b2d5a9e82baad00c64964a23a09bb",
+      "sha256": "ed9094a56926e0ca1302f6c7ca9b11cf2ea0eced84d0f330ad938cba0fcc6209",
+      "url": "https://huggingface.co/segment-any-text/sat-12l-sm/resolve/d70c72a9331b2d5a9e82baad00c64964a23a09bb/config.json"
+    },
+    {
+      "byte_length": 9096718,
+      "filename": "tokenizer.json",
+      "path": "tokenizer/tokenizer.json",
+      "repository": "FacebookAI/xlm-roberta-base",
+      "revision": "e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+      "sha256": "a898ea75433890f6610f4e470b8ebeb0c21dce5c8dd61f892eb09eb5919d2e2c",
+      "url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/tokenizer.json"
+    }
+  ],
+  "format": "carlina.segmentation-model-notices",
+  "repositories": [
+    {
+      "declared_license": "MIT",
+      "license_evidence": "publisher model-card metadata",
+      "notice": {
+        "bytes": 714,
+        "file": "segment-any-text-sat-12l-sm.md",
+        "sha256": "f6efb83c4ea6c9d6668a588b1c6ebbff9008372ecf6cce3b4eb896b6b2ab5113",
+        "upstream_url": "https://huggingface.co/segment-any-text/sat-12l-sm/resolve/d70c72a9331b2d5a9e82baad00c64964a23a09bb/README.md"
+      },
+      "repository": "segment-any-text/sat-12l-sm",
+      "revision": "d70c72a9331b2d5a9e82baad00c64964a23a09bb",
+      "standalone_license_text_present": false
+    },
+    {
+      "declared_license": "MIT",
+      "license_evidence": "publisher model-card metadata",
+      "notice": {
+        "bytes": 5238,
+        "file": "FacebookAI-xlm-roberta-base.md",
+        "sha256": "bec9f2cd81f7396a64ee474145117d81139906443a21480cbe4993c97cb499aa",
+        "upstream_url": "https://huggingface.co/FacebookAI/xlm-roberta-base/resolve/e73636d4f797dec63c3081bb6ed5c7b0bb3f2089/README.md"
+      },
+      "repository": "FacebookAI/xlm-roberta-base",
+      "revision": "e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+      "standalone_license_text_present": false
+    }
+  ],
+  "schema_version": 1
+}

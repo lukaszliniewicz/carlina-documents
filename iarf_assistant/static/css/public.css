@@ -1,0 +1,311 @@
+:root {
+    color-scheme: light;
+    --public-paper: #f3f0e8;
+    --public-surface: #faf8f2;
+    --public-surface-muted: #ebe7dc;
+    --public-ink: #292823;
+    --public-ink-soft: #555248;
+    --public-ink-muted: #777164;
+    --public-rule: #c9c1b2;
+    --public-rule-strong: #9e9482;
+    --public-clay: #8b6655;
+    --public-clay-muted: #e7ddd3;
+    --public-lichen: #68705a;
+    --public-danger: #87554d;
+    --public-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --public-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    background: var(--public-paper);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background:
+        linear-gradient(90deg, transparent 0 74%, rgb(139 102 85 / 0.045) 74% 74.08%, transparent 74.08%),
+        linear-gradient(180deg, var(--public-paper), #efebe1);
+    color: var(--public-ink);
+    font-family: var(--public-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+    border-radius: 0;
+    font: inherit;
+}
+
+a {
+    color: inherit;
+}
+
+.public-shell {
+    width: min(100% - 2rem, 76rem);
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    margin: 0 auto;
+}
+
+.public-masthead,
+.public-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--public-rule-strong);
+    padding: 1.1rem 0;
+}
+
+.public-wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.72rem;
+    text-decoration: none;
+}
+
+.public-wordmark span {
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--public-clay);
+    color: var(--public-clay);
+    font-family: var(--public-serif);
+    font-size: 0.74rem;
+}
+
+.public-wordmark strong {
+    font-family: var(--public-serif);
+    font-size: 1.02rem;
+    font-weight: 560;
+}
+
+.public-masthead p,
+.public-footer {
+    margin: 0;
+    color: var(--public-ink-muted);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+}
+
+.public-main {
+    display: grid;
+    grid-template-columns: minmax(14rem, 0.72fr) minmax(20rem, 1fr);
+    align-items: start;
+    gap: clamp(2rem, 7vw, 7rem);
+    padding: clamp(3rem, 10vh, 7rem) 0;
+}
+
+.public-introduction {
+    position: sticky;
+    top: 2rem;
+}
+
+.public-eyebrow {
+    margin: 0 0 1.2rem;
+    color: var(--public-clay);
+    font-size: 0.65rem;
+    font-weight: 750;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+
+.public-introduction h1 {
+    max-width: 11ch;
+    margin: 0;
+    font-family: var(--public-serif);
+    font-size: clamp(2.45rem, 6vw, 4.9rem);
+    font-weight: 460;
+    letter-spacing: -0.035em;
+    line-height: 0.96;
+}
+
+.public-lede {
+    max-width: 31rem;
+    margin: 1.5rem 0 0;
+    color: var(--public-ink-soft);
+    font-family: var(--public-serif);
+    font-size: 1.02rem;
+    line-height: 1.6;
+}
+
+.public-panel {
+    border: 1px solid var(--public-rule-strong);
+    background: rgb(250 248 242 / 0.88);
+}
+
+.public-form {
+    display: grid;
+    gap: 1.25rem;
+    padding: clamp(1.35rem, 4vw, 2.35rem);
+}
+
+.public-field {
+    display: grid;
+    gap: 0.48rem;
+}
+
+.public-field label {
+    color: var(--public-ink-soft);
+    font-size: 0.68rem;
+    font-weight: 720;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.public-field input {
+    width: 100%;
+    min-height: 3rem;
+    border: 1px solid var(--public-rule);
+    padding: 0.75rem 0.85rem;
+    background: var(--public-paper);
+    color: var(--public-ink);
+}
+
+.public-field input:hover {
+    border-color: var(--public-rule-strong);
+}
+
+.public-field input:focus {
+    border-color: var(--public-clay);
+    outline: 2px solid var(--public-clay);
+    outline-offset: 2px;
+}
+
+.public-action {
+    min-height: 3rem;
+    border: 1px solid var(--public-ink);
+    padding: 0.72rem 1rem;
+    cursor: pointer;
+    background: var(--public-ink);
+    color: var(--public-surface);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+}
+
+.public-action:hover {
+    background: var(--public-clay);
+}
+
+.public-notice {
+    border-left: 2px solid var(--public-danger);
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    background: color-mix(in srgb, var(--public-danger) 9%, var(--public-surface));
+    color: var(--public-danger);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+.public-note {
+    margin: 0;
+    color: var(--public-ink-muted);
+    font-size: 0.7rem;
+    line-height: 1.55;
+}
+
+.public-link {
+    color: var(--public-clay);
+    font-weight: 680;
+    text-underline-offset: 0.2em;
+}
+
+.public-policy {
+    padding: clamp(1.35rem, 4vw, 2.5rem);
+    color: var(--public-ink-soft);
+    font-family: var(--public-serif);
+    font-size: 1rem;
+    line-height: 1.72;
+}
+
+.public-policy > :first-child {
+    margin-top: 0;
+}
+
+.public-policy > :last-child {
+    margin-bottom: 0;
+}
+
+.public-policy h1,
+.public-policy h2,
+.public-policy h3 {
+    color: var(--public-ink);
+    font-family: var(--public-serif);
+    font-weight: 520;
+    line-height: 1.15;
+}
+
+.public-policy h1 {
+    font-size: 2rem;
+}
+
+.public-policy h2 {
+    border-top: 1px solid var(--public-rule);
+    margin-top: 2.3rem;
+    padding-top: 1.2rem;
+    font-size: 1.42rem;
+}
+
+.public-policy h3 {
+    font-size: 1.14rem;
+}
+
+.public-policy a {
+    color: var(--public-clay);
+    text-underline-offset: 0.18em;
+}
+
+.public-policy code {
+    padding: 0.08rem 0.24rem;
+    background: var(--public-surface-muted);
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-size: 0.82em;
+}
+
+.public-footer {
+    border-top: 1px solid var(--public-rule);
+    border-bottom: 0;
+}
+
+@media (max-width: 48rem) {
+    .public-shell {
+        width: min(100% - 1.5rem, 40rem);
+    }
+
+    .public-masthead p {
+        display: none;
+    }
+
+    .public-main {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        padding: 2.5rem 0;
+    }
+
+    .public-introduction {
+        position: static;
+    }
+
+    .public-introduction h1 {
+        max-width: 13ch;
+        font-size: clamp(2.5rem, 14vw, 4rem);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+    }
+}

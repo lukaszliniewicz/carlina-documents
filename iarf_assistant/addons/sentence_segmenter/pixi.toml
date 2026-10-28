@@ -1,0 +1,22 @@
+[workspace]
+name = "sentence-segmenter-native"
+version = "1.2.4"
+description = "Pinned native SaT CPU worker"
+channels = ["conda-forge"]
+platforms = ["linux-64", "win-64"]
+
+[dependencies]
+python = "3.14.*"
+pip = "*"
+
+[pypi-dependencies]
+wtpsplit-lite = "==0.2.0"
+onnxruntime = "==1.26.0"
+numpy = "==2.5.2"
+tokenizers = "==0.21.1"
+huggingface-hub = "==0.32.6"
+
+[activation.env]
+PYTHONNOUSERSITE = "1"
+HF_HUB_OFFLINE = "1"
+HF_HUB_DISABLE_TELEMETRY = "1"

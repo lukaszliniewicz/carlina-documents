@@ -1,0 +1,512 @@
+{
+  "format": "carlina.frontend-original-notices",
+  "schema_version": 1,
+  "package_lock_sha256": "7703450d67887db27244a649721e694582d72b3389c4e9e4b1fae6bba6588bba",
+  "coverage": {
+    "selection": "Emitted package owners, generated JavaScript helpers and current/legacy Tailwind styles.",
+    "nested_dependency_review_complete": false
+  },
+  "components": [
+    {
+      "name": "@svelte-put/shortcut",
+      "version": "4.2.0",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/@svelte-put/shortcut/-/shortcut-4.2.0.tgz",
+        "integrity": "sha512-hqNLo4yEc++SLgAkZUvuwMxIAsii9qjQtTuzfcYVf3xRxa+0HFcfaWFK7LdU3l+15s9SYVNbPB0qQj9CHFqSuw==",
+        "sha256": "4bd3d7be47f6c09db9308b44fa2538712564d3f6e86e53f61922b05f356f8a42"
+      },
+      "notices": [
+        {
+          "path": "notices/@svelte-put--shortcut--4.2.0--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1072,
+          "sha256": "648eaefbc3c5df7b73740a3878c0a02609288baa6f5f8fd01229a02a09bc91d3"
+        }
+      ]
+    },
+    {
+      "name": "@xyflow/svelte",
+      "version": "1.6.2",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/@xyflow/svelte/-/svelte-1.6.2.tgz",
+        "integrity": "sha512-wImcz0c4mCa2SYxo5p1YSBqdTBqI4Ky2CYO6XZfNqMIxVr6mB2cdVaduJqHuqTETQuUKv4Gr0eh3Ev3iU8k8fg==",
+        "sha256": "b23691b58061cdb12318f2b77a1d673f5bfa312c89a74d9431ac5b3278655070"
+      },
+      "notices": [
+        {
+          "path": "notices/@xyflow--svelte--1.6.2--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1073,
+          "sha256": "023119ac20fb1c8c9930abe0bcd196989a1960388529a96fc43cebf96f07c9ff"
+        }
+      ]
+    },
+    {
+      "name": "@xyflow/system",
+      "version": "0.0.79",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/@xyflow/system/-/system-0.0.79.tgz",
+        "integrity": "sha512-czLyOh91NF0hIzbNzwi8I6GlqG23BHh2435OddfI6uiaLH3xdrdygO93gqgH1Bv9mhy8XPFQJOBn1FTq4LvEWA==",
+        "sha256": "1b099ccb0022753fa8185647a9ad2dff9f02872ec6be7b40a052a89ba7d9e87a"
+      },
+      "notices": [
+        {
+          "path": "notices/@xyflow--system--0.0.79--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1073,
+          "sha256": "023119ac20fb1c8c9930abe0bcd196989a1960388529a96fc43cebf96f07c9ff"
+        }
+      ]
+    },
+    {
+      "name": "clsx",
+      "version": "2.1.1",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/clsx/-/clsx-2.1.1.tgz",
+        "integrity": "sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==",
+        "sha256": "6320104b491ca645120e8f99589ce663ff1fb337ba80066719a011bd95320303"
+      },
+      "notices": [
+        {
+          "path": "notices/clsx--2.1.1--license",
+          "upstream_member": "package/license",
+          "bytes": 1104,
+          "sha256": "9a9edad7baae52622bddf3c15b2ef8a33d2c89f2d25408ad13e8a7481c6b0c97"
+        }
+      ]
+    },
+    {
+      "name": "d3-color",
+      "version": "3.1.0",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-color/-/d3-color-3.1.0.tgz",
+        "integrity": "sha512-zg/chbXyeBtMQ1LbD/WSoW2DpC3I0mpmPdW+ynRTj/x2DAWYrIY7qeZIHidozwV24m4iavr15lNwIwLxRmOxhA==",
+        "sha256": "d41bbcd99dd4f00e696546bffc73fed9b8fb6c3354905b6ea1721bff25f33b42"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-color--3.1.0--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "faa682e3e430941f958d26180458f5934a62f58dac4d70ccdd15608c15d0f884"
+        }
+      ]
+    },
+    {
+      "name": "d3-dispatch",
+      "version": "3.0.1",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-dispatch/-/d3-dispatch-3.0.1.tgz",
+        "integrity": "sha512-rzUyPU/S7rwUflMyLc1ETDeBj0NRuHKKAcvukozwhshr6g6c5d8zh4c2gQjY2bZ0dXeGLWc1PF174P2tVvKhfg==",
+        "sha256": "3d1a0b5c003e0e9608ad57f6ca21a0c8368031fcbe5f5317fe4e50b3f797ea23"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-dispatch--3.0.1--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "d3-drag",
+      "version": "3.0.0",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-drag/-/d3-drag-3.0.0.tgz",
+        "integrity": "sha512-pWbUJLdETVA8lQNJecMxoXfH6x+mO2UQo8rSmZ+QqxcbyA3hfeprFgIT//HW2nlHChWeIIMwS2Fq+gEARkhTkg==",
+        "sha256": "a3ccc9d31d85135f35a4eda3ec0fae6ac22435d4e3fe2d2e0c73b5246460d4db"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-drag--3.0.0--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "d3-ease",
+      "version": "3.0.1",
+      "declared_license": "BSD-3-Clause",
+      "selected_license": "BSD-3-Clause",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-ease/-/d3-ease-3.0.1.tgz",
+        "integrity": "sha512-wR/XK3D3XcLIZwpbvQwQ5fK+8Ykds1ip7A2Txe0yxncXSdq1L9skcG7blcedkOX+ZcgxGAmLX1FrRGbADwzi0w==",
+        "sha256": "b249afe4aa8b741beeaf2d14f625ccf49270adb645e3f1c755d11476c1fdbe2a"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-ease--3.0.1--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1504,
+          "sha256": "b989d9085148d21ff64a75e14462aefa06b2589a55553b07b1460c70081c7d08"
+        }
+      ]
+    },
+    {
+      "name": "d3-interpolate",
+      "version": "3.0.1",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-interpolate/-/d3-interpolate-3.0.1.tgz",
+        "integrity": "sha512-3bYs1rOD33uo8aqJfKP3JWPAibgw8Zm2+L9vBKEHJ2Rg+viTR7o5Mmv5mZcieN+FRYaAOWX5SJATX6k1PWz72g==",
+        "sha256": "7e8df78d233cd102a0bb518658dc0b7d5c38442b6f2dbc8b95ffc14ba87c7c33"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-interpolate--3.0.1--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "d3-selection",
+      "version": "3.0.0",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-selection/-/d3-selection-3.0.0.tgz",
+        "integrity": "sha512-fmTRWbNMmsmWq6xJV8D19U/gw/bwrHfNXxrIN+HfZgnzqTHp9jOmKMhsTUjXOJnZOdZY9Q28y4yebKzqDKlxlQ==",
+        "sha256": "a1f872f30dca23b76de89cae9e882f56c325433e7f3aee87b95fa830d12789f3"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-selection--3.0.0--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "d3-timer",
+      "version": "3.0.1",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-timer/-/d3-timer-3.0.1.tgz",
+        "integrity": "sha512-ndfJ/JxxMd3nw31uyKoY2naivF+r29V+Lc0svZxe1JvvIRmi8hUsrMvdOwgS1o6uBHmiz91geQ0ylPP0aj1VUA==",
+        "sha256": "05cdf901e1876a7f24f4c365a879252752e22e3cc52b131ca616639f07e8ed05"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-timer--3.0.1--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "d3-transition",
+      "version": "3.0.1",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-transition/-/d3-transition-3.0.1.tgz",
+        "integrity": "sha512-ApKvfjsSR6tg06xrL434C0WydLr7JewBB3V+/39RMHsaXTOG0zmt/OAXeng5M5LBm0ojmxJrpomQVZ1aPvBL4w==",
+        "sha256": "260eb8eaed565581afc00634ec83c83fd3b7e830e2a6b73b49f3f744dce0254c"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-transition--3.0.1--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "d3-zoom",
+      "version": "3.0.0",
+      "declared_license": "ISC",
+      "selected_license": "ISC",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/d3-zoom/-/d3-zoom-3.0.0.tgz",
+        "integrity": "sha512-b8AmV3kfQaqWAuacbPuNbL6vahnOJflOhexLzMMNLga62+/nh0JzvJ0aO/5a5MVgUFGS7Hu1P9P03o3fJkDCyw==",
+        "sha256": "846d28725c4889d6a2069c6cf084ca7e7730ee917a9b87960ecc53247f840f85"
+      },
+      "notices": [
+        {
+          "path": "notices/d3-zoom--3.0.0--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 731,
+          "sha256": "e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee"
+        }
+      ]
+    },
+    {
+      "name": "eclipse-elk",
+      "version": "0.12.0",
+      "declared_license": "EPL-2.0 OR GPL-3.0-or-later",
+      "selected_license": "EPL-2.0",
+      "roles": [
+        "upstream_layout_engine_source"
+      ],
+      "origin": {
+        "kind": "upstream_commit",
+        "url": "https://codeload.github.com/eclipse-elk/elk/tar.gz/323312916048544e4e594eab3303cdb0d01e2929",
+        "sha256": "ff68d72187dfda4697c63b2a684bd2febaa471bdb3d8e9fcd800a75463aaadba"
+      },
+      "source_binding": "ELKJS selects these Java module roots. Their version is 0.12.0; upstream CI uses master, so the exact compilation commit is unverified.",
+      "notices": [
+        {
+          "path": "notices/eclipse-elk--0.12.0--LICENSE.md",
+          "upstream_member": "elk-323312916048544e4e594eab3303cdb0d01e2929/LICENSE.md",
+          "bytes": 14444,
+          "sha256": "22080908c4e8696d8ea137db9c51b0dd67c19a4440b3be689b9d06d397aa88fd"
+        },
+        {
+          "path": "notices/eclipse-elk--0.12.0--NOTICE.md",
+          "upstream_member": "elk-323312916048544e4e594eab3303cdb0d01e2929/NOTICE.md",
+          "bytes": 2061,
+          "sha256": "bee47856ac471e04ec60be967d9014e20395d5f65292f1555b6178add8497168"
+        },
+        {
+          "path": "notices/DEPENDENCIES",
+          "upstream_member": "elk-323312916048544e4e594eab3303cdb0d01e2929/DEPENDENCIES",
+          "role": "upstream_dependency_report",
+          "bytes": 72765,
+          "sha256": "2ec1564f641584e69184567d1371bf793066ddb28e6f77cb27f698082403ea08"
+        }
+      ]
+    },
+    {
+      "name": "elkjs",
+      "version": "0.12.0",
+      "declared_license": "EPL-2.0 OR GPL-3.0-or-later",
+      "selected_license": "EPL-2.0",
+      "roles": [
+        "bundled_layout_worker"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/elkjs/-/elkjs-0.12.0.tgz",
+        "integrity": "sha512-YZcKynxVxYoKIOEpywEPwCFdg+BTbxQRNf3pbwdDCvc8O3kQD8bmIwSxKU1eOTVc4Xo+VG9Te+575mlfvOrhEQ==",
+        "sha256": "c1d7719723e020b10724e3ccbc935696a2884f1e78d361cdd03766309e8e8e2a"
+      },
+      "notices": [
+        {
+          "path": "notices/elkjs--0.12.0--LICENSE.md",
+          "upstream_member": "package/LICENSE.md",
+          "bytes": 14443,
+          "sha256": "637e81f4a1b6b4079535c499fca05e238cf7605c1ff5b76d60d7da7ce96700c9"
+        }
+      ]
+    },
+    {
+      "name": "esm-env",
+      "version": "1.2.2",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/esm-env/-/esm-env-1.2.2.tgz",
+        "integrity": "sha512-Epxrv+Nr/CaL4ZcFGPJIYLWFom+YeV1DqMLHJoEd9SYRxNbaFruBwfEX/kkHUJf55j2+TUbmDcmuilbP1TmXHA==",
+        "sha256": "426a193e24a734dc94bfe27c4d5595fcd91296562f23beaabc3650fc1446322e"
+      },
+      "notices": [
+        {
+          "path": "notices/esm-env--1.2.2--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1063,
+          "sha256": "6df5276ee7531fcc5446f19082c12e77bb6c5f081fd2b6d6cf88180a5ee36acd"
+        }
+      ]
+    },
+    {
+      "name": "rolldown",
+      "version": "1.2.15",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "generated_javascript_helper"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/rolldown/-/rolldown-1.2.15.tgz",
+        "integrity": "sha512-6odND+fel5zVw3I4Yc2e69gvguDnX0CAAGiNDZSq4ik5WUcaLrkD2GLuog0XcODbor31hZ5ayEMgVDno+KPV5g==",
+        "sha256": "0f4e689f37f168b87605f3b9756b150c63bd1cb52bd04ba5d90e156794625067"
+      },
+      "notices": [
+        {
+          "path": "notices/rolldown--1.2.15--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1302,
+          "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734"
+        },
+        {
+          "path": "notices/rolldown--1.2.15--THIRD-PARTY-LICENSE",
+          "upstream_member": "package/THIRD-PARTY-LICENSE",
+          "bytes": 2209,
+          "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c"
+        }
+      ]
+    },
+    {
+      "name": "svelte",
+      "version": "5.56.8",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "bundled_javascript"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/svelte/-/svelte-5.56.8.tgz",
+        "integrity": "sha512-PY8LOw7xP6c8IOiVqdo0sbbZVYhXRSfklOQLAUyGBKqjTX0wx/z4l/9J+PmBpmlLnxzEb1NqltxQ5/wZme/Cmg==",
+        "sha256": "c4c203a2abfb22d8a378518f2a92c05ec2164dd5f3ce3db8542a4c65d7e236b0"
+      },
+      "notices": [
+        {
+          "path": "notices/svelte--5.56.8--LICENSE.md",
+          "upstream_member": "package/LICENSE.md",
+          "bytes": 1126,
+          "sha256": "06257f4847b13a49a039efb17b944c141e71b12fd8d231b362d86919067d77a3"
+        }
+      ]
+    },
+    {
+      "name": "tailwindcss",
+      "version": "4.3.0",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "legacy_generated_css"
+      ],
+      "origin": {
+        "kind": "upstream_tag",
+        "url": "https://raw.githubusercontent.com/tailwindlabs/tailwindcss/v4.3.0/LICENSE",
+        "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+      },
+      "notices": [
+        {
+          "path": "notices/tailwindcss--4.3.0--LICENSE",
+          "upstream_member": "LICENSE",
+          "bytes": 1071,
+          "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+        }
+      ]
+    },
+    {
+      "name": "tailwindcss",
+      "version": "4.3.3",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "generated_css"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/tailwindcss/-/tailwindcss-4.3.3.tgz",
+        "integrity": "sha512-gOhV3P7ufE62QDGg1zVaTgCR+EtPv92k2nIhVcVKcLmxT1sUBsQGhnZj175j+MqRt4zLF7ic+sCYjfhxMxj7YQ==",
+        "sha256": "f1493c5bcb29a80310da63d19282d233ba259479f36561a27146cd4747d1faef"
+      },
+      "notices": [
+        {
+          "path": "notices/tailwindcss--4.3.3--LICENSE",
+          "upstream_member": "package/LICENSE",
+          "bytes": 1071,
+          "sha256": "60e0b68c0f35c078eef3a5d29419d0b03ff84ec1df9c3f9d6e39a519a5ae7985"
+        }
+      ]
+    },
+    {
+      "name": "vite",
+      "version": "8.2.4",
+      "declared_license": "MIT",
+      "selected_license": "MIT",
+      "roles": [
+        "generated_javascript_helper"
+      ],
+      "origin": {
+        "kind": "npm_archive",
+        "url": "https://registry.npmjs.org/vite/-/vite-8.2.4.tgz",
+        "integrity": "sha512-lfauXnrf2x0p+UoA+wXh0dgFWnUjCyG6Js95KBkgaCwUU9k0DAHI4W6Q0WCx+h+5g+Alce1y4Zi2QjjK0UvGBw==",
+        "sha256": "1d132a84f4980b2cbb15e1c1c78728aed90f5eb81c70791ed0cf133a1211139a"
+      },
+      "notices": [
+        {
+          "path": "notices/vite--8.2.4--LICENSE.md",
+          "upstream_member": "package/LICENSE.md",
+          "bytes": 112425,
+          "sha256": "387dd7baa307083401a27c58c362c30832f5ba1dba84f10cc22c33401523f45c"
+        }
+      ]
+    }
+  ]
+}

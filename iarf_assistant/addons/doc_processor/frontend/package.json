@@ -1,0 +1,25 @@
+{
+  "name": "doc-processor-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "dev": "vite build --watch",
+    "test": "vitest run --pool=forks --maxWorkers=1"
+  },
+  "dependencies": {
+    "@carlina/sdk": "*",
+    "@carlina/ui": "*"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
+    "svelte": "5.56.8",
+    "svelte-check": "4.7.5",
+    "typescript": "6.0.3",
+    "vite": "8.2.4",
+    "jsdom": "30.0.1",
+    "vitest": "4.1.12"
+  }
+}

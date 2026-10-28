@@ -1,0 +1,36 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated environments and caches are outside the source inventory"
+paths = ['''(^|/)(\.git|\.pixi|node_modules|__pycache__|\.pytest_cache|\.ruff_cache)(/|$)''']
+
+[[allowlists]]
+description = "Pinned publisher model object identity"
+paths = ['''(^|/)carlina/segmentation/sat_assets\.py$''']
+regexTarget = "match"
+regexes = ['''_TOKENIZER_REVISION = "[0-9a-f]{40}"''']
+
+[[allowlists]]
+description = "Literal semantic-token movement policy, not a credential"
+paths = ['''(^|/)iarf_assistant/addons/translator/source_plan_corrections\.py$''']
+regexTarget = "match"
+regexes = ['''token,\s+movement_policy="source-only"''']
+
+[[allowlists]]
+description = "Literal queue token size bound, not a credential"
+paths = ['''(^|/)iarf_assistant/core/safe_sqlite_store\.py$''']
+regexTarget = "match"
+regexes = ['''token",\s+maximum=MAX_KEY_CHARS''']
+
+[[allowlists]]
+description = "API result enumeration"
+paths = ['''(^|/)iarf_assistant/core/client_api/contracts/compass/v1/openapi\.yaml$''']
+regexTarget = "match"
+regexes = ['''semantic_duplicate_different_key: existing_relation_receipt_200''']
+
+[[allowlists]]
+description = "Exact synthetic redaction-test canary"
+paths = ['''(^|/)tests/test_translator_research_persistence\.py$''']
+regexTarget = "match"
+regexes = ['''argument_secret = "ARGUMENT_SECRET_9f3d"''']

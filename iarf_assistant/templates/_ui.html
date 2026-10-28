@@ -1,0 +1,19 @@
+{% macro button_class(variant='neutral') -%}
+inline-flex items-center justify-center gap-2 border px-3 py-2 text-sm font-medium leading-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink {% if variant == 'danger' %}border-danger bg-danger-muted text-danger hover:bg-danger hover:text-surface{% elif variant == 'active' %}border-active bg-active-muted text-active hover:bg-active hover:text-surface{% else %}border-rule bg-surface text-ink hover:border-ink hover:bg-ink hover:text-surface{% endif %}
+{%- endmacro %}
+
+{% macro page_header(title, description=None, eyebrow=None) -%}
+<div class="border-b border-rule pb-5">
+    {% if eyebrow %}<p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">{{ eyebrow }}</p>{% endif %}
+    <h2 class="m-0 font-serif text-3xl font-semibold leading-tight text-ink">{{ title }}</h2>
+    {% if description %}<p class="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">{{ description }}</p>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro empty_state(icon, title, description) -%}
+<div class="tw-editorial-panel mx-auto my-8 max-w-2xl border-dashed px-8 py-12 text-center">
+    <i class="fa-solid {{ icon }} mb-5 block text-3xl text-ink-muted"></i>
+    <h3 class="m-0 font-serif text-2xl font-semibold text-ink">{{ title }}</h3>
+    <p class="mx-auto mt-3 max-w-md text-sm leading-6 text-ink-muted">{{ description }}</p>
+</div>
+{%- endmacro %}

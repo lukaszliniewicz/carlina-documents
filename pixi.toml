@@ -1,0 +1,117 @@
+[workspace]
+name = "carlina"
+version = "0.2.0a1"
+description = "Carlina Documents and shared runtime"
+authors = ["Lukasz Liniewicz"]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-arm64", "osx-64"]
+# Avoid remote mapping fetches while retaining conda-forge's same-name
+# heuristic. This is the non-deprecated form supported by the verified pin.
+conda-pypi-map = { conda-forge = { mapping-mode = "replace" } }
+
+[activation.env]
+# Project commands must resolve the locked runtime, never an ambient user-site
+# package with the same import name (notably the pre-v2 MCP SDK).
+PYTHONNOUSERSITE = "1"
+
+[tasks]
+setup = "python -m carlina.documents init"
+start = "python -m carlina.documents start --open-browser"
+manage = "python -m carlina.documents"
+frontend-install = "npm ci"
+frontend-build = "npm run build"
+frontend-check = "npm run check"
+frontend-lint = "npm run lint"
+frontend-test = "npm test"
+frontend-rebuild = "python -c \"import sys; from iarf_assistant.core.frontend_orchestration import build_frontend_workspace; result = build_frontend_workspace('.', force=True); print(result['message']); sys.exit(0 if result['success'] else 1)\""
+python-lint = "ruff check carlina iarf_assistant scripts tests --select E9,F63,F7,F82,B,PLE,RUF006,RUF008,RUF015,RUF024,RUF026,RUF033 --ignore B007,B008,B009,B010,B017,B023,B039,B904,B905"
+python-lint-inventory = "ruff check carlina iarf_assistant scripts --select ASYNC,BLE,C4,C90,DTZ,I,LOG,PERF,PIE,PL,RET,RUF,S,SIM,TRY,UP --ignore B007,B008,B009,B010,B017,B023,B039,B904,B905 --statistics --exit-zero"
+python-typecheck = "python -m basedpyright --project pyrightconfig.json"
+python-typecheck-legacy = "python -m basedpyright --project pyrightconfig.documents.json --baselinemode=lock --warnings"
+python-policy = "python scripts/check_python_policy.py --check policy"
+python-lint-strict = "python scripts/check_python_policy.py --check lint"
+python-format = "python scripts/check_python_policy.py --check format"
+python-typecheck-strict = "python scripts/check_python_policy.py --check types"
+python-dead-code = "python -m vulture"
+python-import-boundaries = "lint-imports"
+namespace-check = "python scripts/check_legacy_identifiers.py"
+docs-check = "python scripts/check_markdown_links.py"
+addon-dependency-check = "python scripts/validate_dependency_ownership.py"
+documents-closure-check = "python scripts/check_documents_closure.py"
+python-quality = { depends-on = ["python-policy", "python-lint", "python-lint-strict", "python-format", "python-typecheck", "python-typecheck-legacy", "python-typecheck-strict", "python-import-boundaries", "namespace-check", "docs-check", "documents-closure-check"] }
+python-audit = { depends-on = ["python-quality", "python-dead-code", "addon-dependency-check", "python-lint-inventory"] }
+
+[dependencies]
+python = "3.14.*"
+pip = ">=26.2,<27"
+setuptools = ">=83,<84"
+packaging = ">=26.2,<27"
+tzdata = ">=2026c,<2027"
+graphviz = "==14.1.2"
+pandoc = "==3.9.0.2"
+
+[pypi-dependencies]
+carlina = { path = ".", editable = true }
+
+[feature.documents.activation.env]
+CARLINA_PROFILE = "documents"
+
+[feature.frontend.dependencies]
+nodejs = "24.19.*"
+
+[feature.quality.dependencies]
+ruff = "==0.16.10"
+
+[feature.quality.pypi-dependencies]
+build = "==1.5.0"
+basedpyright = "==1.40.1"
+import-linter = "==2.15"
+vulture = "==2.16"
+# Keep copyleft/dual-licensed format fixtures in the development environment,
+# never in the managed runtime or default wheel dependency set.
+extract-msg = ">=0.56,<0.57"
+# Match the locked document worker: Story's ordered-list start support changed
+# between these releases, so renderer acceptance needs the production engine.
+pymupdf = "==1.28.0"
+# Type-check optional shared Workbench seams without installing them in the
+# Documents runtime. These development packages do not require a Docker daemon.
+pypdfium2 = ">=5.12,<6"
+docker = ">=7.2,<8"
+pytest = ">=9.1,<10"
+# Shared-host tests import optional Workbench adapters. They belong to the quality
+# environment, not the release/runtime environment where add-ons materialize
+# their own declared dependency locks.
+ddgs = ">=9.14,<10"
+defusedxml = ">=0.7,<0.8"
+ebooklib = ">=0.20,<1"
+gitpython = ">=3.1.57,<4"
+google-api-python-client = ">=2.196,<3"
+google-auth = ">=2.56,<3"
+google-auth-httplib2 = ">=0.4,<1"
+html-to-markdown = ">=3.10,<4"
+httplib2 = ">=0.32,<1"
+imap-tools = ">=1.11,<2"
+lxml = "==6.1.1"
+markdown = ">=3.10,<4"
+pyjpegli = "==0.3.2"
+patchright = ">=1.61,<2"
+pyenchant = ">=3.3,<4"
+pysbd = ">=0.3.4,<0.4"
+rapidfuzz = ">=3.14,<4"
+regex = "==2026.7.19"
+stripe = ">=13,<14"
+sudachidict-core = ">=20260723,<20270000"
+sudachipy = ">=0.6.11,<0.7"
+trafilatura = ">=2,<3"
+tweepy = ">=4.17,<5"
+
+[feature.managed-runtime.dependencies]
+# Managed launchers invoke this binary from the packed runtime itself. Keep it
+# exactly aligned with the verified bootstrap pin; managed mode never falls
+# back to an ambient Pixi executable.
+pixi = "==0.81.0"
+
+[environments]
+default = { features = ["frontend", "quality"], solve-group = "host" }
+runtime = { features = ["managed-runtime"], solve-group = "host" }
+documents = { features = ["documents", "managed-runtime"], solve-group = "host" }

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Authorize Compass client</title>
+  </head>
+  <body>
+    <main>
+      <h1>Authorize Compass capture</h1>
+      <p><strong>{{ authorization.device_name }}</strong> on {{ authorization.platform }} requests access to capture into your Compass workspace.</p>
+      <p>Scope: <code>compass.capture</code>. Access tokens expire after 15 minutes; you can revoke this device at any time.</p>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="response_type" value="code">
+        <input type="hidden" name="client_id" value="carlina-compass-native">
+        <input type="hidden" name="redirect_uri" value="{{ authorization.redirect_uri }}">
+        <input type="hidden" name="state" value="{{ authorization.state }}">
+        <input type="hidden" name="code_challenge" value="{{ authorization.code_challenge }}">
+        <input type="hidden" name="code_challenge_method" value="S256">
+        <input type="hidden" name="scope" value="compass.capture">
+        <input type="hidden" name="device_name" value="{{ authorization.device_name }}">
+        <input type="hidden" name="platform" value="{{ authorization.platform }}">
+        <button type="submit" name="decision" value="approve">Approve</button>
+        <button type="submit" name="decision" value="deny">Deny</button>
+      </form>
+    </main>
+  </body>
+</html>

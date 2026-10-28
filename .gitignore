@@ -1,0 +1,133 @@
+# ==========================================
+# AI Coding Assistants & CLI tools
+# ==========================================
+.aider*
+.cecli/
+.antigravitycli/
+.codex/
+
+# ==========================================
+# Python Caches, Environments & Build Files
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.tmp/
+tmp/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+.eggs/
+pip-wheel-metadata/
+.venv/
+venv/
+env/
+ENV/
+scripts/.bin/
+
+# ==========================================
+# Node / Frontend
+# ==========================================
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.vite/
+*.tsbuildinfo
+
+# ==========================================
+# Security, Secrets & Certificates
+# ==========================================
+*.pem
+cert.pem
+key.pem
+config.py
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Databases & Local State
+# ==========================================
+.workspace/
+instance/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+.*.runtime-leader.lock
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+logs/
+
+# ==========================================
+# Addon Dynamic State & Execution Tiers
+# ==========================================
+iarf_assistant/addons/*/logs/
+
+# Every declared add-on frontend is a prebuilt release input. Managed runtimes
+# and containers do not ship Node or frontend source, so omitting any bundle
+# makes that add-on unusable and impossible to repair in place.
+!iarf_assistant/addons/*/static/dist/
+!iarf_assistant/addons/*/static/dist/**
+
+# Framework & Addon Manager downloads
+.bin/
+.pixi/
+iarf_assistant/addons/.bin/
+
+# Tier 1: isolated pip package directories
+iarf_assistant/addons/*/lib/
+
+# Tier 2: isolated Conda environments
+iarf_assistant/addons/*/env/
+
+# Tier 3: Docker volume mounts & persistent data
+iarf_assistant/addons/*/data/
+
+# ==========================================
+# Application Uploads & Dynamic Data
+# ==========================================
+iarf_assistant/uploads/
+iarf_assistant/temp/
+iarf_assistant/library_importer_runs/
+iarf_assistant/collections/
+iarf_assistant/workspace_docs/
+tests/uploads/
+
+# ==========================================
+# Archives & Backups
+# ==========================================
+*.7z
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.bak
+* - Copy*
+
+# ==========================================
+# OS & IDE Specifics
+# ==========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Scratch folder for one-off testing and dry-run scripts
+scratch/
+
+# Local code-intelligence indexes
+.codegraph/
+graphify-out/

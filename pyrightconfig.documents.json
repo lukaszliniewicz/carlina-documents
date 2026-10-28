@@ -1,0 +1,16 @@
+{
+  "extends": "pyrightconfig.json",
+  "include": [
+    "carlina",
+    "iarf_assistant/core",
+    "iarf_assistant/database",
+    "iarf_assistant/models.py",
+    "iarf_assistant/extensions.py",
+    "iarf_assistant/llm_service.py",
+    "iarf_assistant/database_utils.py",
+    "iarf_assistant/addons/doc_processor",
+    "iarf_assistant/addons/translator"
+  ],
+  "typeCheckingMode": "standard",
+  "baselineFile": "policy/python-typing-baseline.json"
+}

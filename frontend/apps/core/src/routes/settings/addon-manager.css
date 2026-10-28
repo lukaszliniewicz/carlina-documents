@@ -1,0 +1,2136 @@
+  .addon-manager-page {
+    width: min(100%, 100rem);
+    min-width: 0;
+    overflow-x: clip;
+    margin: 0 auto;
+    padding: clamp(1.4rem, 4vw, 3.5rem);
+  }
+
+  .addon-manager-page button:focus-visible,
+  .addon-manager-page a:focus-visible,
+  .addon-manager-page .catalog-shell button:focus-visible,
+  .addon-manager-page .catalog-shell a:focus-visible,
+  .addon-manager-page .package-picker input:focus-visible,
+  .addon-manager-page .typed-confirmation input:focus-visible,
+  .addon-manager-page .trust-approval input:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .addon-manager-page .ui-button,
+  .addon-manager-page input[type="search"] {
+    min-height: 2.75rem;
+  }
+
+  .addon-manager-page .registry-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid var(--color-rule-strong);
+    margin-top: 1.5rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .registry-summary button {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0.2rem 0.8rem;
+    border: 0;
+    border-inline-end: 1px solid var(--color-rule);
+    padding: 1rem 1.1rem;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .addon-manager-page .registry-summary button:last-child {
+    border-inline-end: 0;
+  }
+
+  .addon-manager-page .registry-summary button:hover,
+  .addon-manager-page .registry-summary button.active {
+    background: var(--color-clay-muted);
+  }
+
+  .addon-manager-page .registry-summary button.active {
+    box-shadow: inset 0 -3px 0 var(--color-clay);
+  }
+
+  .addon-manager-page .registry-summary span {
+    color: var(--color-ink-soft);
+    font-size: 0.64rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .registry-summary strong {
+    grid-row: span 2;
+    font-family: var(--font-editorial);
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 500;
+  }
+
+  .addon-manager-page .registry-summary small {
+    overflow: hidden;
+    color: var(--color-ink-muted);
+    font-size: 0.64rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .addon-manager-page .package-views {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    border-inline: 1px solid var(--color-rule-strong);
+    border-bottom: 1px solid var(--color-rule-strong);
+    padding: 0.55rem;
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .package-views:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+
+  .addon-manager-page .package-views button {
+    min-height: 2.75rem;
+    border: 1px solid transparent;
+    padding: 0.45rem 0.7rem;
+    background: transparent;
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    font-size: 0.66rem;
+    font-weight: 700;
+  }
+
+  .addon-manager-page .package-views button:hover,
+  .addon-manager-page .package-views button.active {
+    border-color: var(--color-rule);
+    background: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  .addon-manager-page .doctor-summary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--color-tobacco) 42%, var(--color-rule));
+    border-top: 0;
+    padding: 0.8rem 1rem;
+    background: var(--color-tobacco-muted);
+    color: var(--color-tobacco);
+  }
+
+  .addon-manager-page .doctor-summary--error {
+    border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-rule));
+    background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+    color: var(--color-danger);
+  }
+
+  .addon-manager-page .doctor-summary strong,
+  .addon-manager-page .doctor-summary p {
+    margin: 0;
+  }
+
+  .addon-manager-page .doctor-summary strong {
+    font-size: 0.72rem;
+  }
+
+  .addon-manager-page .doctor-summary p {
+    margin-top: 0.18rem;
+    color: var(--color-ink-muted);
+    font-size: 0.66rem;
+  }
+
+  .addon-manager-page .restart-banner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--color-tobacco) 44%, var(--color-rule));
+    border-top: 0;
+    padding: 0.85rem 1rem;
+    background: var(--color-tobacco-muted);
+  }
+
+  .addon-manager-page .restart-banner > span {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--color-tobacco) 35%, var(--color-rule));
+    color: var(--color-tobacco);
+  }
+
+  .addon-manager-page .restart-banner strong,
+  .addon-manager-page .restart-banner p {
+    margin: 0;
+  }
+
+  .addon-manager-page .restart-banner strong {
+    font-size: 0.76rem;
+  }
+
+  .addon-manager-page .restart-banner p {
+    margin-top: 0.15rem;
+    color: var(--color-ink-muted);
+    font-size: 0.67rem;
+    line-height: 1.45;
+  }
+
+  .addon-manager-page .lifecycle-operations {
+    border: 1px solid var(--color-rule-strong);
+    border-top: 0;
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .lifecycle-operations > header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.9rem 1rem;
+  }
+
+  .addon-manager-page .lifecycle-operations > header span {
+    color: var(--color-clay);
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .lifecycle-operations > header h2,
+  .addon-manager-page .lifecycle-operations > header p {
+    margin: 0;
+  }
+
+  .addon-manager-page .lifecycle-operations > header h2 {
+    margin-top: 0.2rem;
+    font-family: var(--font-editorial);
+    font-size: 1.15rem;
+    font-weight: 520;
+  }
+
+  .addon-manager-page .lifecycle-operations > header p {
+    margin-top: 0.16rem;
+    color: var(--color-ink-muted);
+    font-size: 0.64rem;
+  }
+
+  .addon-manager-page .operation-refresh {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--color-rule);
+    padding: 0.45rem 0.62rem;
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    font-size: 0.62rem;
+    font-weight: 700;
+  }
+
+  .addon-manager-page .operation-refresh:hover:not(:disabled) {
+    border-color: var(--color-clay);
+    color: var(--color-clay);
+  }
+
+  .addon-manager-page .operation-refresh:disabled {
+    cursor: wait;
+    opacity: 0.58;
+  }
+
+  .addon-manager-page .operation-feedback {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-rule));
+    margin: 0;
+    padding: 0.62rem 1rem;
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+    font-size: 0.66rem;
+  }
+
+  .addon-manager-page .operation-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .addon-manager-page .operation-card {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: 0.62rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.9rem 1rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .operation-card:nth-child(odd) {
+    border-inline-end: 1px solid var(--color-rule);
+  }
+
+  .addon-manager-page .operation-card--active {
+    background: color-mix(in srgb, var(--color-clay-muted) 48%, var(--color-surface));
+    box-shadow: inset 3px 0 var(--color-clay);
+  }
+
+  .addon-manager-page .operation-card--failed {
+    box-shadow: inset 3px 0 var(--color-danger);
+  }
+
+  .addon-manager-page .operation-card > header,
+  .addon-manager-page .operation-card > footer,
+  .addon-manager-page .operation-stage,
+  .addon-manager-page .operation-transfer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .addon-manager-page .operation-title {
+    min-width: 0;
+  }
+
+  .addon-manager-page .operation-title span {
+    color: var(--color-ink-muted);
+    font-size: 0.54rem;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .operation-title h3 {
+    overflow: hidden;
+    margin: 0.15rem 0 0;
+    font-family: var(--font-editorial);
+    font-size: 1rem;
+    font-weight: 540;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .addon-manager-page .operation-progress {
+    height: 3px;
+    overflow: hidden;
+    background: var(--color-rule);
+  }
+
+  .addon-manager-page .operation-progress span {
+    display: block;
+    height: 100%;
+    background: var(--color-clay);
+    transition: width 180ms ease;
+  }
+
+  .addon-manager-page .operation-stage strong,
+  .addon-manager-page .operation-stage span {
+    font-size: 0.62rem;
+  }
+
+  .addon-manager-page .operation-stage strong {
+    color: var(--color-ink-soft);
+    text-transform: capitalize;
+  }
+
+  .addon-manager-page .operation-stage span {
+    margin-left: auto;
+    color: var(--color-clay);
+    font-family: ui-monospace, "Cascadia Code", monospace;
+  }
+
+  .addon-manager-page .operation-stage small {
+    color: var(--color-ink-muted);
+    font-size: 0.55rem;
+  }
+
+  .addon-manager-page .operation-message,
+  .addon-manager-page .operation-error,
+  .addon-manager-page .operation-retention {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-size: 0.63rem;
+    line-height: 1.45;
+  }
+
+  .addon-manager-page .operation-error {
+    border-inline-start: 3px solid var(--color-danger);
+    padding: 0.45rem 0.55rem;
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page .operation-transfer {
+    margin: 0;
+    border-block: 1px solid var(--color-rule);
+    padding-block: 0.45rem;
+    font-size: 0.59rem;
+  }
+
+  .addon-manager-page .operation-transfer span {
+    color: var(--color-ink-muted);
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .operation-transfer strong {
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-weight: 600;
+  }
+
+  .addon-manager-page .operation-admission {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.18rem 0.6rem;
+    border: 1px solid var(--color-rule);
+    padding: 0.52rem 0.6rem;
+    background: var(--color-paper);
+    font-size: 0.59rem;
+  }
+
+  .addon-manager-page .operation-admission > span {
+    color: var(--color-ink-muted);
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .operation-admission > strong {
+    font-weight: 650;
+    text-align: right;
+  }
+
+  .addon-manager-page .operation-admission small {
+    grid-column: 1 / -1;
+    color: var(--color-tobacco);
+    line-height: 1.4;
+  }
+
+  .addon-manager-page .operation-readiness {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .addon-manager-page .operation-readiness > div {
+    display: inline-flex;
+    gap: 0.25rem;
+    border: 1px solid var(--color-rule);
+    padding: 0.22rem 0.35rem;
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .operation-readiness dt,
+  .addon-manager-page .operation-readiness dd {
+    font-size: 0.55rem;
+    text-transform: capitalize;
+  }
+
+  .addon-manager-page .operation-readiness dt {
+    color: var(--color-ink-muted);
+  }
+
+  .addon-manager-page .operation-readiness dd {
+    color: var(--color-ink-soft);
+  }
+
+  .addon-manager-page .operation-retention {
+    font-size: 0.56rem;
+  }
+
+  .addon-manager-page .operation-card > footer {
+    align-self: end;
+    border-top: 1px solid var(--color-rule);
+    padding-top: 0.6rem;
+  }
+
+  .addon-manager-page .operation-card > footer nav,
+  .addon-manager-page .operation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .addon-manager-page .operation-card > footer a {
+    color: var(--color-clay);
+    font-size: 0.58rem;
+    text-decoration: underline;
+    text-underline-offset: 0.18rem;
+  }
+
+  .addon-manager-page .operation-loading {
+    min-height: 7rem;
+    display: grid;
+    grid-template-columns: 3rem minmax(8rem, 18rem);
+    place-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .addon-manager-page .operation-loading span {
+    height: 0.55rem;
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-muted),
+      var(--color-paper),
+      var(--color-surface-muted)
+    );
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+  }
+
+  .addon-manager-page .operation-loading span:first-child {
+    grid-row: span 2;
+    height: 100%;
+  }
+
+  .addon-manager-page .directory-toolbar {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(16rem, 1fr) repeat(4, minmax(8rem, 0.3fr));
+    gap: 0.65rem;
+    margin-top: 1rem;
+  }
+
+  .addon-manager-page .directory-toolbar > label {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+    border: 1px solid var(--color-rule);
+    padding-left: 0.7rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .directory-toolbar label span {
+    color: var(--color-ink-muted);
+    font-size: 0.58rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page select {
+    min-width: 0;
+    min-height: 2.75rem;
+    border: 0;
+    border-left: 1px solid var(--color-rule);
+    padding-inline: 0.65rem 1.8rem;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-size: 0.7rem;
+  }
+
+  .addon-manager-page select:focus {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .addon-manager-page .page-feedback {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-inline-start: 3px solid var(--color-lichen);
+    margin: 0.75rem 0 0;
+    padding: 0.55rem 0.7rem;
+    background: var(--color-lichen-muted);
+    color: var(--color-lichen);
+    font-size: 0.7rem;
+  }
+
+  .addon-manager-page .page-feedback--error {
+    border-color: var(--color-danger);
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+  }
+
+  .addon-manager-page .manager-layout {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(20rem, 0.36fr) minmax(0, 1fr);
+    border: 1px solid var(--color-rule-strong);
+    margin-top: 1rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .addon-directory {
+    min-width: 0;
+    border-inline-end: 1px solid var(--color-rule-strong);
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .addon-directory > header {
+    min-height: 4.6rem;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border-bottom: 1px solid var(--color-rule-strong);
+    padding: 0.85rem 1rem;
+  }
+
+  .addon-manager-page .addon-directory > header p,
+  .addon-manager-page .addon-directory > header h2 {
+    margin: 0;
+  }
+
+  .addon-manager-page .addon-directory > header p {
+    margin-bottom: 0.2rem;
+    color: var(--color-clay);
+    font-size: 0.56rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .addon-directory > header h2 {
+    font-family: var(--font-editorial);
+    font-size: 1.2rem;
+    font-weight: 520;
+  }
+
+  .addon-manager-page .clear-filters {
+    min-height: 2.75rem;
+    border: 0;
+    padding: 0.35rem 0;
+    background: transparent;
+    color: var(--color-clay);
+    cursor: pointer;
+    font-size: 0.65rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+  }
+
+  .addon-manager-page .addon-list {
+    max-height: min(72rem, calc(100vh - 17rem));
+    overflow: auto;
+  }
+
+  .addon-manager-page .addon-row {
+    width: 100%;
+    min-height: 5.4rem;
+    display: grid;
+    grid-template-columns: auto 3px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    border: 0;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.75rem 0.85rem;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .addon-manager-page .addon-row:hover {
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .show-more-addons {
+    min-height: 3.25rem;
+    width: 100%;
+    display: grid;
+    gap: 0.2rem;
+    border: 0;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.9rem;
+    background: var(--color-surface);
+    color: var(--color-clay);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  .addon-manager-page .show-more-addons:hover {
+    background: var(--color-clay-muted);
+  }
+
+  .addon-manager-page .show-more-addons span {
+    color: var(--color-ink-muted);
+    font-size: 0.58rem;
+    font-weight: 500;
+  }
+
+  .addon-manager-page .addon-row.selected {
+    background: var(--color-clay-muted);
+    box-shadow: inset 3px 0 0 var(--color-clay);
+  }
+
+  .addon-manager-page .addon-index {
+    align-self: start;
+    padding-top: 0.1rem;
+    color: var(--color-ink-muted);
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-size: 0.56rem;
+  }
+
+  .addon-manager-page .status-rule {
+    align-self: stretch;
+    background: var(--color-rule-strong);
+  }
+
+  .addon-manager-page .status-rule--active {
+    background: var(--color-lichen);
+  }
+
+  .addon-manager-page .status-rule--attention {
+    background: var(--color-tobacco);
+  }
+
+  .addon-manager-page .addon-row__copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.22rem;
+  }
+
+  .addon-manager-page .addon-row__copy strong,
+  .addon-manager-page .addon-row__copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .addon-manager-page .addon-row__copy strong {
+    font-family: var(--font-editorial);
+    font-size: 0.98rem;
+    font-weight: 550;
+  }
+
+  .addon-manager-page .addon-row__copy small {
+    color: var(--color-ink-muted);
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-size: 0.56rem;
+  }
+
+  .addon-manager-page .addon-row__copy > span {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.1rem;
+  }
+
+  .addon-manager-page .addon-row__copy em {
+    color: var(--color-ink-soft);
+    font-size: 0.57rem;
+    font-style: normal;
+    text-transform: capitalize;
+  }
+
+  .addon-manager-page .addon-row__copy em + em::before {
+    content: "·";
+    margin-right: 0.25rem;
+    color: var(--color-ink-muted);
+  }
+
+  .addon-manager-page .addon-row__runtime {
+    display: grid;
+    justify-items: end;
+    gap: 0.35rem;
+  }
+
+  .addon-manager-page .addon-row__runtime small {
+    color: var(--color-ink-muted);
+    font-size: 0.56rem;
+  }
+
+  .addon-manager-page .no-results {
+    display: grid;
+    justify-items: center;
+    gap: 0.35rem;
+    padding: 3rem 1rem;
+    color: var(--color-ink-muted);
+    text-align: center;
+  }
+
+  .addon-manager-page .no-results strong,
+  .addon-manager-page .no-results p {
+    margin: 0;
+  }
+
+  .addon-manager-page .no-results strong {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-weight: 520;
+  }
+
+  .addon-manager-page .no-results p {
+    font-size: 0.68rem;
+  }
+
+  .addon-manager-page .addon-detail {
+    min-width: 0;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .detail-loading {
+    display: grid;
+    min-height: 32rem;
+    place-content: center;
+    grid-template-columns: repeat(3, 2.25rem);
+    gap: 0.35rem;
+    color: var(--color-ink-muted);
+    text-align: center;
+  }
+
+  .addon-manager-page .detail-loading span {
+    height: 0.28rem;
+    background: var(--color-rule-strong);
+    animation: detail-loading 1.1s ease-in-out infinite alternate;
+  }
+
+  .addon-manager-page .detail-loading span:nth-child(2) {
+    animation-delay: 0.16s;
+  }
+
+  .addon-manager-page .detail-loading span:nth-child(3) {
+    animation-delay: 0.32s;
+  }
+
+  .addon-manager-page .detail-loading p {
+    grid-column: 1 / -1;
+    margin: 0.65rem 0 0;
+    font-size: 0.68rem;
+  }
+
+  @keyframes detail-loading {
+    to {
+      opacity: 0.28;
+      transform: scaleX(0.7);
+    }
+  }
+
+  .addon-manager-page .detail-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: clamp(1.2rem, 3vw, 2rem);
+  }
+
+  .addon-manager-page .detail-header > div:first-child {
+    min-width: 0;
+  }
+
+  .addon-manager-page .detail-eyebrow,
+  .addon-manager-page .detail-byline,
+  .addon-manager-page .detail-header h2 {
+    margin: 0;
+  }
+
+  .addon-manager-page .detail-eyebrow,
+  .addon-manager-page .section-eyebrow {
+    color: var(--color-clay);
+    font-size: 0.57rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .detail-header h2 {
+    margin-top: 0.35rem;
+    font-family: var(--font-editorial);
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 500;
+    line-height: 1.04;
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page .detail-byline {
+    margin-top: 0.4rem;
+    color: var(--color-ink-muted);
+    font-size: 0.68rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page .detail-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+
+  .addon-manager-page .detail-description {
+    max-width: 70ch;
+    margin: 0;
+    padding: 1.15rem clamp(1.2rem, 3vw, 2rem);
+    color: var(--color-ink-soft);
+    font-family: var(--font-editorial);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .addon-manager-page .attention-note {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem;
+    border-block: 1px solid color-mix(in srgb, var(--color-tobacco) 40%, var(--color-rule));
+    padding: 0.85rem clamp(1.2rem, 3vw, 2rem);
+    background: var(--color-tobacco-muted);
+    color: var(--color-tobacco);
+  }
+
+  .addon-manager-page .attention-note strong {
+    font-size: 0.72rem;
+  }
+
+  .addon-manager-page .attention-note p {
+    margin: 0.3rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.67rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .attention-note ul {
+    margin: 0.3rem 0 0;
+    padding-left: 1rem;
+    color: var(--color-ink-soft);
+    font-size: 0.67rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .selected-doctor {
+    border-block: 1px solid var(--color-rule);
+    padding: 0.85rem clamp(1.2rem, 3vw, 2rem);
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .selected-doctor > header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+  }
+
+  .addon-manager-page .selected-doctor ul {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.65rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .addon-manager-page .selected-doctor li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.6rem;
+    color: var(--color-ink-muted);
+    font-size: 0.66rem;
+    line-height: 1.45;
+  }
+
+  .addon-manager-page .selected-doctor li span {
+    display: grid;
+    gap: 0.1rem;
+  }
+
+  .addon-manager-page .selected-doctor li strong {
+    color: var(--color-ink);
+  }
+
+  .addon-manager-page .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    border-top: 1px solid var(--color-rule);
+    padding: 0.8rem clamp(1.2rem, 3vw, 2rem);
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--color-rule-strong);
+  }
+
+  .addon-manager-page .detail-section {
+    position: relative;
+    min-width: 0;
+    border-right: 1px solid var(--color-rule);
+    border-bottom: 1px solid var(--color-rule);
+    padding: 1.25rem;
+  }
+
+  .addon-manager-page .detail-section:nth-child(even) {
+    border-right: 0;
+  }
+
+  .addon-manager-page .detail-section--wide {
+    grid-column: 1 / -1;
+    border-right: 0;
+  }
+
+  .addon-manager-page .section-number {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--color-ink-muted);
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-size: 0.58rem;
+  }
+
+  .addon-manager-page .section-eyebrow,
+  .addon-manager-page .detail-section h3 {
+    margin: 0;
+  }
+
+  .addon-manager-page .detail-section h3 {
+    margin: 0.28rem 0 1rem;
+    padding-right: 2rem;
+    font-family: var(--font-editorial);
+    font-size: 1.22rem;
+    font-weight: 520;
+  }
+
+  .addon-manager-page dl {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+
+  .addon-manager-page dl > div {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 0.35fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    border-top: 1px solid var(--color-rule);
+    padding-block: 0.6rem;
+  }
+
+  .addon-manager-page dt {
+    color: var(--color-ink-muted);
+    font-size: 0.61rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .addon-manager-page dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: 0.68rem;
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page dd span,
+  .addon-manager-page .dependency-link {
+    border: 1px solid var(--color-rule);
+    padding: 0.18rem 0.35rem;
+    background: var(--color-paper);
+    color: var(--color-ink-soft);
+    font-size: 0.59rem;
+    text-transform: capitalize;
+  }
+
+  .addon-manager-page .dependency-link {
+    cursor: pointer;
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    text-transform: none;
+  }
+
+  .addon-manager-page .dependency-link:hover {
+    border-color: var(--color-clay);
+    color: var(--color-clay);
+  }
+
+  .addon-manager-page .build-reading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border-block: 1px solid var(--color-rule);
+    padding: 0.8rem 0;
+  }
+
+  .addon-manager-page .trust-warning {
+    border-inline-start: 3px solid var(--color-tobacco);
+    margin: 0 0 0.8rem;
+    padding: 0.65rem 0.75rem;
+    background: var(--color-tobacco-muted);
+    color: var(--color-ink-soft);
+    font-size: 0.66rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .detail-section h4 {
+    margin: 0.85rem 0 0.45rem;
+    color: var(--color-ink-muted);
+    font-size: 0.61rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .permission-list {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .addon-manager-page .permission-list li {
+    display: grid;
+    gap: 0.15rem;
+    border: 1px solid var(--color-rule);
+    padding: 0.5rem 0.6rem;
+    background: var(--color-paper);
+    font-size: 0.62rem;
+  }
+
+  .addon-manager-page .permission-list span,
+  .addon-manager-page .hash-reading {
+    color: var(--color-ink-muted);
+  }
+
+  .addon-manager-page .capability-resolution-list {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .addon-manager-page .capability-resolution-list > article {
+    border: 1px solid var(--color-rule);
+    padding: 0.65rem;
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .capability-resolution-list > article.resolution--blocking {
+    border-inline-start: 3px solid var(--color-tobacco);
+  }
+
+  .addon-manager-page .capability-resolution-list article > header,
+  .addon-manager-page .provider-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+  }
+
+  .addon-manager-page .capability-resolution-list article > p,
+  .addon-manager-page .inactive-provider-note {
+    color: var(--color-ink-muted);
+    font-size: 0.61rem;
+    line-height: 1.45;
+  }
+
+  .addon-manager-page .provider-choice {
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid var(--color-rule);
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .addon-manager-page .provider-choice:hover:not(:disabled) {
+    border-color: var(--color-clay);
+  }
+
+  .addon-manager-page .provider-choice--selected {
+    border-color: var(--color-lichen);
+    background: var(--color-lichen-muted);
+  }
+
+  .addon-manager-page .provider-choice:disabled {
+    cursor: wait;
+    opacity: 0.6;
+  }
+
+  .addon-manager-page .provider-choice span {
+    display: grid;
+    gap: 0.12rem;
+  }
+
+  .addon-manager-page .provider-choice small,
+  .addon-manager-page .inactive-provider-note {
+    color: var(--color-ink-muted);
+  }
+
+  .addon-manager-page .inactive-provider-note {
+    display: block;
+    margin-top: 0.5rem;
+  }
+
+  .addon-manager-page .hash-reading {
+    margin: 0.7rem 0 0;
+    font-size: 0.58rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .hash-reading code {
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page .build-reading strong {
+    font-family: var(--font-editorial);
+    font-size: 1.15rem;
+    font-weight: 520;
+    text-transform: capitalize;
+  }
+
+  .addon-manager-page .build-reading span {
+    color: var(--color-ink-muted);
+    font-size: 0.62rem;
+    text-align: right;
+  }
+
+  .addon-manager-page .build-notes {
+    margin: 0.7rem 0 0;
+    padding-left: 1rem;
+    color: var(--color-tobacco);
+    font-size: 0.65rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .muted-reading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.65rem;
+    border-block: 1px solid var(--color-rule);
+    padding-block: 0.8rem;
+    color: var(--color-ink-muted);
+  }
+
+  .addon-manager-page .muted-reading p {
+    margin: 0;
+    font-size: 0.67rem;
+    line-height: 1.55;
+  }
+
+  .addon-manager-page .runtime-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .addon-manager-page .runtime-unit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+  }
+
+  .addon-manager-page .runtime-unit {
+    border: 1px solid var(--color-rule);
+    padding: 0.7rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .runtime-unit header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .addon-manager-page .runtime-unit header > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page .runtime-unit p,
+  .addon-manager-page .runtime-unit small {
+    margin: 0.35rem 0 0;
+    color: var(--color-ink-muted);
+    font-size: 0.6rem;
+  }
+
+  .addon-manager-page .runtime-card {
+    min-width: 0;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .runtime-card > header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 0.7rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.8rem;
+  }
+
+  .addon-manager-page .runtime-card header p,
+  .addon-manager-page .runtime-card header strong {
+    margin: 0;
+  }
+
+  .addon-manager-page .runtime-card header p {
+    margin-bottom: 0.18rem;
+    color: var(--color-ink-muted);
+    font-size: 0.58rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .runtime-card header strong {
+    font-family: var(--font-editorial);
+    font-size: 1rem;
+    font-weight: 520;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .addon-manager-page .runtime-card dl {
+    padding-inline: 0.8rem;
+  }
+
+  .addon-manager-page .runtime-card dl > div {
+    grid-template-columns: minmax(5rem, 0.3fr) minmax(0, 1fr);
+  }
+
+  .addon-manager-page .runtime-card > footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    border-top: 1px solid var(--color-rule);
+    padding: 0.7rem 0.8rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .pid-list,
+  .addon-manager-page .runtime-empty {
+    margin: 0;
+    padding: 0.7rem 0.8rem;
+    color: var(--color-ink-muted);
+    font-family: ui-monospace, "Cascadia Code", monospace;
+    font-size: 0.58rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .job-list article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.7rem 0.8rem;
+  }
+
+  .addon-manager-page .job-list article:last-child {
+    border-bottom: 0;
+  }
+
+  .addon-manager-page .job-list article > div:first-child {
+    min-width: 0;
+    display: grid;
+    gap: 0.18rem;
+  }
+
+  .addon-manager-page .job-list strong,
+  .addon-manager-page .job-list small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .addon-manager-page .job-list strong {
+    font-size: 0.67rem;
+  }
+
+  .addon-manager-page .job-list small {
+    color: var(--color-ink-muted);
+    font-size: 0.57rem;
+  }
+
+  .addon-manager-page .job-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .addon-manager-page .job-actions button {
+    min-height: 2.75rem;
+    border: 0;
+    padding: 0.2rem 0;
+    background: transparent;
+    color: var(--color-clay);
+    cursor: pointer;
+    font-size: 0.59rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2rem;
+  }
+
+  .addon-manager-page .log-list {
+    border-top: 1px solid var(--color-rule);
+  }
+
+  .addon-manager-page .log-list a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.65rem 0.2rem;
+    color: var(--color-ink);
+    text-decoration: none;
+  }
+
+  .addon-manager-page .log-list a:hover {
+    padding-inline: 0.45rem;
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .log-list a span {
+    min-width: 0;
+    display: grid;
+    gap: 0.18rem;
+  }
+
+  .addon-manager-page .log-list strong,
+  .addon-manager-page .log-list small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .addon-manager-page .log-list strong {
+    font-size: 0.67rem;
+  }
+
+  .addon-manager-page .log-list small {
+    color: var(--color-ink-muted);
+    font-size: 0.57rem;
+    text-transform: capitalize;
+  }
+
+  .addon-manager-page .danger-copy {
+    margin: 0 0 0.8rem;
+    color: var(--color-ink-muted);
+    font-size: 0.68rem;
+    line-height: 1.55;
+  }
+
+  .addon-manager-page .directory-loading {
+    display: grid;
+    grid-template-columns: 0.36fr 0.64fr;
+    gap: 1px;
+    border: 1px solid var(--color-rule);
+    margin-top: 1rem;
+    background: var(--color-rule);
+  }
+
+  .addon-manager-page .directory-loading span {
+    min-height: 20rem;
+    background: linear-gradient(
+      90deg,
+      var(--color-paper),
+      var(--color-surface),
+      var(--color-paper)
+    );
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+  }
+
+  .addon-manager-page .directory-loading span:first-child {
+    grid-row: span 2;
+  }
+
+  .addon-manager-page .directory-loading span:last-child {
+    min-height: 12rem;
+  }
+
+  @keyframes loading {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  .addon-manager-page .package-picker,
+  .addon-manager-page .typed-confirmation {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--color-ink-soft);
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .addon-manager-page .package-picker input,
+  .addon-manager-page .typed-confirmation input {
+    width: 100%;
+    border: 1px solid var(--color-rule-strong);
+    padding: 0.75rem;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-size: 0.72rem;
+  }
+
+  .addon-manager-page .package-picker small {
+    color: var(--color-ink-muted);
+    font-weight: 500;
+  }
+
+  .addon-manager-page .typed-confirmation code {
+    border: 1px solid var(--color-rule);
+    padding: 0.12rem 0.3rem;
+    background: var(--color-paper);
+    color: var(--color-danger);
+  }
+
+  .addon-manager-page .dialog-note {
+    border-top: 1px solid var(--color-rule);
+    margin: 1rem 0 0;
+    padding-top: 0.8rem;
+    color: var(--color-ink-muted);
+    font-size: 0.68rem;
+    line-height: 1.55;
+  }
+
+  .addon-manager-page .trust-approval {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: start;
+    margin-top: 0.85rem;
+    color: var(--color-ink-soft);
+    font-size: 0.68rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .trust-approval input {
+    margin-top: 0.15rem;
+  }
+
+  .addon-manager-page .install-dependency-review {
+    display: grid;
+    gap: 0.7rem;
+    border-top: 1px solid var(--color-rule);
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+  }
+
+  .addon-manager-page .install-dependency-review h4,
+  .addon-manager-page .install-dependency-review .dialog-note,
+  .addon-manager-page .install-dependency-review .trust-approval {
+    margin: 0;
+  }
+
+  .addon-manager-page .install-dependency-review h4 {
+    font-size: 0.68rem;
+  }
+
+  .addon-manager-page .catalog-shell {
+    min-height: 31rem;
+    display: grid;
+    grid-template-columns: minmax(13rem, 0.34fr) minmax(0, 1fr);
+    border: 1px solid var(--color-rule-strong);
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .catalog-directory {
+    min-width: 0;
+    border-inline-end: 1px solid var(--color-rule-strong);
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .catalog-directory > header {
+    display: grid;
+    gap: 0.18rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.9rem;
+  }
+
+  .addon-manager-page .catalog-directory > header span,
+  .addon-manager-page .catalog-section-heading span,
+  .addon-manager-page .catalog-review-header > div > span {
+    color: var(--color-clay);
+    font-size: 0.57rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .catalog-directory > header strong {
+    overflow: hidden;
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+  }
+
+  .addon-manager-page .catalog-directory > header small {
+    color: var(--color-ink-muted);
+    font-size: 0.62rem;
+  }
+
+  .addon-manager-page .catalog-list {
+    display: grid;
+  }
+
+  .addon-manager-page .catalog-list > button {
+    min-height: 3.25rem;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0.55rem;
+    border: 0;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.8rem 0.85rem;
+    background: transparent;
+    color: var(--color-ink);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .addon-manager-page .catalog-list > button:hover,
+  .addon-manager-page .catalog-list > button.selected {
+    background: var(--color-clay-muted);
+  }
+
+  .addon-manager-page .catalog-list > button.selected {
+    box-shadow: inset 3px 0 0 var(--color-clay);
+  }
+
+  .addon-manager-page .catalog-list > button > span {
+    min-width: 0;
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .addon-manager-page .catalog-list strong,
+  .addon-manager-page .catalog-list small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .addon-manager-page .catalog-list strong {
+    font-size: 0.7rem;
+  }
+
+  .addon-manager-page .catalog-list small {
+    display: -webkit-box;
+    color: var(--color-ink-muted);
+    font-size: 0.61rem;
+    font-weight: 500;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .addon-manager-page .catalog-review {
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .addon-manager-page .catalog-review-header,
+  .addon-manager-page .catalog-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .addon-manager-page .catalog-review-header h3,
+  .addon-manager-page .catalog-review-header p,
+  .addon-manager-page .catalog-section-heading h4 {
+    margin: 0;
+  }
+
+  .addon-manager-page .catalog-review-header h3 {
+    margin-top: 0.18rem;
+    font-family: var(--font-editorial);
+    font-size: 1.45rem;
+    font-weight: 500;
+  }
+
+  .addon-manager-page .catalog-review-header p {
+    margin-top: 0.25rem;
+    color: var(--color-ink-muted);
+    font-size: 0.67rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .catalog-metadata {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 1rem 0 0;
+    border-top: 1px solid var(--color-rule);
+    border-inline-start: 1px solid var(--color-rule);
+  }
+
+  .addon-manager-page .catalog-metadata > div {
+    min-width: 0;
+    border-inline-end: 1px solid var(--color-rule);
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.55rem 0.65rem;
+  }
+
+  .addon-manager-page .catalog-metadata dt {
+    color: var(--color-ink-muted);
+    font-size: 0.53rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .addon-manager-page .catalog-metadata dd {
+    overflow: hidden;
+    margin: 0.18rem 0 0;
+    color: var(--color-ink-soft);
+    font-size: 0.62rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .addon-manager-page .catalog-metadata code {
+    overflow-wrap: anywhere;
+    font-size: 0.58rem;
+  }
+
+  .addon-manager-page .catalog-change-review,
+  .addon-manager-page .catalog-dependencies {
+    margin-top: 1rem;
+    border: 1px solid var(--color-rule);
+    padding: 0.8rem;
+    background: var(--color-surface);
+  }
+
+  .addon-manager-page .catalog-section-heading h4 {
+    margin-top: 0.12rem;
+    font-size: 0.72rem;
+  }
+
+  .addon-manager-page .catalog-diff-grid,
+  .addon-manager-page .catalog-contract-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin-top: 0.75rem;
+  }
+
+  .addon-manager-page .catalog-diff-grid article,
+  .addon-manager-page .catalog-contract-grid > section {
+    min-width: 0;
+    border: 1px solid var(--color-rule);
+    padding: 0.65rem;
+    background: var(--color-paper);
+  }
+
+  .addon-manager-page .catalog-diff-grid h5,
+  .addon-manager-page .catalog-diff-grid p,
+  .addon-manager-page .catalog-diff-grid ul {
+    margin: 0;
+  }
+
+  .addon-manager-page .catalog-diff-grid h5 {
+    font-size: 0.63rem;
+  }
+
+  .addon-manager-page .catalog-diff-grid p,
+  .addon-manager-page .catalog-diff-grid li,
+  .addon-manager-page .catalog-muted {
+    color: var(--color-ink-muted);
+    font-size: 0.59rem;
+    line-height: 1.45;
+  }
+
+  .addon-manager-page .catalog-diff-grid ul {
+    display: grid;
+    gap: 0.2rem;
+    margin-top: 0.35rem;
+    padding-left: 1rem;
+  }
+
+  .addon-manager-page .catalog-diff-grid .diff-added {
+    color: var(--color-success);
+  }
+
+  .addon-manager-page .catalog-diff-grid .diff-removed {
+    color: var(--color-danger);
+  }
+
+  .addon-manager-page .catalog-diff-grid .diff-changed {
+    color: var(--color-tobacco);
+  }
+
+  .addon-manager-page .catalog-contract-list {
+    display: grid;
+    gap: 0;
+    margin: 0.65rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .addon-manager-page .catalog-contract-list li {
+    min-width: 0;
+    display: grid;
+    gap: 0.12rem;
+    border-top: 1px solid var(--color-rule);
+    padding: 0.48rem 0;
+  }
+
+  .addon-manager-page .catalog-contract-list strong {
+    overflow-wrap: anywhere;
+    font-size: 0.62rem;
+  }
+
+  .addon-manager-page .catalog-contract-list span {
+    color: var(--color-ink-muted);
+    font-size: 0.59rem;
+    line-height: 1.4;
+  }
+
+  .addon-manager-page .catalog-muted {
+    margin: 0.65rem 0 0;
+  }
+
+  .addon-manager-page .catalog-warning {
+    margin: 0.8rem 0 0;
+    border: 1px solid color-mix(in srgb, var(--color-tobacco) 42%, var(--color-rule));
+    padding: 0.65rem;
+    background: var(--color-tobacco-muted);
+    color: var(--color-tobacco);
+    font-size: 0.64rem;
+    line-height: 1.5;
+  }
+
+  .addon-manager-page .catalog-final-approval {
+    border-top: 1px solid var(--color-rule);
+    padding-top: 0.8rem;
+  }
+
+  .addon-manager-page .catalog-feedback {
+    margin: 0.85rem 0 0;
+  }
+
+  .addon-manager-page .catalog-empty {
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+    padding: 3.5rem 1.5rem;
+    color: var(--color-ink-muted);
+    text-align: center;
+  }
+
+  .addon-manager-page .catalog-empty--embedded {
+    padding: 2.5rem 1rem;
+  }
+
+  .addon-manager-page .catalog-empty h3,
+  .addon-manager-page .catalog-empty p {
+    margin: 0;
+  }
+
+  .addon-manager-page .catalog-empty h3 {
+    color: var(--color-ink);
+    font-family: var(--font-editorial);
+    font-size: 1.15rem;
+    font-weight: 500;
+  }
+
+  .addon-manager-page .catalog-empty p {
+    max-width: 32rem;
+    font-size: 0.7rem;
+    line-height: 1.55;
+  }
+
+  .addon-manager-page .catalog-loading {
+    min-height: 20rem;
+    display: grid;
+    grid-template-columns: 0.5fr 1fr;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .addon-manager-page .catalog-loading span {
+    min-height: 7rem;
+    background: linear-gradient(
+      90deg,
+      var(--color-paper) 25%,
+      var(--color-surface) 50%,
+      var(--color-paper) 75%
+    );
+    background-size: 200% 100%;
+    animation: loading 1.5s ease-in-out infinite;
+  }
+
+  .addon-manager-page .catalog-loading span:first-child {
+    grid-row: span 2;
+  }
+
+  @media (max-width: 76rem) {
+    .addon-manager-page .operation-list {
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .operation-card:nth-child(odd) {
+      border-inline-end: 0;
+    }
+
+    .addon-manager-page .registry-summary {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .addon-manager-page .registry-summary button:nth-child(2) {
+      border-inline-end: 0;
+    }
+
+    .addon-manager-page .registry-summary button:nth-child(-n + 2) {
+      border-bottom: 1px solid var(--color-rule);
+    }
+
+    .addon-manager-page .directory-toolbar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .addon-manager-page .directory-toolbar > :first-child {
+      grid-column: 1 / -1;
+    }
+
+    .addon-manager-page .manager-layout {
+      grid-template-columns: minmax(17rem, 0.34fr) minmax(0, 1fr);
+    }
+
+    .addon-manager-page .detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .catalog-shell {
+      grid-template-columns: minmax(11rem, 0.3fr) minmax(0, 1fr);
+    }
+
+    .addon-manager-page .detail-section,
+    .addon-manager-page .detail-section:nth-child(even) {
+      border-right: 0;
+    }
+  }
+
+  @media (max-width: 68rem) {
+    .addon-manager-page > header {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .addon-manager-page > header > .heading {
+      width: 100%;
+      max-width: none;
+    }
+
+    .addon-manager-page > header .actions {
+      width: 100%;
+      justify-content: flex-start;
+      max-width: 100%;
+    }
+
+    .addon-manager-page .directory-toolbar {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .addon-manager-page .directory-toolbar > :first-child {
+      grid-column: 1 / -1;
+    }
+
+    .addon-manager-page .manager-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .addon-directory {
+      border-inline-end: 0;
+      border-bottom: 1px solid var(--color-rule-strong);
+    }
+
+    .addon-manager-page .addon-list {
+      max-height: 22rem;
+    }
+
+    .addon-manager-page .catalog-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .catalog-directory {
+      border-inline-end: 0;
+      border-bottom: 1px solid var(--color-rule-strong);
+    }
+
+    .addon-manager-page .catalog-list {
+      max-height: 13rem;
+      overflow: auto;
+    }
+
+    .addon-manager-page .runtime-columns,
+    .addon-manager-page .runtime-unit-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 44rem) {
+    .addon-manager-page {
+      padding-inline: 0.75rem;
+    }
+
+    .addon-manager-page .registry-summary,
+    .addon-manager-page .directory-toolbar {
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .package-views {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: none;
+      touch-action: pan-x;
+    }
+
+    .addon-manager-page .package-views::-webkit-scrollbar {
+      display: none;
+    }
+
+    .addon-manager-page .package-views button {
+      flex: 0 0 auto;
+      padding: 0.4rem 0.55rem;
+    }
+
+    .addon-manager-page > header .actions {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .addon-manager-page > header .actions .ui-button {
+      width: auto;
+    }
+
+    .addon-manager-page .registry-summary button,
+    .addon-manager-page .registry-summary button:nth-child(2) {
+      border-inline-end: 0;
+      border-bottom: 1px solid var(--color-rule);
+    }
+
+    .addon-manager-page .registry-summary button:last-child {
+      border-bottom: 0;
+    }
+
+    .addon-manager-page .directory-toolbar > :first-child {
+      grid-column: auto;
+    }
+
+    .addon-manager-page .catalog-metadata,
+    .addon-manager-page .catalog-diff-grid,
+    .addon-manager-page .catalog-contract-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .restart-banner {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .addon-manager-page .restart-banner .ui-button {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .addon-manager-page .lifecycle-operations > header,
+    .addon-manager-page .operation-card > footer,
+    .addon-manager-page .operation-stage {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .addon-manager-page .operation-refresh {
+      width: 100%;
+      align-self: stretch;
+      justify-content: center;
+    }
+
+    .addon-manager-page .operation-stage span {
+      margin-left: 0;
+    }
+
+    .addon-manager-page .detail-header,
+    .addon-manager-page .detail-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .addon-manager-page .detail-actions .ui-button,
+    .addon-manager-page .operation-actions .ui-button {
+      width: 100%;
+    }
+
+    .addon-manager-page .operation-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+    }
+
+    .addon-manager-page .detail-status {
+      justify-content: flex-start;
+    }
+
+    .addon-manager-page .runtime-card > header {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .addon-manager-page .runtime-card dl > div {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+
+    .addon-manager-page .addon-row {
+      grid-template-columns: auto 3px minmax(0, 1fr);
+    }
+
+    .addon-manager-page .addon-row__runtime {
+      grid-column: 3;
+      justify-items: start;
+    }
+
+    .addon-manager-page .addon-list {
+      max-height: min(55vh, 28rem);
+      overscroll-behavior: contain;
+    }
+
+    .addon-manager-page .catalog-review,
+    .addon-manager-page .detail-section {
+      padding-inline: 0.85rem;
+    }
+
+    .addon-manager-page dl > div {
+      grid-template-columns: 1fr;
+      gap: 0.3rem;
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .addon-manager-page {
+      padding-inline: 0.5rem;
+    }
+
+    .addon-manager-page .registry-summary button {
+      padding-inline: 0.85rem;
+    }
+
+    .addon-manager-page .catalog-review-header,
+    .addon-manager-page .catalog-section-heading {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .addon-manager-page .operation-progress span {
+      transition: none;
+    }
+
+    .addon-manager-page .operation-loading span,
+    .addon-manager-page .directory-loading span,
+    .addon-manager-page .detail-loading span,
+    .addon-manager-page .catalog-loading span {
+      animation: none;
+    }
+  }

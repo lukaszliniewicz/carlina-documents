@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@import "@carlina/ui/theme.css";
+@source "../../../packages";
+
+@layer components {
+  .shell-failure {
+    min-height: 100vh;
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 0.75rem;
+    padding: clamp(1.5rem, 8vw, 7rem);
+  }
+
+  .shell-failure__mark {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+  }
+
+  .shell-failure__eyebrow {
+    margin: 1rem 0 0 !important;
+    color: var(--color-danger) !important;
+    font-size: 0.65rem !important;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .shell-failure h1 {
+    max-width: 42rem;
+    margin: 0;
+    font-family: var(--font-editorial);
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 450;
+    line-height: 1;
+  }
+
+  .shell-failure p {
+    max-width: 38rem;
+    margin: 0 0 1rem;
+    color: var(--color-ink-muted);
+    line-height: 1.6;
+  }
+
+  .shell-failure__link {
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-rule-strong);
+    padding: 0.62rem 0.9rem;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .shell-failure__link:hover {
+    background: var(--color-surface-muted);
+  }
+}

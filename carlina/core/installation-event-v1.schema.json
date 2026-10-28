@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Carlina installation lifecycle event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schema_version",
+    "operation_id",
+    "sequence",
+    "operation",
+    "application_profile",
+    "phase",
+    "state",
+    "bytes_completed",
+    "bytes_total",
+    "error_code",
+    "retryable",
+    "cancellation_safe"
+  ],
+  "properties": {
+    "format": {
+      "const": "carlina.installation-event"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 32,
+      "maxLength": 32,
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "operation": {
+      "type": "string",
+      "enum": ["install", "update", "rollback"]
+    },
+    "application_profile": {
+      "type": "string",
+      "enum": ["workbench", "documents"]
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "preflight",
+        "download",
+        "verification",
+        "unpacking",
+        "environment",
+        "initialization",
+        "activation",
+        "readiness",
+        "recovery",
+        "complete"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": ["running", "succeeded", "failed", "cancelled"]
+    },
+    "bytes_completed": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "bytes_total": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "error_code": {
+      "type": ["string", "null"],
+      "enum": [
+        "invalid_source",
+        "verification_failed",
+        "incompatible_release",
+        "download_failed",
+        "operation_failed",
+        "recovery_required",
+        "cancelled",
+        null
+      ]
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "cancellation_safe": {
+      "type": "boolean"
+    }
+  }
+}

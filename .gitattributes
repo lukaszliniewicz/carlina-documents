@@ -1,0 +1,27 @@
+# Minified bundles can contain semantic horizontal whitespace inside template
+# literals immediately before a newline. Source files remain whitespace-checked.
+# Preserve other Git blob bytes across native checkouts, regardless of the
+# user's core.autocrlf. The explicit source rules below keep authored UI in LF.
+* -text
+*.sh text eol=lf
+# Frontend build stamps hash source bytes; keep them stable across native
+# Windows checkouts and exact Git archive builds.
+*.svelte text eol=lf
+*.ts text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+iarf_assistant/addons/*/static/dist/*.js -whitespace
+iarf_assistant/addons/*/static/dist/**/*.js -whitespace
+iarf_assistant/static/frontend/assets/*.js -whitespace
+# Keep original publisher model cards byte-identical, including on Windows.
+# XLM-R's original Markdown contains deliberate trailing spaces.
+third_party/models/segment-any-text-sat-12l-sm.md -text
+third_party/models/FacebookAI-xlm-roberta-base.md -text whitespace=-blank-at-eol
+# Preserve publisher licence bytes on native Windows checkouts too.
+third_party/frontend/notices/* -text
+third_party/frontend/notices/vite--8.2.4--LICENSE.md whitespace=-blank-at-eol
+# The original X11 notice ends with a blank line; preserve its upstream bytes.
+third_party/appimage/notices/python-LICENSE.libX11.txt whitespace=-blank-at-eof

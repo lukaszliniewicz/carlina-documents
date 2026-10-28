@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/schemas/addon-release-metadata.schema.json",
+  "title": "Carlina Add-on Release Metadata",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schema_version",
+    "addon_id",
+    "version",
+    "archive",
+    "archive_url",
+    "license"
+  ],
+  "properties": {
+    "format": {"const": "carlina.addon-release-metadata"},
+    "schema_version": {"const": 1},
+    "addon_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "version": {"type": "string", "minLength": 1, "maxLength": 100},
+    "archive": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "archive_url": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "license": {"type": "string", "minLength": 1, "maxLength": 500},
+    "summary": {"type": "string", "maxLength": 4000},
+    "published_at": {"type": "string", "format": "date-time"},
+    "notes_url": {"type": "string", "format": "uri", "maxLength": 2000},
+    "icon_url": {"type": "string", "format": "uri", "maxLength": 2000}
+  }
+}

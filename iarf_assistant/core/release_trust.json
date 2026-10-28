@@ -1,0 +1,32 @@
+{
+  "format": "carlina.release-trust",
+  "schema_version": 1,
+  "keys": [
+    {
+      "algorithm": "ed25519",
+      "channels": [
+        "stable",
+        "preview"
+      ],
+      "key_id": "ed25519:c6469b0bff114076",
+      "public_key": "L0TQHD+hh1OWjc5EvR+WYojO6Qz6hcehzAbpqJy3Hq8="
+    },
+    {
+      "algorithm": "ed25519",
+      "channels": [
+        "stable",
+        "preview"
+      ],
+      "key_id": "ed25519:c33bc8d787aec12a",
+      "public_key": "fBY9N0Q330AqnmxFQdQbXQhbIYkZN2/aEZuBvTcQLkk="
+    },
+    {
+      "key_id": "ed25519:69bd4770377d1d3d",
+      "algorithm": "ed25519",
+      "public_key": "Dh/ztIdDR/qxDMakTuwULBHbR/mRDhxYBAQRhs6Weeg=",
+      "channels": [
+        "preview"
+      ]
+    }
+  ]
+}

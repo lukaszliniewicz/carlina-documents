@@ -1,0 +1,25 @@
+{% extends "public_layout.html" %}
+
+{% block title %}Site policy & privacy · {{ product.name }}{% endblock %}
+{% block eyebrow %}Public record{% endblock %}
+{% block heading %}Site policy & privacy.{% endblock %}
+{% block introduction %}
+    <p class="public-lede">
+        The current terms for this installation, kept readable and available
+        without loading the private application.
+    </p>
+{% endblock %}
+
+{% block content %}
+    <article id="terms-container" class="public-panel public-policy">
+        {{ terms_content|safe }}
+    </article>
+{% endblock %}
+
+{% block footer %}
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('index') }}" class="public-link">Return to the assistant</a>
+    {% else %}
+        <a href="{{ url_for('login') }}" class="public-link">Sign in</a>
+    {% endif %}
+{% endblock %}

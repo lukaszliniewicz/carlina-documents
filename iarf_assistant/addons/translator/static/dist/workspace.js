@@ -1,0 +1,1 @@
+import{$ as e,t}from"./chunks/WorkspaceGate.js";var n=document.getElementById(`translator-root`);n&&e(t,{target:n});

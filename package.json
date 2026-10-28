@@ -1,0 +1,46 @@
+{
+  "name": "carlina-frontend-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  },
+  "engines": {
+    "node": "24.19.x",
+    "npm": ">=11 <12"
+  },
+  "workspaces": [
+    "frontend/apps/*",
+    "frontend/packages/*",
+    "iarf_assistant/addons/doc_processor/frontend",
+    "iarf_assistant/addons/translator/frontend",
+    "iarf_assistant/addons/sentence_segmenter/frontend"
+  ],
+  "scripts": {
+    "build": "npm run build:core",
+    "build:core": "npm run build --workspace @carlina/core",
+    "build:builtins": "npm run build --workspace doc-processor-frontend --workspace translator-frontend --workspace sentence-segmenter-frontend",
+    "check": "node scripts/run_frontend_workspaces.mjs check",
+    "check:serial": "npm run check --workspaces --if-present",
+    "check:core": "npm run check --workspace @carlina/core",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "node scripts/run_frontend_workspaces.mjs test",
+    "test:serial": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "24.13.3",
+    "eslint": "10.9.0",
+    "eslint-plugin-svelte": "3.23.0",
+    "globals": "17.11.0",
+    "svelte": "5.56.8",
+    "svelte-check": "4.7.5",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.67.0",
+    "vite": "8.2.4"
+  }
+}

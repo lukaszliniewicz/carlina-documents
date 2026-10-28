@@ -1,0 +1,350 @@
+@reference "tailwindcss";
+
+dialog[data-iarf-ui-component-host][data-addon-id="sentence_segmenter"] {
+  @apply m-auto max-h-[calc(100vh-2rem)] w-[min(66rem,calc(100vw-2rem))] max-w-none overflow-hidden p-0;
+  border: 1px solid var(--color-rule-strong, #958a7d);
+  border-radius: 0;
+  background: var(--color-surface, #faf8f3);
+  color: var(--color-ink, #292723);
+  box-shadow: 0 1.5rem 4rem rgba(45, 39, 31, 0.22);
+}
+
+dialog[data-iarf-ui-component-host][data-addon-id="sentence_segmenter"]::backdrop {
+  background: rgba(48, 43, 37, 0.46);
+  backdrop-filter: blur(2px);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester,
+[data-addon-id="sentence_segmenter"] .ss-tester * {
+  box-sizing: border-box;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester {
+  @apply grid min-h-0;
+  grid-template-rows: auto auto minmax(24rem, 1fr) auto;
+  max-height: calc(100vh - 2rem);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-accent-rust, #8a5d46) 4%, transparent),
+      transparent 30%
+    ),
+    var(--color-surface, #faf8f3);
+  color: var(--color-ink, #292723);
+  font-family: var(--font-sans, Inter, ui-sans-serif, system-ui, sans-serif);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester button,
+[data-addon-id="sentence_segmenter"] .ss-tester textarea {
+  border-radius: 0;
+  font: inherit;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester button {
+  cursor: pointer;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester button:focus-visible,
+[data-addon-id="sentence_segmenter"] .ss-tester textarea:focus-visible {
+  outline: 2px solid var(--color-focus, #526b70);
+  outline-offset: -2px;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__header {
+  @apply flex items-start justify-between gap-8 px-7 py-6;
+  border-bottom: 1px solid var(--color-rule-strong, #958a7d);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__eyebrow,
+[data-addon-id="sentence_segmenter"] .ss-tester__section-heading p {
+  margin: 0 0 0.35rem;
+  color: var(--color-accent-rust, #7d5745);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester h1 {
+  margin: 0;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 450;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__header p:last-child {
+  margin: 0.65rem 0 0;
+  color: var(--color-ink-muted, #6f6a62);
+  font-size: 0.84rem;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__quiet,
+[data-addon-id="sentence_segmenter"] .ss-tester__section-heading button {
+  min-height: 2.35rem;
+  border: 1px solid var(--color-rule-strong, #958a7d);
+  padding: 0.52rem 0.78rem;
+  background: transparent;
+  color: var(--color-ink, #292723);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__quiet:hover:not(:disabled) {
+  background: var(--color-surface-muted, #e9e4db);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__status {
+  @apply flex min-h-12 items-center justify-between gap-5 px-7 py-2;
+  border-bottom: 1px solid var(--color-rule-strong, #958a7d);
+  background: color-mix(
+    in srgb,
+    var(--color-surface-muted, #e9e4db) 45%,
+    transparent
+  );
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__status p {
+  @apply flex items-center gap-2;
+  margin: 0;
+  font-size: 0.69rem;
+  font-weight: 750;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__status p > span {
+  width: 0.48rem;
+  height: 0.48rem;
+  border: 1px solid var(--color-rule-strong, #958a7d);
+  background: var(--color-accent-ochre, #947448);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__status p > span.ready {
+  background: var(--color-accent-sage, #69735a);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__status p > span.unavailable {
+  background: var(--color-danger, #934f47);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__status > span {
+  color: var(--color-ink-subtle, #888177);
+  font-size: 0.66rem;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__body {
+  @apply grid min-h-0;
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__body > form,
+[data-addon-id="sentence_segmenter"] .ss-tester__body > main {
+  @apply grid min-h-0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__body > form {
+  border-right: 1px solid var(--color-rule-strong, #958a7d);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__body > main {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__section-heading {
+  @apply flex min-h-14 items-center justify-between gap-4 px-5 py-3;
+  border-bottom: 1px solid var(--color-rule, #d0c8bc);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__section-heading p {
+  margin: 0;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__section-heading span {
+  color: var(--color-ink-subtle, #888177);
+  font-size: 0.66rem;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__section-heading button {
+  min-height: 1.9rem;
+  padding: 0.3rem 0.5rem;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester textarea {
+  width: 100%;
+  min-height: 18rem;
+  resize: none;
+  border: 0;
+  padding: 1.35rem;
+  background: color-mix(
+    in srgb,
+    var(--color-surface-muted, #e9e4db) 24%,
+    transparent
+  );
+  color: var(--color-ink, #292723);
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__run {
+  min-height: 3.15rem;
+  border: 0;
+  border-top: 1px solid var(--color-accent-rust, #7d5745);
+  background: var(--color-accent-rust, #7d5745);
+  color: var(--color-surface, #faf8f3);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__body > main {
+  overflow-y: auto;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__sentences {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__sentences li {
+  @apply grid gap-4 px-5 py-4;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  border-bottom: 1px solid var(--color-rule, #d0c8bc);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__sentences li:hover {
+  background: color-mix(
+    in srgb,
+    var(--color-accent-rust, #8a5d46) 5%,
+    transparent
+  );
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__sentences li > span {
+  color: var(--color-accent-rust, #7d5745);
+  font-family: var(--font-mono, Consolas, monospace);
+  font-size: 0.66rem;
+  font-weight: 750;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__sentences p {
+  margin: 0;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__state {
+  @apply grid min-h-[18rem] place-items-center content-center gap-2 px-8 text-center;
+  color: var(--color-ink-muted, #6f6a62);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__state > span {
+  width: 3rem;
+  height: 1px;
+  animation: ss-pulse 1.1s ease-in-out infinite alternate;
+  background: var(--color-accent-rust, #8a5d46);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__state strong {
+  color: var(--color-ink, #292723);
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__state p {
+  max-width: 27rem;
+  margin: 0;
+  font-size: 0.73rem;
+  line-height: 1.5;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__error {
+  margin: 0;
+  border-bottom: 1px solid var(--color-danger, #934f47);
+  padding: 0.9rem 1.25rem;
+  background: color-mix(in srgb, var(--color-danger, #934f47) 8%, transparent);
+  color: var(--color-danger, #7d403b);
+  font-size: 0.77rem;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__footer {
+  @apply flex items-center justify-between gap-6 px-7 py-4;
+  border-top: 1px solid var(--color-rule-strong, #958a7d);
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__footer p {
+  margin: 0;
+  color: var(--color-ink-muted, #6f6a62);
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.82rem;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__footer > div {
+  @apply flex shrink-0 gap-2;
+}
+
+[data-addon-id="sentence_segmenter"] .ss-tester__primary {
+  min-height: 2.35rem;
+  border: 1px solid var(--color-accent-rust, #7d5745);
+  border-radius: 0;
+  padding: 0.52rem 1rem;
+  background: var(--color-accent-rust, #7d5745);
+  color: var(--color-surface, #faf8f3);
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+@keyframes ss-pulse {
+  from {
+    transform: scaleX(0.45);
+    opacity: 0.45;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  dialog[data-iarf-ui-component-host][data-addon-id="sentence_segmenter"] {
+    width: 100vw;
+    max-height: 100vh;
+  }
+
+  [data-addon-id="sentence_segmenter"] .ss-tester {
+    max-height: 100vh;
+  }
+
+  [data-addon-id="sentence_segmenter"] .ss-tester__header,
+  [data-addon-id="sentence_segmenter"] .ss-tester__footer {
+    padding: 1rem;
+  }
+
+  [data-addon-id="sentence_segmenter"] .ss-tester__body {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  [data-addon-id="sentence_segmenter"] .ss-tester__body > form {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-rule-strong, #958a7d);
+  }
+
+  [data-addon-id="sentence_segmenter"] .ss-tester textarea {
+    min-height: 11rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-addon-id="sentence_segmenter"] .ss-tester__state > span {
+    animation: none;
+  }
+}

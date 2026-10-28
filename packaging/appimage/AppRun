@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+APPDIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+unset PYTHONHOME PYTHONPATH TCL_LIBRARY TK_LIBRARY LD_PRELOAD LD_LIBRARY_PATH
+exec "$APPDIR/python/bin/python3" -I -B "$APPDIR/bootstrap.py" "$@"

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+  <title>{% if review_mode|default(false) %}Translation review{% else %}Workspace - {{ project.name }}{% endif %}</title>
+  {% for stylesheet_url in frontend_css_urls %}
+  <link rel="stylesheet" href="{{ stylesheet_url }}">
+  {% endfor %}
+  <link rel="stylesheet" href="{{ url_for('translator.static', filename='dist/WorkspaceGate.css', v=asset_version) }}">
+  <script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+  <script>
+    window.TRANSLATOR_BOOTSTRAP = {
+      projectId: {{ (project_id if review_mode|default(false) else project.id)|tojson }},
+      projectName: {{ ('' if review_mode|default(false) else project.name)|tojson }},
+      sourceLang: {{ ('' if review_mode|default(false) else project.source_lang)|tojson }},
+      targetLang: {{ ('' if review_mode|default(false) else project.target_lang)|tojson }},
+      engineContract: {{ ('' if review_mode|default(false) else (project.engine_contract or ''))|tojson }},
+      sourceType: {{ ('document' if review_mode|default(false) else (project.settings or {}).get('source_type', 'document'))|tojson }},
+      reviewMode: {{ review_mode|default(false)|tojson }},
+      guestMode: {{ guest_mode|default(false)|tojson }},
+      shareToken: {{ share_token|default('')|tojson }}
+    };
+  </script>
+</head>
+<body style="margin: 0;">
+  <div id="translator-root"></div>
+  <script type="module" src="{{ url_for('translator.static', filename='dist/workspace.js', v=asset_version) }}"></script>
+</body>
+</html>

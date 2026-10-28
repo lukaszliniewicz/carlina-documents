@@ -1,0 +1,353 @@
+openapi: 3.1.2
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
+info:
+  title: Carlina Compass client ingest API
+  version: 1.1.0
+  description: >-
+    Owner-scoped Compass v1 capture and attachment ingest contract, with an
+    additive immutable capture-annotation relation surface. The frozen capture
+    representations remain unchanged. The
+    gateway derives authenticated owner and device scope from an opaque Bearer
+    access token; request bodies never supply those identities. Token issuance,
+    generated clients, classifier payloads, and UI behavior remain outside this
+    contract.
+servers:
+  - url: https://carlina.local
+    description: Local Carlina server origin; deployment routing is configured separately.
+security:
+  - CompassClientAccessToken: []
+x-carlina-idempotency:
+  version: 1
+  header: Idempotency-Key
+  convention: >-
+    Application convention only. The current IETF Idempotency-Key header draft
+    is expired and non-normative for this contract.
+  keyScope:
+    - authenticated_owner
+    - authenticated_device
+    - operationId
+    - canonical_resource_ids
+  canonicalResourceIds:
+    createCompassCaptureV1:
+      - body.captureId
+    uploadCompassCaptureAttachmentV1:
+      - path.capture_id
+      - path.attachment_id
+    commitCompassCaptureV1:
+      - path.capture_id
+    createCompassCaptureRelationV1:
+      - body.parentCaptureId
+      - body.childCaptureId
+      - body.kind
+  fingerprints:
+    createCompassCaptureV1:
+      algorithm: sha-256
+      input: RFC 8785 canonical JSON UTF-8 request body
+    uploadCompassCaptureAttachmentV1:
+      algorithm: sha-256
+      input: exact request body octets
+    commitCompassCaptureV1:
+      algorithm: sha-256
+      input: empty octet string
+    createCompassCaptureRelationV1:
+      algorithm: sha-256
+      input: RFC 8785 canonical JSON UTF-8 request body
+  replay:
+    same_scope_key_fingerprint: replay_original_result
+    differing_fingerprint: conflict_409
+    semantic_duplicate_different_key: existing_relation_receipt_200
+  retention: finite_server_policy
+tags:
+  - name: Compass captures
+    description: Owner-scoped immutable capture ingestion and attachment reservation.
+  - name: Compass capture relations
+    description: Additive immutable evidence relations between committed owner-scoped captures.
+paths:
+  /api/client/v1/capture-relations:
+    post:
+      tags: [Compass capture relations]
+      operationId: createCompassCaptureRelationV1
+      summary: Create an immutable screenshot-to-text-or-voice annotation relation.
+      description: >-
+        The parent and child capture identifiers form the canonical semantic
+        target. The request includes a UUIDv7 relationId for durable evidence
+        identity. A same-scope key and fingerprint replays the original 201
+        receipt; a different key for an already-created semantic relation
+        returns a truthful 200 existing receipt. The capture-detail response is
+        deliberately not widened. See the top-level x-carlina-idempotency
+        profile for key scope and fingerprint semantics.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./capture-relation.schema.json#/$defs/CaptureRelationCreateRequest
+      responses:
+        '201':
+          description: Relation created. Same-key replay returns this original receipt while retained.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture-relation.schema.json#/$defs/CaptureRelationReceipt
+        '200':
+          description: An identical immutable semantic relation already exists.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture-relation.schema.json#/$defs/CaptureRelationReceipt
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /api/client/v1/captures:
+    post:
+      tags: [Compass captures]
+      operationId: createCompassCaptureV1
+      summary: Reserve an immutable Compass capture and its attachment descriptors.
+      description: >-
+        See the top-level x-carlina-idempotency profile for required key scope,
+        canonical request fingerprinting, replay/conflict semantics, and finite
+        retention. A capture without attachments can become ready to commit
+        immediately; a capture with attachments waits for each reserved byte
+        stream to verify.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./capture.schema.json#/$defs/CaptureCreateRequest
+      responses:
+        '201':
+          description: >-
+            Capture reservation created. A replay may return this original
+            representation while its configured idempotency record is retained.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture.schema.json#/$defs/CaptureReceipt
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /api/client/v1/captures/{capture_id}/attachments/{attachment_id}:
+    put:
+      tags: [Compass captures]
+      operationId: uploadCompassCaptureAttachmentV1
+      summary: Upload exactly one previously reserved attachment byte stream.
+      description: >-
+        The route accepts raw bytes only. Content-Digest must be a RFC 9530
+        sha-256 structured field whose digest and exact byte count match the
+        reserved descriptor. Content-Length is intentionally not required. See
+        the top-level x-carlina-idempotency profile for the exact-octet
+        fingerprint and replay/conflict semantics.
+      parameters:
+        - name: capture_id
+          in: path
+          required: true
+          schema:
+            $ref: ./capture.schema.json#/$defs/UuidV7
+        - name: attachment_id
+          in: path
+          required: true
+          schema:
+            $ref: ./capture.schema.json#/$defs/UuidV7
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/ContentDigest'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              maxLength: 268435456
+              description: >-
+                Raw octets capped at 256 MiB by the v1 attachment contract.
+                The enclosing media type declares application/octet-stream;
+                type, format, and contentMediaType are intentionally omitted
+                so this is not modeled as an encoded JSON string.
+      responses:
+        '200':
+          description: >-
+            Exact reserved bytes were received and verified, or the same
+            idempotent upload is replayed during server-policy retention.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture.schema.json#/$defs/AttachmentReceipt
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /api/client/v1/captures/{capture_id}/commit:
+    post:
+      tags: [Compass captures]
+      operationId: commitCompassCaptureV1
+      summary: Commit a fully verified immutable capture exactly once.
+      description: >-
+        Commit is idempotent. It succeeds only after every reserved attachment
+        has validated against its declared size and SHA-256. See the top-level
+        x-carlina-idempotency profile for the empty-octet fingerprint,
+        replay/conflict semantics, and finite retention.
+      parameters:
+        - name: capture_id
+          in: path
+          required: true
+          schema:
+            $ref: ./capture.schema.json#/$defs/UuidV7
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Capture is durably committed, or the original commit result is replayed.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture.schema.json#/$defs/CaptureCommitReceipt
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /api/client/v1/captures/{capture_id}:
+    get:
+      tags: [Compass captures]
+      operationId: getCompassCaptureV1
+      summary: Read an owner-scoped durable Compass capture.
+      parameters:
+        - name: capture_id
+          in: path
+          required: true
+          schema:
+            $ref: ./capture.schema.json#/$defs/UuidV7
+      responses:
+        '200':
+          description: Durable capture detail without classifier output or owner/device identities.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture.schema.json#/$defs/CaptureDetail
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+  /api/client/v1/captures/{capture_id}/relations:
+    get:
+      tags: [Compass capture relations]
+      operationId: getCompassCaptureRelationsV1
+      summary: Discover owner-visible immutable relations for one capture.
+      description: >-
+        The returned direction is relative to capture_id. This endpoint returns
+        only relation topology; it does not return attachment bytes or alter the
+        frozen CaptureDetail representation.
+      parameters:
+        - name: capture_id
+          in: path
+          required: true
+          schema:
+            $ref: ./capture-relation.schema.json#/$defs/UuidV7
+      responses:
+        '200':
+          description: Owner-visible relation topology for the capture.
+          content:
+            application/json:
+              schema:
+                $ref: ./capture-relation.schema.json#/$defs/CaptureRelationDiscovery
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+components:
+  securitySchemes:
+    CompassClientAccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: >-
+        Opaque access token accepted by the authenticated client gateway. Token
+        issuance, device authorization, rotation, and revocation are deliberately
+        outside this frozen contract.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        See the top-level x-carlina-idempotency profile for scope, request
+        fingerprint, finite server-policy retention, and replay/conflict
+        semantics. This is an application convention, not a claim about an
+        active IETF header draft. The bounded syntax accepts existing
+        browser:<UUIDv7> keys.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+        pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$'
+    ContentDigest:
+      name: Content-Digest
+      in: header
+      required: true
+      description: >-
+        RFC 9530 structured field containing exactly one sha-256 digest in the
+        form sha-256=:base64digest:. It must match the reserved lower-case
+        hexadecimal SHA-256 and expected byte count for this attachment.
+      schema:
+        type: string
+        pattern: '^sha-256=:[A-Za-z0-9+/]{43}=:$'
+  schemas:
+    Problem:
+      $ref: ./capture.schema.json#/$defs/Problem
+  responses:
+    BadRequest:
+      description: Malformed request syntax, path parameter, or required header.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    Unauthorized:
+      description: Missing, expired, or invalid opaque access token.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    Forbidden:
+      description: Authenticated principal lacks the required owner-scoped client permission.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    NotFound:
+      description: Capture or attachment is not visible in the authenticated owner scope.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    Conflict:
+      description: Stable idempotency mismatch, duplicate reservation, invalid lifecycle transition, or missing verified attachment.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    PayloadTooLarge:
+      description: Request body, text field, attachment count, or raw attachment exceeds a documented v1 bound.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    UnsupportedMediaType:
+      description: Attachment upload did not use application/octet-stream.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    UnprocessableContent:
+      description: Semantically invalid descriptor, source observation, digest, or attachment bytes.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    TooManyRequests:
+      description: Owner-scoped gateway or ingest rate limit reached; retryability is stated in the problem payload.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    ServiceUnavailable:
+      description: Durable ingest service is temporarily unavailable; no payload or exception detail is echoed.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }

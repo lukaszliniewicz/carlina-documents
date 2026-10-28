@@ -1,0 +1,397 @@
+[build-system]
+requires = ["setuptools>=83,<84", "wheel>=0.47,<0.48"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "carlina"
+version = "0.2.0a1"
+description = "Shared Carlina runtime and native document extraction and translation"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+license = "MIT"
+license-files = [
+    "LICENSE",
+    "COPYING-AGPL-3.0.txt",
+    "THIRD_PARTY_NOTICES.md",
+    "third_party/frontend/NOTICE.json",
+    "third_party/frontend/notices/*",
+    "third_party/models/NOTICE.json",
+    "third_party/models/segment-any-text-sat-12l-sm.md",
+    "third_party/models/FacebookAI-xlm-roberta-base.md",
+]
+authors = [
+    { name = "Lukasz Liniewicz" },
+]
+keywords = [
+    "agent-workbench",
+    "artificial-intelligence",
+    "flask",
+    "local-first",
+    "workflow-automation",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Framework :: Flask",
+]
+dependencies = [
+    "Flask>=3.1.3,<3.2",
+    "Flask-Login>=0.6.3,<0.7",
+    "Flask-SQLAlchemy>=3.1.1,<3.2",
+    "Flask-Migrate>=4.1,<5",
+    "Flask-Compress>=1.24,<2",
+    "Flask-WTF>=1.3,<2",
+    "SQLAlchemy>=2.0.51,<2.1",
+    "Werkzeug>=3.1.8,<3.2",
+    "click>=8.4,<9",
+    "itsdangerous>=2.2,<3",
+    "alembic>=1.18.5,<1.19",
+    "APScheduler>=3.11.3,<4",
+    "litellm>=1.95,<2",
+    # LiteLLM's Vertex Gemini REST adapter authenticates service-account JSON
+    # through google.oauth2 without needing the full Vertex SDK.
+    "google-auth>=2.56,<3",
+    "jsonschema>=4.26,<5",
+    "rfc8785==0.1.4",
+    "pyOpenSSL>=26.4,<27",
+    "cryptography>=50,<51",
+    "mako>=1.3.12,<2",
+    "mcp>=2.1.1,<2.2",
+    "uvicorn>=0.52,<0.53",
+    "waitress>=3.0.2,<4",
+    "mistune>=3.3.4,<4",
+    "python-dotenv>=1.2.2,<2",
+    "brotli>=1.2,<2",
+    "markdownify>=1.2.3,<2",
+    "beautifulsoup4>=4.15,<5",
+    # Pixi owns the native Pandoc executable on every supported platform.
+    # The wrapper must not introduce a second bundled binary on Windows.
+    "pypandoc>=1.17,<2",
+    "pypdf>=6,<7",
+    "Pillow>=12.3,<13",
+    "requests>=2.34,<3",
+    "urllib3>=2.7,<3",
+    "numpy>=2.5,<3",
+    "python-docx>=1.2,<2",
+    "packaging>=26.2,<27",
+    "platformdirs>=4,<5",
+    "psutil>=7.2.2,<8",
+    "PyYAML>=6,<7",
+    "filelock>=3.32,<4",
+    "sqlite-vec>=0.1.9,<0.2",
+    "tenacity>=9.1,<10",
+    # Security floors for transitive core dependencies. Add-on transitive
+    # floors belong to each add-on's independently reviewed lock.
+    "aiohttp>=3.14,<4",
+    "soupsieve>=2.9,<3",
+    # Seven host-vendor locks share this URL codec with the host. Keep the
+    # accepted runtime version while composing environments; upgrade together.
+    "idna==3.18",
+]
+
+[project.optional-dependencies]
+workbench = [
+    # Assistant/container/attachment features are outside the document host.
+    "docker>=7.2,<8",
+    "docx2pdf>=0.1.8,<0.2",
+    "pypdfium2>=5.12,<6",
+    "pandas>=2.3.3,<3",
+    "openpyxl>=3.1,<4",
+]
+licensed-document-formats = [
+    # These features are never present in the default wheel/runtime. Enabling
+    # them is a deliberate license decision; see THIRD_PARTY_NOTICES.md.
+    "extract-msg>=0.56,<0.57",
+    "pymupdf>=1.27,<2",
+]
+dev = [
+    "pytest>=9.1,<10",
+]
+
+[project.urls]
+Documentation = "https://github.com/lukaszliniewicz/carlina-documents#readme"
+Issues = "https://github.com/lukaszliniewicz/carlina-documents/issues"
+Repository = "https://github.com/lukaszliniewicz/carlina-documents"
+
+[project.scripts]
+carlina = "carlina.bootstrap_manager:manager_main"
+carlina-manage = "carlina.bootstrap_manager:manager_main"
+carlina-setup = "carlina.bootstrap:setup_main"
+carlina-start = "carlina.bootstrap:start_main"
+carlina-documents = "carlina.documents:main"
+carlina-prepare-segmentation = "carlina.segmentation.prepare:main"
+iarf-assistant = "iarf_assistant.bootstrap_manager:manager_main"
+iarf-assistant-manage = "iarf_assistant.bootstrap_manager:manager_main"
+iarf-assistant-setup = "iarf_assistant.bootstrap:setup_main"
+iarf-assistant-start = "iarf_assistant.bootstrap:start_main"
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = ["carlina*", "iarf_assistant*"]
+exclude = [
+    "iarf_assistant.instance*",
+    "iarf_assistant.uploads*",
+    "iarf_assistant.temp*",
+    "iarf_assistant.library_importer_runs*",
+    "iarf_assistant.collections*",
+    "iarf_assistant.workspace_docs*",
+    "iarf_assistant.addons.*.frontend*",
+    "iarf_assistant.addons.*.lib*",
+    "iarf_assistant.addons.*.env*",
+    "iarf_assistant.addons.*.data*",
+    "iarf_assistant.addons.*.logs*",
+    "iarf_assistant.addons.*.*pixi*",
+    "iarf_assistant.addons.*.*bin*",
+    "iarf_assistant*.__pycache__*",
+]
+
+[tool.setuptools.package-data]
+"carlina.core" = ["installation-event-v1.schema.json"]
+iarf_assistant = [
+    "templates/**/*.html",
+    "static/js/*.js",
+    "static/*.css",
+    "static/css/*.css",
+    "static/frontend/*.*",
+    "static/frontend/*/*.*",
+    "static/frontend/.frontend-build-stamp.json",
+    "core/*.json",
+    "core/addons/*.json",
+    "core/client_api/contracts/compass/v1/*.json",
+    "core/client_api/contracts/compass/v1/*.yaml",
+    "addons/compass/contracts/v1/*.json",
+    "addons/compass/contracts/v1/*.yaml",
+    "core/alembic_templates/*.*",
+    "migrations/*",
+    "migrations/versions/*.py",
+    "addons/*/static/*.*",
+    "addons/*/static/*/*.*",
+    "addons/*/static/*/*/*.*",
+    "addons/*/static/.frontend-build-stamp.json",
+    "addons/*/templates/*.html",
+    "addons/*/templates/*/*.html",
+    "addons/*/templates/*.docx",
+    "addons/*/manifest.json",
+    "addons/*/skills/*/*.md",
+    "addons/*/migrations/*",
+    "addons/*/migrations/versions/*",
+    "addons/*/requirements*.txt",
+    "addons/*/requirements*.lock",
+    "addons/*/conda-*.lock",
+    "addons/*/pixi.toml",
+    "addons/*/pixi.lock",
+    "addons/*/Dockerfile",
+    "addons/*/.dockerignore",
+    "addons/*/docker-compose.yml",
+    "addons/*/docker-requirements.txt",
+    "addons/*/entrypoint.sh",
+    "addons/*/container/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+norecursedirs = ["instance", ".pixi", ".bin", "__pycache__", "node_modules"]
+markers = [
+    "fast: deterministic tests intended for the sub-three-minute pull-request lane",
+    "core: core application and service behavior",
+    "contract: public backend, frontend, add-on, or packaging contracts",
+    "integration: tests spanning persistence, processes, or multiple services",
+    "addon: first-party add-on implementation behavior",
+    "e2e: end-to-end installation or browser/runtime behavior",
+    "uses_network: marks tests that require network access",
+]
+
+[tool.ruff]
+target-version = "py314"
+extend-exclude = [
+    ".codegraph",
+    ".pixi",
+    "build",
+    "graphify-out",
+    "instance",
+    "node_modules",
+    "iarf_assistant/addons/*/env",
+    "iarf_assistant/addons/*/lib",
+    "iarf_assistant/addons/*/static/dist",
+]
+
+[tool.vulture]
+paths = ["carlina", "iarf_assistant", "scripts"]
+exclude = [
+    "*/.pixi/*",
+    "*/env/*",
+    "*/lib/*",
+    "*/migrations/versions/*",
+    "*/static/dist/*",
+]
+min_confidence = 100
+
+[tool.ruff.lint]
+# Vulture's line-specific unused-variable annotation is external to Ruff.
+# Abstract protocol keyword names are part of their checked call contract.
+external = ["V107"]
+
+[tool.importlinter]
+# Grimp skips implicit namespace children beneath a regular package unless
+# those namespaces are explicit roots. Keep the legacy implementation visible.
+root_packages = ["carlina", "iarf_assistant", "iarf_assistant.core", "iarf_assistant.addons"]
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Canonical core does not depend on bundled add-ons"
+type = "forbidden"
+source_modules = ["carlina.core"]
+forbidden_modules = ["iarf_assistant.addons"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Shared MCP tool runtime does not depend on products"
+type = "forbidden"
+source_modules = ["iarf_assistant.core.mcp_tool_runtime"]
+forbidden_modules = ["iarf_assistant.addons"]
+
+[[tool.importlinter.contracts]]
+name = "Document MCP adapters do not depend on the gateway"
+type = "forbidden"
+source_modules = [
+    "iarf_assistant.addons.doc_processor.mcp_registration",
+    "iarf_assistant.addons.doc_processor.mcp_recovery_registration",
+    "iarf_assistant.addons.doc_processor.mcp_issue_registration",
+    "iarf_assistant.addons.doc_processor.mcp_review_registration",
+    "iarf_assistant.addons.doc_processor.mcp_execution",
+]
+forbidden_modules = ["iarf_assistant.core.mcp_gateway"]
+
+[[tool.importlinter.contracts]]
+name = "Document products and MCP do not import Workbench capture API"
+type = "forbidden"
+source_modules = [
+    "iarf_assistant.addons.doc_processor",
+    "iarf_assistant.addons.translator",
+    "iarf_assistant.addons.sentence_segmenter",
+    "iarf_assistant.core.mcp_tool_runtime",
+    "iarf_assistant.core.mcp_jobs",
+    "iarf_assistant.core.mcp_completion",
+    "iarf_assistant.core.mcp_gateway",
+]
+forbidden_modules = ["iarf_assistant.core.client_api"]
+# Shared composition roots retain conditional Workbench imports. Exact-wheel
+# import guards cover Documents startup and exercised passive/recovery paths.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Document products and MCP do not import Workbench assistant implementations"
+type = "forbidden"
+source_modules = [
+    "iarf_assistant.addons.doc_processor",
+    "iarf_assistant.addons.translator",
+    "iarf_assistant.addons.sentence_segmenter",
+    "iarf_assistant.core.mcp_gateway",
+    "iarf_assistant.core.mcp_tool_runtime",
+    "iarf_assistant.core.mcp_completion",
+    "iarf_assistant.core.mcp_jobs",
+    "iarf_assistant.core.vector_backend",
+    "iarf_assistant.core.memory_defaults",
+    "iarf_assistant.settings_frontend",
+]
+forbidden_modules = [
+    "iarf_assistant.chat_builtin_tools",
+    "iarf_assistant.chat_constants",
+    "iarf_assistant.chat_context_store",
+    "iarf_assistant.chat_execution_helpers",
+    "iarf_assistant.chat_finalization",
+    "iarf_assistant.chat_frontend",
+    "iarf_assistant.chat_orchestrator",
+    "iarf_assistant.chat_prompt_builder",
+    "iarf_assistant.chat_routes",
+    "iarf_assistant.administration_frontend",
+    "iarf_assistant.automation_frontend",
+    "iarf_assistant.context_frontend",
+    "iarf_assistant.discovery_routes",
+    "iarf_assistant.knowledge_frontend",
+    "iarf_assistant.profile_routes",
+    "iarf_assistant.run_frontend",
+    "iarf_assistant.runtime_operations_frontend",
+    "iarf_assistant.runtime_routes",
+    "iarf_assistant.system_routes",
+    "iarf_assistant.upload_routes",
+    "iarf_assistant.rag_service",
+    "iarf_assistant.maintenance",
+    "iarf_assistant.knowledge.document_parser",
+    "iarf_assistant.knowledge.routes",
+    "iarf_assistant.knowledge.worker",
+    "iarf_assistant.core.addon_manager",
+    "iarf_assistant.core.addons.audio_spoke",
+    "iarf_assistant.core.addons.container_orchestration",
+    "iarf_assistant.core.addons.container_runtime",
+    "iarf_assistant.core.chat_sessions",
+    "iarf_assistant.core.chat_turns",
+    "iarf_assistant.core.code_session_bootstrap",
+    "iarf_assistant.core.code_session_sdk",
+    "iarf_assistant.core.code_session_service",
+    "iarf_assistant.core.context_fabric",
+    "iarf_assistant.core.collection_service",
+    "iarf_assistant.core.finalization_runner",
+    "iarf_assistant.core.project_process_supervisor",
+    "iarf_assistant.core.project_workspace_service",
+    "iarf_assistant.core.run_orchestrator",
+    "iarf_assistant.core.runs.compiler",
+    "iarf_assistant.core.runtime_interactions",
+    "iarf_assistant.core.turn_finalization",
+    "iarf_assistant.core.workflow_executor",
+    "iarf_assistant.core.workflow_steps",
+    "iarf_assistant.core.workflow_worker",
+    "iarf_assistant.core.worker_process",
+]
+# Shared composition roots retain lazy Workbench branches; exact-wheel import
+# guards enforce Documents startup, passive/recovery and dense-vector paths.
+# The gateway's profile-guarded news adapter import is retained separately;
+# Documents excludes that payload and its artifact probe forbids loading it.
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Translator segment validation does not depend on its worker or host state"
+type = "forbidden"
+source_modules = ["iarf_assistant.addons.translator.segment_output"]
+forbidden_modules = [
+    "iarf_assistant.addons.translator.worker",
+    "iarf_assistant.addons.translator.segmenter",
+    "iarf_assistant.addons.translator.models",
+    "iarf_assistant.addons.translator.source_providers",
+    "iarf_assistant.core",
+    "iarf_assistant.extensions",
+    "iarf_assistant.models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Document table assembly does not depend on parser or host services"
+type = "forbidden"
+source_modules = ["iarf_assistant.addons.doc_processor.parsers.table_assembly"]
+forbidden_modules = [
+    "iarf_assistant.addons.doc_processor.parsers.pdf_utils",
+    "iarf_assistant.core",
+    "iarf_assistant.extensions",
+    "iarf_assistant.models",
+    "iarf_assistant.addons.doc_processor.models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Translator admission and MCP adapters do not depend on the gateway"
+type = "forbidden"
+source_modules = [
+    "iarf_assistant.addons.translator.mcp_registration",
+    "iarf_assistant.addons.translator.mcp_registration_types",
+    "iarf_assistant.addons.translator.mcp_project_registration",
+    "iarf_assistant.addons.translator.mcp_review_registration",
+    "iarf_assistant.addons.translator.mcp_glossary_registration",
+    "iarf_assistant.addons.translator.mcp_context_registration",
+    "iarf_assistant.addons.translator.mcp_execution",
+    "iarf_assistant.addons.translator.operation_delivery",
+    "iarf_assistant.addons.translator.block_admission",
+]
+forbidden_modules = ["iarf_assistant.core.mcp_gateway"]

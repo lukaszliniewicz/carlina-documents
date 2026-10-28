@@ -1,0 +1,44 @@
+{% extends "public_layout.html" %}
+
+{% block title %}Create member · {{ product.name }}{% endblock %}
+{% block eyebrow %}Administration{% endblock %}
+{% block heading %}Create a member.{% endblock %}
+{% block introduction %}
+    <p class="public-lede">
+        New installations create their first administrator through the launcher.
+        Existing administrators manage later accounts from the Svelte member desk.
+    </p>
+{% endblock %}
+
+{% block content %}
+    <div class="public-panel">
+        <form method="post" class="public-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <p class="public-notice" role="alert">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="public-field">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" autocomplete="username" required>
+            </div>
+            <div class="public-field">
+                <label for="password">Initial password</label>
+                <input type="password" id="password" name="password" autocomplete="new-password" required>
+            </div>
+            <button type="submit" class="public-action">Create member</button>
+            <p class="public-note">
+                This compatibility document is not linked from the application.
+                Prefer Settings → Administration → Members.
+            </p>
+        </form>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <a href="{{ url_for('index') }}" class="public-link">Return to the assistant</a>
+{% endblock %}

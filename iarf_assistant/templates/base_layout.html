@@ -1,0 +1,116 @@
+{%- import "_ui.html" as ui -%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+    <title>{% block title %}{{ product.name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='output.css') }}">
+    <script src="{{ url_for('static', filename='js/csrf.js') }}" defer></script>
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="min-h-screen bg-paper text-ink antialiased">
+    <div id="app-container" class="min-h-screen bg-paper text-ink">
+        {% include '_sidebar.html' %}
+        <div id="main-content" class="min-w-0 flex-1 bg-surface">
+             <header id="app-header" class="border-b border-rule bg-surface/95 px-3 py-2 shadow-[0_1px_0_rgba(23,26,23,0.04)] md:px-5">
+                <button id="sidebar-toggle" class="inline-flex size-10 items-center justify-center border border-transparent text-ink hover:border-rule hover:bg-paper-muted" title="Toggle sidebar"><i class="fa-solid fa-bars fa-lg"></i></button>
+                <div class="min-w-0 flex-1 px-2">{% block header_middle %}{% endblock %}</div>
+                <div id="user-info" class="min-w-0">
+                    {% if current_user.is_authenticated %}
+                        <div class="user-greeting">
+                            <span>Welcome, {{ current_user.email }}{% if current_user.is_admin %} (Admin){% endif %}</span>
+                            <div class="encryption-status-indicator" title="Sensitive persisted fields use authenticated encryption at rest.">
+                                <i class="fa-solid fa-lock"></i> Protected storage
+                            </div>
+                        </div>
+                        <form method="post" action="{{ url_for('logout') }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+                            <button type="submit" id="logout-button" class="{{ ui.button_class() }}">Logout</button>
+                        </form>
+                        {% if current_user.is_admin %}
+                        <button id="restart-server-btn-header" class="{{ ui.button_class('danger') }}" title="Restart Server"><i class="fa-solid fa-power-off"></i></button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </header>
+
+            {% block content %}{% endblock %}
+            {% block footer %}{% endblock %}
+
+        </div>
+    </div>
+
+    {% block modals %}{% endblock %}
+
+    <!-- Legacy addon pages load compatibility components on demand. -->
+    <div id="ui-component-modals-container" data-legacy-helper-container-id="helper-modals-container">
+    </div>
+
+    <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+    <script>
+        window.CARLINA = window.CARLINA || window.IARF_AI || {};
+        window.IARF_AI = window.CARLINA;
+        window.CARLINA.product = {{ product|tojson }};
+        window.CARLINA.ui_component_assets = {{ ui_component_assets|default({})|tojson }};
+        window.CARLINA.helper_assets = window.CARLINA.ui_component_assets;
+    </script>
+    <script src="{{ url_for('static', filename='js/global_ui_components.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggle && sidebar) {
+                if (window.matchMedia('(max-width: 768px)').matches) {
+                    sidebar.classList.add('collapsed');
+                }
+
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+
+            const restartBtn = document.getElementById('restart-server-btn-header');
+            if (restartBtn) {
+                restartBtn.addEventListener('click', () => {
+                    if (!confirm('Are you sure you want to restart the server? You will be disconnected temporarily.')) {
+                        return;
+                    }
+                    restartBtn.disabled = true;
+                    restartBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+                    fetch('/api/system/restart', { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Server is restarting. The page will automatically reload in 15 seconds.');
+                                
+                                let countdown = 15;
+                                restartBtn.innerHTML = `${countdown}s`;
+                                const interval = setInterval(() => {
+                                    countdown--;
+                                    restartBtn.innerHTML = `${countdown}s`;
+                                    if (countdown <= 0) {
+                                        clearInterval(interval);
+                                        window.location.reload();
+                                    }
+                                }, 1000);
+
+                            } else {
+                                throw new Error(data.message || 'Failed to initiate restart.');
+                            }
+                        })
+                        .catch(error => {
+                            alert(`Error sending restart command: ${error.message}`);
+                            restartBtn.disabled = false;
+                            restartBtn.innerHTML = '<i class="fa-solid fa-power-off"></i>';
+                        });
+                });
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

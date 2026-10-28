@@ -1,0 +1,26 @@
+{
+  "name": "@carlina/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "dev": "vite",
+    "test": "npm run test:node && npm run test:components",
+    "test:node": "node --test ./test/*.test.ts",
+    "test:components": "vitest run --config ./vitest.config.ts --pool=forks --maxWorkers=1"
+  },
+  "dependencies": {
+    "@carlina/runtime-ui": "*",
+    "@carlina/sdk": "*",
+    "@carlina/ui": "*"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
+    "@testing-library/svelte": "5.4.2",
+    "jsdom": "30.0.1",
+    "svelte": "5.56.8",
+    "vitest": "4.1.12"
+  }
+}

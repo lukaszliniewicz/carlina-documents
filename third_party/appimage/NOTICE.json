@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "scope": "Original AppImage bootstrap notices and pinned build/source provenance. The PBS catalogue retains notices for additional upstream build targets. Final binary membership, required source/relink material and public delivery are reviewed for each release separately.",
+  "inputs": [
+    {
+      "name": "appimagetool-x86_64.AppImage",
+      "url": "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage",
+      "sha256": "95cbe7cce9717fce90c484e34052ee7c7f1d7635b33c12525b4776826a7d29b6",
+      "bytes": 15092216
+    },
+    {
+      "name": "runtime-x86_64",
+      "url": "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64",
+      "sha256": "617aa77314d57c8b8e4fae9c3f0b35af7b30d5529cb69e98f64f92510ed98a46",
+      "bytes": 944632
+    },
+    {
+      "name": "bootstrap-python.tar.gz",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10%2B20261026-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "4d3c16c59ed0802a3d1d34d8bce504b15ceeaff39d62dadecc6a9fa803412aed",
+      "bytes": 36776589
+    }
+  ],
+  "source_commits": {
+    "python_build_standalone": "fa506e0858ac9f2cc5b289c137b888a2aa24d1ee",
+    "appimage_runtime": "fedfad51acc2860b2916a1eef32ba4a500ff31ef",
+    "appimagetool_build_only": "854e19e951900cf141245b384d45735942521abe"
+  },
+  "notices": [
+    {
+      "file": "notices/python-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE",
+      "git_blob": "a612ad9813b006ce81d1ee438dd784da99a54007",
+      "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
+      "bytes": 16725
+    },
+    {
+      "file": "notices/python-LICENSE.bdb.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.bdb.txt",
+      "git_blob": "0601b45e01c6bda505d9d6697c77a28edf378722",
+      "sha256": "3bdff06e69991c94664f2ef5c5f8096f60b7dbec071756ea6cc26b445e06ec5b",
+      "bytes": 7293
+    },
+    {
+      "file": "notices/python-LICENSE.bzip2.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.bzip2.txt",
+      "git_blob": "a5c4cdbc3f5e894f765d903f3c5939d7aa009615",
+      "sha256": "1f38bbc7caacafd65169276d759c0d88c991b753b643ce35d0e45ea1971dd441",
+      "bytes": 1743
+    },
+    {
+      "file": "notices/python-LICENSE.cpython.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.cpython.txt",
+      "git_blob": "1007a80520a7ff53a8dd5d8847bd4c0a34d46442",
+      "sha256": "86e61415828a8b5b06ec8d024e6f086ce155a8b85fd0c419c0ba4dc004e74fdd",
+      "bytes": 36164
+    },
+    {
+      "file": "notices/python-LICENSE.expat.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.expat.txt",
+      "git_blob": "ce9e5939291e45f9633f540efc6ae58a26c041ef",
+      "sha256": "122f2c27000472a201d337b9b31f7eb2b52d091b02857061a8880371612d9534",
+      "bytes": 1144
+    },
+    {
+      "file": "notices/python-LICENSE.libX11.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.libX11.txt",
+      "git_blob": "b065516e4437c493f9cbf32cc7d15db60f68bc74",
+      "sha256": "2daec087a88e7c9b8082557cdeebad5bbb8155a4137472f0b22e269cd99d0c1e",
+      "bytes": 47018
+    },
+    {
+      "file": "notices/python-LICENSE.libXau.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.libXau.txt",
+      "git_blob": "64492ad8091f917787b14f12ba236e56de7addd2",
+      "sha256": "56abe29bb1d9806a9e04fa9f80fed2c0f18027594df3f098148d814aef6bddfa",
+      "bytes": 1148
+    },
+    {
+      "file": "notices/python-LICENSE.libedit.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.libedit.txt",
+      "git_blob": "52c8707dc590da3ef3b8a487475e4fe0b191f976",
+      "sha256": "29cea33c32bbc9785142386377915612a2fa786482c46843383384aded2e09b1",
+      "bytes": 1614
+    },
+    {
+      "file": "notices/python-LICENSE.libffi.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.libffi.txt",
+      "git_blob": "acb2f7a07d7c5093f258ce7f6e8711fa63e68747",
+      "sha256": "deaf3a42effb551a5b140fa9afefed183a27f1341c6d1bf430d106a5e6931fc0",
+      "bytes": 1132
+    },
+    {
+      "file": "notices/python-LICENSE.liblzma.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.liblzma.txt",
+      "git_blob": "2d7885199716b722b52832f73fa75285459b08ae",
+      "sha256": "9a4062de0a2c388a98cf35a35d348b62fa97c838a71c3c28ee1a2d7d0a565b02",
+      "bytes": 660
+    },
+    {
+      "file": "notices/python-LICENSE.libuuid.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.libuuid.txt",
+      "git_blob": "ec87a77f17f3f9415bd05ae1fb21c6009765f8b1",
+      "sha256": "122ee1f7e258f2c3c0e538a75c037684f420454bf3850ddc74ce750bbf5fe86b",
+      "bytes": 1432
+    },
+    {
+      "file": "notices/python-LICENSE.libxcb.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.libxcb.txt",
+      "git_blob": "54bfbe5b02074d0c276959c9140072ccba0dc670",
+      "sha256": "c5ffbfeaa501071ceeb97b7de2c0d703fdaa35de01c0fb6cbac1c28453a3e9fd",
+      "bytes": 1337
+    },
+    {
+      "file": "notices/python-LICENSE.mpdecimal.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.mpdecimal.txt",
+      "git_blob": "c7688a928cd5292e5c2a729431fab7b30fd44a05",
+      "sha256": "669512af7219f58be03a398766d7c9da11a3b3df9d3f05cb74c5ceca25c8da3b",
+      "bytes": 1284
+    },
+    {
+      "file": "notices/python-LICENSE.ncurses.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.ncurses.txt",
+      "git_blob": "3a229753681327c4089d8fdaf9293658c7befe4a",
+      "sha256": "87a4c4442337b8968ef956031c406b74f9cb7149b7ba87311bdaba534816201c",
+      "bytes": 1447
+    },
+    {
+      "file": "notices/python-LICENSE.openssl-3.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.openssl-3.txt",
+      "git_blob": "49cc83d2ee29d13453188217f0e4edd70c7f842f",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "bytes": 10175
+    },
+    {
+      "file": "notices/python-LICENSE.sqlite.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.sqlite.txt",
+      "git_blob": "68b36ebd1990e92998ca64a30af0a726357ebdea",
+      "sha256": "38bef3d28b24f145ea293bd3b6eb4b20396982abc8303128fb493986ea5bc719",
+      "bytes": 1481
+    },
+    {
+      "file": "notices/python-LICENSE.tcl.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.tcl.txt",
+      "git_blob": "d8049cd9e7ca055f7e584a76f88861a294b30c9c",
+      "sha256": "c0a69a2bfd757361ec7e6143973b103c90409316b49e9c88db26ad6388e79f16",
+      "bytes": 2255
+    },
+    {
+      "file": "notices/python-LICENSE.tix.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.tix.txt",
+      "git_blob": "5323a3fc39f6c196065fc49803b6777410b02c92",
+      "sha256": "3ac5cdd0bef6c43ce34c6a7ced452081d9e5a0bf94082b9f9147d23ec9e214f5",
+      "bytes": 2826
+    },
+    {
+      "file": "notices/python-LICENSE.zlib-ng.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.zlib-ng.txt",
+      "git_blob": "e866d7ac18620a2229727e3a0512ab688176cbd8",
+      "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+      "bytes": 867
+    },
+    {
+      "file": "notices/python-LICENSE.zlib.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.zlib.txt",
+      "git_blob": "5eb28a147858fcb57ed306ed6fbd9c03f22f9452",
+      "sha256": "818922b2620f12801a12bf78e399644a30990e66824abd8ca8ec24d451d6f92c",
+      "bytes": 995
+    },
+    {
+      "file": "notices/python-LICENSE.zstd.txt",
+      "upstream_url": "https://raw.githubusercontent.com/astral-sh/python-build-standalone/fa506e0858ac9f2cc5b289c137b888a2aa24d1ee/LICENSE.zstd.txt",
+      "git_blob": "75800288cc243f164b9d130f125e2ffae28f8e39",
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "bytes": 1549
+    },
+    {
+      "file": "notices/appimage-runtime-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/AppImage/type2-runtime/fedfad51acc2860b2916a1eef32ba4a500ff31ef/LICENSE",
+      "sha256": "aa154fc9070614bbe7921f89db11efd1dba7a1f3a41685958110e2230f9c0ca1",
+      "bytes": 1678
+    },
+    {
+      "file": "notices/appimagetool-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/AppImage/appimagetool/854e19e951900cf141245b384d45735942521abe/LICENSE",
+      "sha256": "d726eb47bb96b7e7f8971a1431575ab4fd8780b5d2efde3552c70ef71469015f",
+      "bytes": 1513
+    },
+    {
+      "file": "notices/runtime-libfuse-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/libfuse/libfuse/fuse-3.15.0/LICENSE",
+      "sha256": "b8832d9caaa075bbbd2aef24efa09f8b7ab66a832812d88c602da0c7b4397fad",
+      "bytes": 435
+    },
+    {
+      "file": "notices/runtime-libfuse-LGPL2.txt",
+      "upstream_url": "https://raw.githubusercontent.com/libfuse/libfuse/fuse-3.15.0/LGPL2.txt",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "bytes": 26530
+    },
+    {
+      "file": "notices/runtime-squashfuse-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/vasi/squashfuse/0.5.2/LICENSE",
+      "sha256": "9e909cc8a8ba27b1a649c964cf9eda37de911f3138c2b64e6d2f01703904ac13",
+      "bytes": 1592
+    },
+    {
+      "file": "notices/runtime-mimalloc-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/microsoft/mimalloc/c683b7c60c91cb2809977e37d3f4d084d7497180/LICENSE",
+      "sha256": "82ade5d7d9b029044b5fbbc326207fc47c2d44ee4dd71e8a559c36d728217de9",
+      "bytes": 1096,
+      "binary_version_binding": false
+    },
+    {
+      "file": "notices/runtime-zlib-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/madler/zlib/71747d1d39168833e0cae8ed84b8ce77cb049699/LICENSE",
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+      "bytes": 1002,
+      "binary_version_binding": false
+    },
+    {
+      "file": "notices/runtime-zstd-LICENSE.txt",
+      "upstream_url": "https://raw.githubusercontent.com/facebook/zstd/v1.5.7/LICENSE",
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8",
+      "bytes": 1549,
+      "binary_version_binding": false
+    },
+    {
+      "file": "notices/runtime-musl-COPYRIGHT.txt",
+      "upstream_url": "https://musl.libc.org/releases/musl-1.2.5.tar.gz",
+      "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+      "bytes": 6204,
+      "upstream_member": "musl-1.2.5/COPYRIGHT",
+      "binary_version_binding": false
+    }
+  ],
+  "runtime_build_evidence": {
+    "makefile": "https://github.com/AppImage/type2-runtime/blob/fedfad51acc2860b2916a1eef32ba4a500ff31ef/src/runtime/Makefile",
+    "dockerfile": "https://github.com/AppImage/type2-runtime/blob/fedfad51acc2860b2916a1eef32ba4a500ff31ef/scripts/docker/Dockerfile",
+    "limit": "The runtime links mimalloc statically, but its root LICENSE omits that component. Its Alpine 3.21 build does not pin an image digest or musl, zstd, zlib and mimalloc package versions. These sources do not establish their exact binary versions.",
+    "upstream_mimalloc_notice": "https://github.com/microsoft/mimalloc/blob/c683b7c60c91cb2809977e37d3f4d084d7497180/LICENSE",
+    "upstream_mimalloc_notice_sha256": "82ade5d7d9b029044b5fbbc326207fc47c2d44ee4dd71e8a559c36d728217de9",
+    "notice_binding": "This identifies upstream MIT notice text, not a version-bound notice for the unpinned binary component.",
+    "notice_resolution": "The original libfuse licence and LGPL text, squashfuse notice, mimalloc MIT notice and zlib, zstd and musl notices are retained below. The four unpinned Alpine components retain explicit version-binding limits; source acquisition is not a claim of bit-for-bit binary reconstruction."
+  },
+  "remaining": [
+    "Deliver and verify the selected bootstrap source/relink companion, including original build scripts and the required CPython/Berkeley DB and libfuse source material.",
+    "Retain the exact continuous-release runtime and build-tool downloads privately with their hashes; publish provenance and the required source material. Redistributing build-only tool binaries is unnecessary.",
+    "Qualify permanent public download URLs, the release trust inputs and the exact assembled AppImage before advertising a binary release."
+  ],
+  "python_binary_evidence": {
+    "metadata_origin": "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10%2B20261026-x86_64-unknown-linux-gnu-pgo%2Blto-full.tar.zst",
+    "archive_sha256": "4a2823d5deacb631e21b3c8387a1ec9be57e1b0ed37b7770e2e71cfe7b94eb94",
+    "member": "python/PYTHON.json",
+    "finding": "The matching x86-64 build metadata identifies Berkeley DB 6.0.19 statically linked by the _dbm extension. Its original Sleepycat notice and pinned Berkeley DB and CPython sources belong with the bootstrap release source material."
+  },
+  "source_inputs": [
+    {
+      "name": "type2-runtime",
+      "revision": "fedfad51acc2860b2916a1eef32ba4a500ff31ef",
+      "url": "https://github.com/AppImage/type2-runtime/archive/fedfad51acc2860b2916a1eef32ba4a500ff31ef.tar.gz",
+      "sha256": "e27ea3c837e9c660e1a9a2993b673ae93bbb53077330efba8654031e302d4e8e",
+      "bytes": 31128
+    },
+    {
+      "name": "libfuse",
+      "version": "3.15.0",
+      "url": "https://github.com/libfuse/libfuse/releases/download/fuse-3.15.0/fuse-3.15.0.tar.xz",
+      "sha256": "70589cfd5e1cff7ccd6ac91c86c01be340b227285c5e200baa284e401eea2ca0",
+      "bytes": 4589124
+    },
+    {
+      "name": "squashfuse",
+      "version": "0.5.2",
+      "url": "https://github.com/vasi/squashfuse/archive/0.5.2.tar.gz",
+      "sha256": "db0238c5981dabbd80ee09ae15387f390091668ca060a7bc38047912491443d3",
+      "bytes": 75404
+    },
+    {
+      "name": "CPython",
+      "version": "3.14.10",
+      "url": "https://www.python.org/ftp/python/3.14.10/Python-3.14.10.tar.xz",
+      "sha256": "de414a57119abef52784d8993e341d53aed635fc2b05c2607d9f98a2c5b72032",
+      "bytes": 24240392
+    },
+    {
+      "name": "Berkeley DB",
+      "version": "6.0.19",
+      "url": "https://ftp.osuosl.org/pub/blfs/conglomeration/db/db-6.0.19.tar.gz",
+      "sha256": "2917c28f60903908c2ca4587ded1363b812c4e830a5326aaa77c9879d13ae18e",
+      "bytes": 36541923
+    }
+  ]
+}

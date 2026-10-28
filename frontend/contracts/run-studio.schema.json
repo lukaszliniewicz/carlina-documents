@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iarf.local/contracts/run-studio.schema.json",
+  "title": "IARF Run Studio view model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "revision",
+    "server_time",
+    "run",
+    "documents",
+    "graph",
+    "timeline",
+    "artifacts",
+    "sources",
+    "evidence",
+    "approvals",
+    "interactions",
+    "selected_step_id",
+    "developer_url"
+  ],
+  "properties": {
+    "revision": { "type": "string" },
+    "server_time": { "type": "string" },
+    "run": { "$ref": "#/$defs/run" },
+    "documents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["understanding", "plan", "state"],
+      "properties": {
+        "understanding": { "$ref": "#/$defs/document" },
+        "plan": { "$ref": "#/$defs/document" },
+        "state": { "$ref": "#/$defs/document" }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "large", "truncated", "layout_direction"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "source", "target"],
+            "properties": {
+              "id": { "type": "string" },
+              "source": { "type": "string" },
+              "target": { "type": "string" }
+            }
+          }
+        },
+        "large": { "type": "boolean" },
+        "truncated": { "type": "boolean" },
+        "layout_direction": { "type": "string" }
+      }
+    },
+    "timeline": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/step" }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "sources": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "approvals": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "interactions": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "selected_step_id": {
+      "type": ["string", "null"]
+    },
+    "developer_url": { "type": "string", "pattern": "^/api/frontend/" }
+  },
+  "$defs": {
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completed", "failed", "active", "total", "percent"],
+      "properties": {
+        "completed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "active": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "percent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "method", "url", "tone"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "method": { "const": "POST" },
+        "url": { "type": "string", "pattern": "^/api/runtime/" },
+        "tone": { "type": "string" }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "currency",
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "models"
+      ],
+      "properties": {
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string" },
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "completion_tokens": { "type": "integer", "minimum": 0 },
+        "total_tokens": { "type": "integer", "minimum": 0 },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "calls"],
+            "properties": {
+              "id": { "type": "string" },
+              "calls": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "summary",
+        "kind",
+        "workflow_id",
+        "source_addon_id",
+        "status",
+        "status_label",
+        "needs_attention",
+        "progress",
+        "current_step_id",
+        "current_step_label",
+        "created_at",
+        "started_at",
+        "updated_at",
+        "completed_at",
+        "duration_ms",
+        "cost",
+        "controls",
+        "counts"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "summary": { "type": "string" },
+        "kind": { "type": "string" },
+        "workflow_id": { "type": ["string", "null"] },
+        "source_addon_id": { "type": ["string", "null"] },
+        "status": { "type": "string" },
+        "status_label": { "type": "string" },
+        "needs_attention": { "type": "boolean" },
+        "progress": { "$ref": "#/$defs/progress" },
+        "current_step_id": { "type": ["string", "null"] },
+        "current_step_label": { "type": ["string", "null"] },
+        "created_at": { "type": ["string", "null"] },
+        "started_at": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"] },
+        "completed_at": { "type": ["string", "null"] },
+        "duration_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "cost": { "$ref": "#/$defs/cost" },
+        "controls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/control" }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "steps",
+            "artifacts",
+            "sources",
+            "evidence",
+            "approvals",
+            "pending_approvals",
+            "interactions"
+          ],
+          "properties": {
+            "steps": { "type": "integer", "minimum": 0 },
+            "artifacts": { "type": "integer", "minimum": 0 },
+            "sources": { "type": "integer", "minimum": 0 },
+            "evidence": { "type": "integer", "minimum": 0 },
+            "approvals": { "type": "integer", "minimum": 0 },
+            "pending_approvals": { "type": "integer", "minimum": 0 },
+            "interactions": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "sections"],
+      "properties": {
+        "summary": { "type": "string" },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "title", "summary", "kind", "value"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "summary": { "type": "string" },
+              "kind": { "type": "string" },
+              "value": {}
+            }
+          }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "key",
+        "title",
+        "purpose",
+        "type",
+        "status",
+        "status_label",
+        "sequence",
+        "role",
+        "parent_id",
+        "dependency_ids",
+        "duration_ms",
+        "progress",
+        "needs_attention",
+        "artifact_count",
+        "created_at",
+        "started_at",
+        "completed_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "key": { "type": "string" },
+        "title": { "type": "string" },
+        "purpose": { "type": "string" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "status_label": { "type": "string" },
+        "sequence": { "type": ["integer", "null"] },
+        "role": { "type": "string" },
+        "parent_id": { "type": ["string", "null"] },
+        "dependency_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "duration_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "progress": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "needs_attention": { "type": "boolean" },
+        "artifact_count": { "type": "integer", "minimum": 0 },
+        "created_at": { "type": ["string", "null"] },
+        "started_at": { "type": ["string", "null"] },
+        "completed_at": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

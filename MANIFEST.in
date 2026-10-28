@@ -1,0 +1,40 @@
+include scripts/build_tailwind.py
+include scripts/build_clean_release.py
+include scripts/build_document_reference.py
+include scripts/setup_dev.py
+include scripts/start_app.py
+include scripts/manage.py
+include scripts/check_runtime_lock.ps1
+include README.md
+include LICENSE
+include THIRD_PARTY_NOTICES.md
+include .env.example
+include pixi.toml
+include pixi.lock
+include package.json
+include package-lock.json
+include setup.bat
+include start.bat
+include setup.sh
+include start.sh
+recursive-include docs *.md
+recursive-include examples/addons *
+recursive-include frontend *.css *.json *.svelte *.ts
+recursive-include iarf_assistant/addons/doc_processor/frontend *.css *.js *.json *.svelte *.ts
+recursive-include iarf_assistant/addons/meeting_minutes/frontend *.css *.js *.json *.svelte *.ts
+recursive-include iarf_assistant/addons/stt_dataset/frontend *.css *.js *.json *.svelte *.ts
+recursive-include iarf_assistant/addons/subtitle_studio/frontend *.css *.js *.json *.svelte *.ts
+recursive-include iarf_assistant/addons/translator/frontend *.css *.js *.json *.svelte *.ts
+prune iarf_assistant/addons/doc_processor/frontend/node_modules
+prune iarf_assistant/addons/meeting_minutes/frontend/node_modules
+prune iarf_assistant/addons/stt_dataset/frontend/node_modules
+prune iarf_assistant/addons/subtitle_studio/frontend/node_modules
+prune iarf_assistant/addons/translator/frontend/node_modules
+recursive-include iarf_assistant/static *.css
+recursive-include iarf_assistant/static/frontend *.*
+include iarf_assistant/static/frontend/.frontend-build-stamp.json
+include iarf_assistant/addons/*/static/.frontend-build-stamp.json
+recursive-include iarf_assistant/addons/*/static/dist *.*
+
+include scripts/benchmark_extraction_review.py
+include integrations/opencode/carlina-worker.md

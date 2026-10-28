@@ -1,0 +1,31 @@
+{
+  "addon_id": "doc_processor",
+  "addon_version": "2.8.0",
+  "build_command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "built_at": "2026-10-28T22:00:58Z",
+  "frontend_api_range": "^1.0",
+  "lockfile_hash": "4d9f71c349b8583611052cc777786eb1ee0048cf5cc42e31d761a753525f7b46",
+  "lockfile_paths": [
+    "@workspace/package-lock.json"
+  ],
+  "output_paths": [
+    "static/dist/workspace.js",
+    "static/dist/workspace.css"
+  ],
+  "schema_version": 3,
+  "source_hash": "80e453c5790847abddf7d4a83210bd837946786592e6090e56693df9a7cd213a",
+  "source_paths": [
+    "frontend/src",
+    "frontend/package.json",
+    "frontend/vite.config.js",
+    "frontend/tsconfig.json",
+    "@workspace/frontend/packages/sdk/src",
+    "@workspace/frontend/packages/sdk/package.json",
+    "@workspace/frontend/packages/ui/src",
+    "@workspace/frontend/packages/ui/package.json"
+  ]
+}

@@ -1,0 +1,3226 @@
+/*! tailwindcss v4.3.0 | MIT License | https://tailwindcss.com */
+@layer properties;
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: "Inter", "Aptos", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --spacing: 0.25rem;
+    --container-md: 28rem;
+    --container-2xl: 42rem;
+    --container-3xl: 48rem;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: calc(1 / 0.75);
+    --text-sm: 0.875rem;
+    --text-sm--line-height: calc(1.25 / 0.875);
+    --text-2xl: 1.5rem;
+    --text-2xl--line-height: calc(2 / 1.5);
+    --text-3xl: 1.875rem;
+    --text-3xl--line-height: calc(2.25 / 1.875);
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --leading-tight: 1.25;
+    --default-transition-duration: 150ms;
+    --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+    --color-paper: #ffffff;
+    --color-paper-muted: #f4f4f5;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f4f4f5;
+    --color-surface-sunken: #f4f4f5;
+    --color-ink: #000000;
+    --color-ink-soft: #27272a;
+    --color-ink-muted: #52525b;
+    --color-rule: #e4e4e7;
+    --color-rule-strong: #000000;
+    --color-active: #000000;
+    --color-active-muted: #f4f4f5;
+    --color-danger: #dc2626;
+    --color-danger-muted: #f4f4f5;
+    --color-warning: #d97706;
+    --color-warning-muted: #f4f4f5;
+    --shadow-editorial: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 24px rgba(0, 0, 0, 0.03);
+    --radius-editorial: 0.125rem;
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type='button'], [type='reset'], [type='submit']), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden='until-found'])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .visible {
+    visibility: visible;
+  }
+  .static {
+    position: static;
+  }
+  .m-0 {
+    margin: calc(var(--spacing) * 0);
+  }
+  .mx-auto {
+    margin-inline: auto;
+  }
+  .my-8 {
+    margin-block: calc(var(--spacing) * 8);
+  }
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .mt-3 {
+    margin-top: calc(var(--spacing) * 3);
+  }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
+  }
+  .mb-5 {
+    margin-bottom: calc(var(--spacing) * 5);
+  }
+  .block {
+    display: block;
+  }
+  .flex {
+    display: flex;
+  }
+  .hidden {
+    display: none;
+  }
+  .inline {
+    display: inline;
+  }
+  .inline-flex {
+    display: inline-flex;
+  }
+  .size-10 {
+    width: calc(var(--spacing) * 10);
+    height: calc(var(--spacing) * 10);
+  }
+  .min-h-screen {
+    min-height: 100vh;
+  }
+  .max-w-2xl {
+    max-width: var(--container-2xl);
+  }
+  .max-w-3xl {
+    max-width: var(--container-3xl);
+  }
+  .max-w-md {
+    max-width: var(--container-md);
+  }
+  .min-w-0 {
+    min-width: calc(var(--spacing) * 0);
+  }
+  .flex-1 {
+    flex: 1;
+  }
+  .flex-col {
+    flex-direction: column;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .justify-center {
+    justify-content: center;
+  }
+  .gap-2 {
+    gap: calc(var(--spacing) * 2);
+  }
+  .border {
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+  }
+  .border-r {
+    border-right-style: var(--tw-border-style);
+    border-right-width: 1px;
+  }
+  .border-b {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 1px;
+  }
+  .border-dashed {
+    --tw-border-style: dashed;
+    border-style: dashed;
+  }
+  .border-active {
+    border-color: var(--color-active);
+  }
+  .border-danger {
+    border-color: var(--color-danger);
+  }
+  .border-rule {
+    border-color: var(--color-rule);
+  }
+  .border-rule\/70 {
+    border-color: color-mix(in srgb, #e4e4e7 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in oklab, var(--color-rule) 70%, transparent);
+    }
+  }
+  .border-transparent {
+    border-color: transparent;
+  }
+  .bg-active-muted {
+    background-color: var(--color-active-muted);
+  }
+  .bg-danger-muted {
+    background-color: var(--color-danger-muted);
+  }
+  .bg-paper {
+    background-color: var(--color-paper);
+  }
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+  .bg-surface\/95 {
+    background-color: color-mix(in srgb, #ffffff 95%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      background-color: color-mix(in oklab, var(--color-surface) 95%, transparent);
+    }
+  }
+  .px-2 {
+    padding-inline: calc(var(--spacing) * 2);
+  }
+  .px-3 {
+    padding-inline: calc(var(--spacing) * 3);
+  }
+  .px-8 {
+    padding-inline: calc(var(--spacing) * 8);
+  }
+  .py-2 {
+    padding-block: calc(var(--spacing) * 2);
+  }
+  .py-12 {
+    padding-block: calc(var(--spacing) * 12);
+  }
+  .pb-5 {
+    padding-bottom: calc(var(--spacing) * 5);
+  }
+  .text-center {
+    text-align: center;
+  }
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+  .text-2xl {
+    font-size: var(--text-2xl);
+    line-height: var(--tw-leading, var(--text-2xl--line-height));
+  }
+  .text-3xl {
+    font-size: var(--text-3xl);
+    line-height: var(--tw-leading, var(--text-3xl--line-height));
+  }
+  .text-sm {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+  .text-xs {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+  .leading-5 {
+    --tw-leading: calc(var(--spacing) * 5);
+    line-height: calc(var(--spacing) * 5);
+  }
+  .leading-6 {
+    --tw-leading: calc(var(--spacing) * 6);
+    line-height: calc(var(--spacing) * 6);
+  }
+  .leading-none {
+    --tw-leading: 1;
+    line-height: 1;
+  }
+  .leading-tight {
+    --tw-leading: var(--leading-tight);
+    line-height: var(--leading-tight);
+  }
+  .font-medium {
+    --tw-font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-medium);
+  }
+  .font-semibold {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+  .tracking-\[0\.18em\] {
+    --tw-tracking: 0.18em;
+    letter-spacing: 0.18em;
+  }
+  .text-active {
+    color: var(--color-active);
+  }
+  .text-danger {
+    color: var(--color-danger);
+  }
+  .text-ink {
+    color: var(--color-ink);
+  }
+  .text-ink-muted {
+    color: var(--color-ink-muted);
+  }
+  .uppercase {
+    text-transform: uppercase;
+  }
+  .underline {
+    text-decoration-line: underline;
+  }
+  .antialiased {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .shadow-\[0_1px_0_rgba\(23\,26\,23\,0\.04\)\] {
+    --tw-shadow: 0 1px 0 var(--tw-shadow-color, rgba(23,26,23,0.04));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .transition-colors {
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to;
+    transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
+    transition-duration: var(--tw-duration, var(--default-transition-duration));
+  }
+  .hover\:border-ink {
+    &:hover {
+      @media (hover: hover) {
+        border-color: var(--color-ink);
+      }
+    }
+  }
+  .hover\:border-rule {
+    &:hover {
+      @media (hover: hover) {
+        border-color: var(--color-rule);
+      }
+    }
+  }
+  .hover\:bg-active {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-active);
+      }
+    }
+  }
+  .hover\:bg-danger {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-danger);
+      }
+    }
+  }
+  .hover\:bg-ink {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-ink);
+      }
+    }
+  }
+  .hover\:bg-paper-muted {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-paper-muted);
+      }
+    }
+  }
+  .hover\:text-surface {
+    &:hover {
+      @media (hover: hover) {
+        color: var(--color-surface);
+      }
+    }
+  }
+  .focus-visible\:outline {
+    &:focus-visible {
+      outline-style: var(--tw-outline-style);
+      outline-width: 1px;
+    }
+  }
+  .focus-visible\:outline-2 {
+    &:focus-visible {
+      outline-style: var(--tw-outline-style);
+      outline-width: 2px;
+    }
+  }
+  .focus-visible\:outline-offset-2 {
+    &:focus-visible {
+      outline-offset: 2px;
+    }
+  }
+  .focus-visible\:outline-ink {
+    &:focus-visible {
+      outline-color: var(--color-ink);
+    }
+  }
+  .md\:px-5 {
+    @media (width >= 48rem) {
+      padding-inline: calc(var(--spacing) * 5);
+    }
+  }
+}
+@layer base {
+  *, ::before, ::after {
+    border-color: var(--color-rule);
+  }
+  html {
+    color: var(--color-ink);
+    background: var(--color-paper);
+    font-family: var(--font-sans);
+  }
+  button, [role="button"], input[type="button"], input[type="reset"], input[type="submit"] {
+    cursor: pointer;
+  }
+  button:disabled, input:disabled, select:disabled, textarea:disabled {
+    cursor: not-allowed;
+  }
+  [hidden], [x-cloak] {
+    display: none !important;
+  }
+}
+@layer components {
+  .tw-editorial-panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    box-shadow: var(--shadow-editorial);
+  }
+  .tw-editorial-link {
+    color: var(--color-ink);
+    text-decoration-color: var(--color-rule-strong);
+    text-underline-offset: 0.18em;
+  }
+  .tw-editorial-link:hover {
+    color: var(--color-active);
+    text-decoration-color: var(--color-active);
+  }
+  .tw-markdown {
+    color: var(--color-ink-soft);
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+  .tw-markdown > :first-child {
+    margin-top: 0;
+  }
+  .tw-markdown > :last-child {
+    margin-bottom: 0;
+  }
+  .tw-markdown :where(h1, h2, h3, h4) {
+    margin: 1.6em 0 0.55em;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-weight: 650;
+    line-height: 1.2;
+  }
+  .tw-markdown h1 {
+    font-size: 2rem;
+  }
+  .tw-markdown h2 {
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--color-rule);
+    font-size: 1.55rem;
+  }
+  .tw-markdown h3 {
+    font-size: 1.25rem;
+  }
+  .tw-markdown :where(p, ul, ol, blockquote, pre, table) {
+    margin: 0 0 1rem;
+  }
+  .tw-markdown :where(ul, ol) {
+    padding-left: 1.25rem;
+  }
+  .tw-markdown ul {
+    list-style: disc;
+  }
+  .tw-markdown ol {
+    list-style: decimal;
+  }
+  .tw-markdown li + li {
+    margin-top: 0.35rem;
+  }
+  .tw-markdown a {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--color-rule-strong);
+    text-underline-offset: 0.18em;
+  }
+  .tw-markdown a:hover {
+    color: var(--color-active);
+    text-decoration-color: var(--color-active);
+  }
+  .tw-markdown blockquote {
+    border-left: 3px solid var(--color-rule-strong);
+    padding-left: 1rem;
+    color: var(--color-ink-muted);
+  }
+  .tw-markdown :where(code, pre) {
+    font-family: var(--font-mono);
+  }
+  .tw-markdown code {
+    background: var(--color-paper-muted);
+    border: 1px solid var(--color-rule);
+    padding: 0.08rem 0.28rem;
+    font-size: 0.88em;
+  }
+  .tw-markdown pre {
+    overflow-x: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 1rem;
+  }
+  .tw-markdown pre code {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+  .tw-markdown table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .tw-markdown :where(th, td) {
+    border: 1px solid var(--color-rule);
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  .tw-markdown th {
+    background: var(--color-paper-muted);
+    color: var(--color-ink);
+    font-weight: 700;
+  }
+  #app-header #user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.86rem;
+  }
+  #app-header .user-greeting {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    max-width: 18rem;
+    color: var(--color-ink-soft);
+    line-height: 1.35;
+    text-align: right;
+  }
+  #app-header .user-greeting span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #app-header .encryption-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.15rem;
+    color: var(--color-active);
+    font-size: 0.72rem;
+  }
+  #app-header #logout-button, #app-header #restart-server-btn-header {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-weight: 650;
+    line-height: 1;
+    min-height: 2.1rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.78rem;
+    text-decoration: none;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+  #app-header #logout-button:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #app-header #restart-server-btn-header {
+    width: 2.1rem;
+    border-color: var(--color-danger);
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+    padding-left: 0;
+    padding-right: 0;
+  }
+  #app-header #restart-server-btn-header:hover {
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #app-header #restart-server-btn-header:disabled {
+    border-color: var(--color-rule);
+    background: var(--color-paper-muted);
+    color: var(--color-ink-muted);
+  }
+  #chat-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--color-paper);
+    padding: 1.25rem 1rem;
+  }
+  .tw-workspace-pane {
+    z-index: 20;
+    min-width: 0;
+    min-height: 0;
+  }
+  .tw-workspace-pane.is-collapsed {
+    width: 0 !important;
+    min-width: 0;
+    border-left-width: 0;
+    box-shadow: none;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .tw-workspace-pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-surface);
+  }
+  .tw-workspace-pane-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .tw-workspace-pane-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 9999px;
+    background: color-mix(in srgb, #ffffff 84%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 84%, var(--color-paper));
+    }
+    color: var(--color-ink-muted);
+  }
+  .tw-workspace-pane-icon-btn:hover {
+    border-color: color-mix(in srgb, #000000 35%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 35%, var(--color-rule));
+    }
+    color: var(--color-active);
+  }
+  .tw-workspace-pane-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.55rem;
+    border-bottom: 1px solid var(--color-rule);
+    background: color-mix(in srgb, #ffffff 86%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 86%, var(--color-paper));
+    }
+  }
+  .tw-workspace-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: 1px solid color-mix(in srgb, #e4e4e7 88%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-rule) 88%, transparent);
+    }
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, #ffffff 92%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 92%, var(--color-paper));
+    }
+    color: var(--color-ink-muted);
+    font-size: 0.74rem;
+    font-weight: 760;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    min-height: 2rem;
+    padding: 0.4rem 0.45rem;
+    text-transform: uppercase;
+  }
+  .tw-workspace-tab-btn:hover {
+    color: var(--color-active);
+    border-color: color-mix(in srgb, #000000 34%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 34%, var(--color-rule));
+    }
+  }
+  .tw-workspace-tab-btn.is-active {
+    color: color-mix(in srgb, #000000 88%, #000000);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in srgb, var(--color-active) 88%, var(--color-ink));
+    }
+    border-color: color-mix(in srgb, #000000 52%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 52%, var(--color-rule));
+    }
+    background: color-mix(in srgb, #f4f4f5 76%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-active-muted) 76%, var(--color-surface));
+    }
+  }
+  .tw-workspace-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.2rem;
+    padding: 0 0.3rem;
+    border: 1px solid color-mix(in srgb, #e4e4e7 82%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-rule) 82%, transparent);
+    }
+    border-radius: 999px;
+    background: color-mix(in srgb, #f4f4f5 62%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-paper-muted) 62%, var(--color-surface));
+    }
+    color: var(--color-ink-soft);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+  .tw-workspace-tab-btn.is-active .tw-workspace-tab-badge {
+    border-color: color-mix(in srgb, #000000 40%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 40%, var(--color-rule));
+    }
+    background: color-mix(in srgb, #f4f4f5 72%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-active-muted) 72%, var(--color-surface));
+    }
+    color: color-mix(in srgb, #000000 82%, #000000);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in srgb, var(--color-active) 82%, var(--color-ink));
+    }
+  }
+  .tw-workspace-tab-badge.is-empty {
+    opacity: 0.62;
+  }
+  .tw-workspace-pane-content {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: color-mix(in srgb, #ffffff 70%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 70%, var(--color-paper));
+    }
+  }
+  .tw-workspace-pane-panel {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 0.7rem;
+    gap: 0.7rem;
+  }
+  #split-screen-container .tw-workspace-pane-reopen {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 24;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid color-mix(in srgb, #000000 65%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-rule-strong) 65%, var(--color-rule));
+    }
+    border-radius: 9999px;
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    box-shadow: 0 3px 12px rgba(23, 26, 23, 0.15);
+  }
+  #split-screen-container .tw-workspace-pane-reopen:hover {
+    color: var(--color-active);
+    border-color: color-mix(in srgb, #000000 36%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 36%, var(--color-rule));
+    }
+  }
+  .tw-workspace-pane .tw-working-memory-preview {
+    border: 1px solid color-mix(in srgb, #000000 24%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-active) 24%, var(--color-rule));
+    }
+    border-radius: var(--radius-editorial);
+    background: var(--color-paper-muted);
+    box-shadow: 0 1px 0 rgba(23, 26, 23, 0.04);
+  }
+  .tw-workspace-pane .tw-working-memory-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .tw-workspace-pane .tw-working-memory-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    padding: 0;
+    text-transform: uppercase;
+  }
+  .tw-workspace-pane .tw-working-memory-toggle.is-empty {
+    color: var(--color-ink-muted);
+  }
+  .tw-workspace-pane .tw-working-memory-toggle:hover {
+    color: var(--color-active);
+  }
+  .tw-workspace-pane .tw-working-memory-status {
+    color: var(--color-ink-muted);
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+  .tw-workspace-pane .tw-working-memory-content {
+    max-height: min(22rem, 50vh);
+    overflow: auto;
+    border-top: 1px solid var(--color-rule);
+    background: color-mix(in srgb, #ffffff 82%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 82%, var(--color-paper));
+    }
+    color: var(--color-ink-soft);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .tw-workspace-pane .tw-runtime-panel {
+    border: 1px solid color-mix(in srgb, #d97706 28%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-warning) 28%, var(--color-rule));
+    }
+    border-radius: var(--radius-editorial);
+    background: color-mix(in srgb, #f4f4f5 38%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-warning-muted) 38%, var(--color-surface));
+    }
+    box-shadow: 0 1px 0 rgba(23, 26, 23, 0.04);
+  }
+  .tw-workspace-pane .tw-runtime-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .tw-workspace-pane .tw-runtime-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    padding: 0;
+    text-transform: uppercase;
+  }
+  .tw-workspace-pane .tw-runtime-status {
+    color: var(--color-ink-muted);
+    font-size: 0.76rem;
+    font-weight: 650;
+  }
+  .tw-workspace-pane .tw-runtime-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    border-top: 1px solid var(--color-rule);
+    padding: 0.75rem;
+  }
+  .tw-workspace-pane .tw-runtime-column-title {
+    color: var(--color-ink-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.45rem;
+    text-transform: uppercase;
+  }
+  .tw-workspace-pane .tw-runtime-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .tw-workspace-pane .tw-runtime-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid color-mix(in srgb, #e4e4e7 70%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-rule) 70%, transparent);
+    }
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, #ffffff 88%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 88%, var(--color-paper));
+    }
+    padding: 0.6rem;
+  }
+  .tw-workspace-pane .tw-runtime-item small, .tw-workspace-pane .tw-runtime-item span, .tw-workspace-pane .tw-runtime-empty {
+    color: var(--color-ink-muted);
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+  .tw-workspace-pane .tw-runtime-run-link {
+    color: var(--color-active);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .tw-workspace-pane .tw-runtime-run-link:hover {
+    text-decoration: underline;
+  }
+  .tw-workspace-pane .tw-runtime-event-cue {
+    border-left: 2px solid color-mix(in srgb, #000000 52%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-left: 2px solid color-mix(in srgb, var(--color-active) 52%, var(--color-rule));
+    }
+    padding-left: 0.45rem;
+  }
+  .tw-workspace-pane .tw-runtime-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+  @media (max-width: 768px) {
+    #split-screen-container .tw-workspace-pane-reopen {
+      top: auto;
+      bottom: 6.4rem;
+      transform: none;
+    }
+  }
+  #chat-display {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: min(100%, 76rem);
+    margin: 0 auto;
+  }
+  #chat-display .message {
+    position: relative;
+    max-width: min(82%, 54rem);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    padding: 0.85rem 1rem;
+    line-height: 1.62;
+    box-shadow: 0 1px 0 rgba(23, 26, 23, 0.04);
+  }
+  #chat-display .message.user {
+    align-self: flex-end;
+    border-color: color-mix(in srgb, #000000 30%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 30%, var(--color-rule));
+    }
+    background: var(--color-active-muted);
+    color: var(--color-ink);
+  }
+  #chat-display .message.ai {
+    align-self: flex-start;
+    background: var(--color-surface);
+  }
+  #chat-display .message.tool-call, #chat-display .message.tool {
+    max-width: min(88%, 60rem);
+    align-self: flex-start;
+    border-color: color-mix(in srgb, #000000 45%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-rule-strong) 45%, var(--color-rule));
+    }
+    background: var(--color-paper-muted);
+    color: var(--color-ink-muted);
+    font-size: 0.86rem;
+  }
+  #chat-display .tw-agent-activity-panel {
+    width: min(88%, 60rem);
+    align-self: flex-start;
+    border: 1px solid color-mix(in srgb, #000000 50%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-rule-strong) 50%, var(--color-rule));
+    }
+    border-radius: 8px;
+    background: var(--color-paper-muted);
+    color: var(--color-ink-soft);
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(23, 26, 23, 0.04);
+  }
+  #chat-display .tw-agent-activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border-bottom: 1px solid var(--color-rule);
+    background: color-mix(in srgb, #ffffff 70%, #f4f4f5);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-surface) 70%, var(--color-paper-muted));
+    }
+  }
+  #chat-display .tw-agent-activity-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    color: var(--color-ink);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  #chat-display .tw-agent-activity-state {
+    min-width: 0;
+    max-width: 55%;
+    color: var(--color-ink-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  #chat-display .tw-agent-activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.7rem;
+  }
+  #chat-display .tw-agent-event-card {
+    border: 1px solid var(--color-rule);
+    border-radius: 8px;
+    background: var(--color-surface);
+    overflow: hidden;
+  }
+  #chat-display .tw-agent-event-card.is-running {
+    border-color: color-mix(in srgb, #000000 35%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 35%, var(--color-rule));
+    }
+  }
+  #chat-display .tw-agent-event-card.is-error {
+    border-color: color-mix(in srgb, #dc2626 45%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, #dc2626 45%, var(--color-rule));
+    }
+    background: color-mix(in srgb, #fef2f2 68%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, #fef2f2 68%, var(--color-surface));
+    }
+  }
+  #chat-display .tw-agent-event-card.is-warning {
+    border-color: color-mix(in srgb, #d97706 45%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, #d97706 45%, var(--color-rule));
+    }
+    background: color-mix(in srgb, #fffbeb 72%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, #fffbeb 72%, var(--color-surface));
+    }
+  }
+  #chat-display .tw-agent-event-main {
+    display: grid;
+    grid-template-columns: 1.55rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.62rem 0.7rem;
+  }
+  #chat-display .tw-agent-event-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    color: var(--color-ink-muted);
+    background: var(--color-paper-muted);
+    font-size: 0.72rem;
+  }
+  #chat-display .tw-agent-event-card.is-running .tw-agent-event-icon {
+    color: var(--color-active);
+  }
+  #chat-display .tw-agent-event-card.is-error .tw-agent-event-icon {
+    color: #b91c1c;
+    border-color: color-mix(in srgb, #dc2626 38%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, #dc2626 38%, var(--color-rule));
+    }
+    background: #fff7f7;
+  }
+  #chat-display .tw-agent-event-card.is-warning .tw-agent-event-icon {
+    color: #b45309;
+    border-color: color-mix(in srgb, #d97706 38%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, #d97706 38%, var(--color-rule));
+    }
+    background: #fffbeb;
+  }
+  #chat-display .tw-agent-event-copy {
+    min-width: 0;
+  }
+  #chat-display .tw-agent-event-title {
+    color: var(--color-ink);
+    font-size: 0.88rem;
+    font-weight: 760;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  #chat-display .tw-agent-event-summary {
+    margin-top: 0.12rem;
+    color: var(--color-ink-muted);
+    font-size: 0.76rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  #chat-display .tw-agent-event-context-info {
+    border-top: 1px solid var(--color-rule);
+    padding: 0.48rem 0.7rem 0.55rem 2.9rem;
+  }
+  #chat-display .tw-agent-event-context-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  #chat-display .tw-agent-event-context-chip {
+    max-width: 100%;
+    border: 1px solid color-mix(in srgb, #e4e4e7 78%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-rule) 78%, transparent);
+    }
+    border-radius: 999px;
+    background: color-mix(in srgb, #f4f4f5 82%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-paper-muted) 82%, var(--color-surface));
+    }
+    color: var(--color-ink-muted);
+    font-size: 0.68rem;
+    font-weight: 720;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    padding: 0.18rem 0.42rem;
+  }
+  #chat-display .tw-agent-event-context-info .tw-context-result-actions {
+    margin-top: 0.42rem;
+    padding: 0;
+  }
+  #chat-display .tw-agent-event-context-info .tw-context-result-slice {
+    margin-top: 0.45rem;
+  }
+  #chat-display .tw-agent-event-status {
+    color: var(--color-ink-muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #chat-display .tw-agent-event-details {
+    border-top: 1px solid var(--color-rule);
+    padding: 0.45rem 0.7rem 0.6rem 2.9rem;
+  }
+  #chat-display .tw-agent-event-details summary {
+    cursor: pointer;
+    color: var(--color-ink-muted);
+    font-size: 0.72rem;
+    font-weight: 760;
+    line-height: 1.2;
+  }
+  #chat-display .tw-agent-event-details pre {
+    margin: 0.45rem 0 0;
+    max-height: 14rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--color-ink-soft);
+    font-size: 0.74rem;
+    line-height: 1.45;
+  }
+  #chat-display .tw-agent-event-card > .tw-runtime-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    border-top: 1px solid var(--color-rule);
+    padding: 0.6rem 0.7rem 0.7rem 2.9rem;
+  }
+  #chat-display .tw-agent-event-resource-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    border-top: 1px solid var(--color-rule);
+    padding: 0.6rem 0.7rem 0.7rem 2.9rem;
+  }
+  #chat-display .tw-agent-event-resource-actions .button {
+    text-decoration: none;
+  }
+  #chat-display .tw-agent-event-user-choice-question {
+    flex: 1 0 100%;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    font-weight: 680;
+    line-height: 1.35;
+  }
+  #chat-display .tw-agent-event-inline-input {
+    flex: 1 1 14rem;
+    min-width: 0;
+    min-height: 2.2rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    padding: 0.45rem 0.55rem;
+    font-size: 0.82rem;
+  }
+  #chat-display .tw-agent-event-inline-input:focus {
+    border-color: var(--color-active);
+    outline: 2px solid color-mix(in srgb, #000000 16%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      outline: 2px solid color-mix(in srgb, var(--color-active) 16%, transparent);
+    }
+    outline-offset: 1px;
+  }
+  #chat-display .tw-agent-event-interaction-state {
+    color: var(--color-ink-muted);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+  #chat-display .tw-agent-event-interaction-error {
+    flex: 1 0 100%;
+    color: var(--color-danger);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+  #chat-display .message-sender {
+    margin-bottom: 0.35rem;
+    color: var(--color-ink-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  #chat-display .message.user .message-sender {
+    color: var(--color-active);
+  }
+  #chat-display .message-content {
+    min-width: 0;
+  }
+  #chat-display .message-content > :first-child {
+    margin-top: 0;
+  }
+  #chat-display .message-content > :last-child {
+    margin-bottom: 0;
+  }
+  #chat-display .message-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  #chat-display .message.ai .message-content :where(p, ul, ol, blockquote, pre, table) {
+    margin: 0 0 1rem;
+  }
+  #chat-display .message.ai .message-content > :last-child, #chat-display .message.tool-call .message-content > :last-child, #chat-display .message.tool .message-content > :last-child {
+    margin-bottom: 0;
+  }
+  #chat-display .message.ai .message-content :where(h1, h2, h3, h4) {
+    margin: 1.25em 0 0.5em;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-weight: 650;
+    line-height: 1.2;
+  }
+  #chat-display .message.ai .message-content h1 {
+    font-size: 1.7rem;
+  }
+  #chat-display .message.ai .message-content h2 {
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--color-rule);
+    font-size: 1.35rem;
+  }
+  #chat-display .message.ai .message-content h3 {
+    font-size: 1.12rem;
+  }
+  #chat-display .message.ai .message-content :where(ul, ol) {
+    padding-left: 1.25rem;
+  }
+  #chat-display .message.ai .message-content ul {
+    list-style: disc;
+  }
+  #chat-display .message.ai .message-content ol {
+    list-style: decimal;
+  }
+  #chat-display .message.ai .message-content li + li {
+    margin-top: 0.25rem;
+  }
+  #chat-display .message.ai .message-content blockquote {
+    border-left: 3px solid var(--color-rule-strong);
+    padding-left: 0.85rem;
+    color: var(--color-ink-muted);
+  }
+  #chat-display .message.ai .message-content :where(code, pre), #chat-display .message.tool-call .message-content :where(code, pre), #chat-display .message.tool .message-content :where(code, pre) {
+    font-family: var(--font-mono);
+  }
+  #chat-display .message.ai .message-content code, #chat-display .message.tool-call .message-content code, #chat-display .message.tool .message-content code {
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 0.08rem 0.28rem;
+    font-size: 0.88em;
+  }
+  #chat-display .message.ai .message-content pre, #chat-display .message.tool-call .message-content pre, #chat-display .message.tool .message-content pre {
+    overflow-x: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 0.85rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #chat-display .message.ai .message-content pre code, #chat-display .message.tool-call .message-content pre code, #chat-display .message.tool .message-content pre code {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: inherit;
+  }
+  #chat-display .message.ai .message-content img, #chat-display .attachment-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--color-rule);
+  }
+  #chat-display .attachment-image {
+    max-height: 20rem;
+    object-fit: contain;
+  }
+  #chat-display .message-attachment {
+    margin-bottom: 0.65rem;
+  }
+  #chat-display .download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding: 0.35rem 0.6rem;
+    text-decoration: none;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+  #chat-display .download-link:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #chat-display .message.ai .message-content table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  #chat-display .message.ai .message-content :where(th, td) {
+    border: 1px solid var(--color-rule);
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  #chat-display .message.ai .message-content th {
+    background: var(--color-paper-muted);
+    color: var(--color-ink);
+    font-weight: 700;
+  }
+  #chat-display .message-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.35rem 0.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--color-rule);
+    color: var(--color-ink-muted);
+    font-size: 0.72rem;
+  }
+  #chat-display .message-actions {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.16s ease;
+  }
+  #chat-display .message:hover .message-actions, #chat-display .message:focus-within .message-actions {
+    opacity: 1;
+  }
+  #chat-display .message-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    font-size: 0.78rem;
+    line-height: 1;
+  }
+  #chat-display .message-action-btn:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #chat-display .tw-context-result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+    padding-top: 0.55rem;
+    border-top: 1px dashed var(--color-rule);
+  }
+  #chat-display .tw-context-result-actions .message-action-btn {
+    opacity: 1;
+  }
+  #chat-display .tw-context-result-slice {
+    margin-top: 0.65rem;
+  }
+  #chat-display .tw-context-result-slice summary {
+    cursor: pointer;
+    color: var(--color-ink-muted);
+    font-size: 0.78rem;
+  }
+  #chat-display .tw-context-result-slice pre {
+    max-height: 18rem;
+    overflow: auto;
+    white-space: pre-wrap;
+  }
+  #chat-display .tw-context-result-search {
+    width: 100%;
+    margin-top: 0.65rem;
+    padding: 0.65rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface-subtle);
+  }
+  #chat-display .tw-context-result-search-form {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  #chat-display .tw-context-result-search-form input {
+    min-width: 0;
+    flex: 1;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding: 0.45rem 0.55rem;
+    font: inherit;
+    font-size: 0.82rem;
+  }
+  #chat-display .tw-context-result-search-results {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+  }
+  #chat-display .tw-context-result-search-summary, #chat-display .tw-context-result-search-empty, #chat-display .tw-context-result-search-match-meta {
+    color: var(--color-ink-muted);
+    font-size: 0.76rem;
+  }
+  #chat-display .tw-context-result-search-match {
+    border-top: 1px solid var(--color-rule);
+    padding-top: 0.5rem;
+  }
+  #chat-display .tw-context-result-search-match pre {
+    max-height: 10rem;
+    margin: 0.25rem 0 0;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-size: 0.78rem;
+  }
+  #chat-display .delete-message-btn:hover {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #chat-display .message-edit-textarea {
+    min-height: 5rem;
+    width: 100%;
+    resize: vertical;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    padding: 0.65rem 0.75rem;
+  }
+  #chat-display .message-edit-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  #chat-display .message-edit-buttons button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1;
+    padding: 0.5rem 0.7rem;
+  }
+  #chat-display .message-edit-buttons button:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #chat-display .message-edit-buttons .button-cancel {
+    border-color: var(--color-danger);
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+  }
+  #chat-display .message-edit-buttons .button-cancel:hover {
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #chat-footer .slash-autocomplete-container {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 0.35rem);
+    left: 0;
+    z-index: 1000;
+    max-height: min(20rem, 55vh);
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-editorial);
+  }
+  #chat-footer .slash-command-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    color: var(--color-ink-soft);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.75rem;
+  }
+  #chat-footer .slash-command-item:last-child {
+    border-bottom: 0;
+  }
+  #chat-footer .slash-command-item.selected, #chat-footer .slash-command-item:hover {
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #chat-footer .slash-command-item span {
+    color: inherit;
+    opacity: 0.72;
+  }
+  #chat-footer {
+    flex: 0 0 auto;
+    background: var(--color-paper);
+  }
+  #chat-footer > #status-bar, #chat-footer > #file-attachment-info, #chat-footer > #prompt-form {
+    width: min(100%, 76rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #chat-footer #status-bar {
+    min-height: 1.25rem;
+    margin-bottom: 0.45rem;
+    color: var(--color-ink-muted);
+    font-size: 0.78rem;
+    line-height: 1.25rem;
+  }
+  #chat-footer #file-attachment-info {
+    display: none;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 8rem;
+    margin-bottom: 0.6rem;
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 0.55rem;
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+  }
+  #chat-footer .attached-file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+    padding: 0.35rem 0.5rem;
+  }
+  #chat-footer .attached-file-item span {
+    min-width: 0;
+  }
+  #chat-footer .file-strategy-select {
+    color: var(--color-ink-muted) !important;
+    text-decoration-color: var(--color-rule-strong) !important;
+  }
+  #chat-footer .remove-attachment-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    padding: 0.15rem 0.45rem;
+    line-height: 1;
+  }
+  #chat-footer .remove-attachment-btn:hover {
+    border-color: var(--color-danger);
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+  }
+  #chat-footer #prompt-form {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(11rem, 15rem);
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+  #chat-footer .prompt-left-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  #chat-footer .file-input-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3rem;
+    flex: 1 1 auto;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding: 0.65rem;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+  #chat-footer .file-input-label:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #chat-footer .file-input-label.is-recording {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #chat-footer .prompt-input-wrapper {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+  #chat-footer #prompt-input {
+    min-height: 7.25rem;
+    max-height: 12rem;
+    width: 100%;
+    flex: 1 1 auto;
+    resize: none;
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    padding: 0.75rem 0.85rem;
+  }
+  #chat-footer #prompt-input:focus {
+    border-color: var(--color-ink);
+    outline: 2px solid color-mix(in srgb, #000000 22%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      outline: 2px solid color-mix(in srgb, var(--color-active) 22%, transparent);
+    }
+    outline-offset: 1px;
+    box-shadow: none;
+  }
+  #chat-footer #prompt-input:disabled {
+    background: var(--color-paper-muted);
+    color: var(--color-ink-muted);
+  }
+  #chat-footer #footer-controls {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: stretch;
+  }
+  #chat-footer #footer-controls button {
+    width: 100%;
+    min-height: 2.15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #chat-footer #footer-controls #send-button {
+    flex: 0 0 auto;
+    border-color: var(--color-active);
+    background: var(--color-active);
+    color: var(--color-surface);
+    font-weight: 700;
+  }
+  #chat-footer #footer-controls #send-button:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+  }
+  #chat-footer #footer-controls #send-button.stop-button {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #chat-footer #model-config-button, #chat-footer #voice-config-button, #chat-footer #assistant-select-button {
+    justify-content: flex-start;
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    font-size: 0.78rem;
+    padding: 0.5rem 0.65rem;
+    text-align: left;
+  }
+  #chat-footer .tw-runtime-policy-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.15rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-paper);
+    color: var(--color-ink-muted);
+    padding-left: 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 720;
+    white-space: nowrap;
+  }
+  #chat-footer .tw-runtime-policy-control .tw-field-compact {
+    min-height: 2rem;
+    min-width: 0;
+    width: 100%;
+    max-width: 13.5rem;
+    border: 0;
+    border-left: 1px solid var(--color-rule);
+    border-radius: 0;
+  }
+  #chat-footer #debug-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem 0.5rem;
+    padding-top: 0.15rem;
+    color: var(--color-ink-muted);
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+  #chat-footer #debug-controls input {
+    accent-color: var(--color-active);
+  }
+  #chat-footer #debug-controls label {
+    margin-right: 0.45rem;
+    cursor: pointer;
+  }
+  #settings-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 1.25rem 1rem 2.5rem;
+  }
+  #settings-container .settings-header, #settings-container .settings-tabs, #settings-container .settings-tab-content {
+    max-width: 76rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #settings-container .settings-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-top: 0.25rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-surface);
+    scrollbar-width: thin;
+  }
+  #settings-container .settings-tab-link {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.75rem 0.9rem 0.65rem;
+    border: 1px solid transparent;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--color-ink-soft);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  #settings-container .settings-tab-link:hover {
+    border-color: var(--color-rule);
+    color: var(--color-ink);
+    background: var(--color-paper-muted);
+  }
+  #settings-container .settings-tab-link.active {
+    border-color: var(--color-rule);
+    border-bottom-color: var(--color-ink);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-weight: 700;
+  }
+  #settings-container .settings-tab-pane {
+    display: none;
+    padding-top: 0;
+  }
+  #settings-container .settings-tab-pane.active {
+    display: block;
+  }
+  #settings-container .settings-section, .settings-modal .settings-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    box-shadow: var(--shadow-editorial);
+    padding: 1.25rem;
+  }
+  #settings-container .settings-section + .settings-section, .settings-modal .settings-section + .settings-section {
+    margin-top: 1rem;
+  }
+  #settings-container .settings-section h3, .settings-modal .settings-section h3 {
+    margin: 0 0 1rem;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+  #settings-container .settings-section h4, #settings-container .settings-section h5, .settings-modal .settings-section h4, .settings-modal .settings-section h5 {
+    margin: 1rem 0 0.65rem;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+  #settings-container .settings-section p, .settings-modal .settings-section p {
+    color: var(--color-ink-muted);
+    line-height: 1.6;
+  }
+  #settings-container .form-group, .settings-modal .form-group {
+    margin-bottom: 1rem;
+  }
+  #settings-container .form-group label, .settings-modal .form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--color-ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  #settings-container .form-group small, .settings-modal .form-group small {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--color-ink-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+  #settings-container .form-group-checkbox, #settings-container .form-group-radio, .settings-modal .form-group-checkbox, .settings-modal .form-group-radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+  #settings-container .form-group-checkbox label, #settings-container .form-group-radio label, .settings-modal .form-group-checkbox label, .settings-modal .form-group-radio label {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: normal;
+    line-height: 1.5;
+    text-transform: none;
+  }
+  #settings-container .tw-checkbox-note, .settings-modal .tw-checkbox-note {
+    flex-wrap: wrap;
+  }
+  #settings-container .tw-checkbox-note small, .settings-modal .tw-checkbox-note small {
+    flex-basis: 100%;
+    margin-top: 0;
+    margin-left: 1.5rem;
+  }
+  #settings-container input[type="text"], #settings-container input[type="url"], #settings-container input[type="password"], #settings-container input[type="email"], #settings-container input[type="number"], #settings-container input[type="date"], #settings-container select, #settings-container textarea, .settings-modal input[type="text"], .settings-modal input[type="url"], .settings-modal input[type="password"], .settings-modal input[type="email"], .settings-modal input[type="number"], .settings-modal input[type="date"], .settings-modal select, .settings-modal textarea {
+    max-width: 100%;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 0.58rem 0.7rem;
+  }
+  #settings-container input[type="text"]:focus, #settings-container input[type="url"]:focus, #settings-container input[type="password"]:focus, #settings-container input[type="email"]:focus, #settings-container input[type="number"]:focus, #settings-container input[type="date"]:focus, #settings-container select:focus, #settings-container textarea:focus, .settings-modal input[type="text"]:focus, .settings-modal input[type="url"]:focus, .settings-modal input[type="password"]:focus, .settings-modal input[type="email"]:focus, .settings-modal input[type="number"]:focus, .settings-modal input[type="date"]:focus, .settings-modal select:focus, .settings-modal textarea:focus {
+    border-color: var(--color-ink);
+    outline: 2px solid color-mix(in srgb, #000000 22%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      outline: 2px solid color-mix(in srgb, var(--color-active) 22%, transparent);
+    }
+    outline-offset: 1px;
+  }
+  #settings-container input[type="checkbox"], #settings-container input[type="radio"], .settings-modal input[type="checkbox"], .settings-modal input[type="radio"] {
+    width: auto;
+    margin-top: 0.18rem;
+    accent-color: var(--color-active);
+  }
+  #settings-container .button, #settings-container button[type="submit"], #settings-container .form-actions button, #settings-container .user-list-item-actions button, .settings-modal .button, .settings-modal button[type="submit"], .settings-modal .form-actions button, .settings-modal .user-list-item-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 650;
+    line-height: 1;
+    padding: 0.62rem 0.8rem;
+    text-decoration: none;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+  #settings-container .button:hover, #settings-container button[type="submit"]:hover, #settings-container .form-actions button:hover, #settings-container .user-list-item-actions button:hover, .settings-modal .button:hover, .settings-modal button[type="submit"]:hover, .settings-modal .form-actions button:hover, .settings-modal .user-list-item-actions button:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #settings-container .button:disabled, #settings-container button:disabled, #settings-container .user-list-item-actions button:disabled, .settings-modal .button:disabled, .settings-modal button:disabled, .settings-modal .user-list-item-actions button:disabled {
+    border-color: var(--color-rule);
+    background: var(--color-paper-muted);
+    color: var(--color-ink-muted);
+  }
+  #settings-container .button-cancel, .settings-modal .button-cancel {
+    border-color: color-mix(in srgb, #dc2626 56%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-danger) 56%, var(--color-rule));
+    }
+    background: color-mix(in srgb, #dc2626 12%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
+    }
+    color: var(--color-danger);
+  }
+  #settings-container .button-cancel:hover, .settings-modal .button-cancel:hover {
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #settings-container .tw-settings-subsection, .settings-modal .tw-settings-subsection {
+    margin-top: 2rem;
+    border-top: 1px solid var(--color-rule);
+    padding-top: 1.5rem;
+  }
+  #settings-container .tw-settings-copy, .settings-modal .tw-settings-copy {
+    color: var(--color-ink-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  #settings-container .tw-danger-title, .settings-modal .tw-danger-title {
+    color: var(--color-danger);
+  }
+  #settings-container .tw-warning-title, .settings-modal .tw-warning-title {
+    color: var(--color-warning);
+  }
+  #settings-container .tw-danger-text, .settings-modal .tw-danger-text {
+    color: var(--color-danger);
+  }
+  #settings-container .tw-warning-text, .settings-modal .tw-warning-text {
+    color: var(--color-warning);
+  }
+  #settings-container .tw-status-success, .settings-modal .tw-status-success, #settings-container .tw-status-warning, .settings-modal .tw-status-warning, #settings-container .tw-status-danger, .settings-modal .tw-status-danger {
+    border: 1px solid var(--color-rule);
+    padding: 0.65rem 0.75rem;
+    font-weight: 700;
+  }
+  #settings-container .tw-status-success, .settings-modal .tw-status-success {
+    border-color: var(--color-active) !important;
+    background: var(--color-active-muted) !important;
+    color: var(--color-active) !important;
+  }
+  #settings-container .tw-status-warning, .settings-modal .tw-status-warning {
+    border-color: color-mix(in srgb, #d97706 42%, #e4e4e7) !important;
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-warning) 42%, var(--color-rule)) !important;
+    }
+    background: var(--color-warning-muted) !important;
+    color: var(--color-warning) !important;
+  }
+  #settings-container .tw-status-danger, .settings-modal .tw-status-danger {
+    border-color: color-mix(in srgb, #dc2626 42%, #e4e4e7) !important;
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-rule)) !important;
+    }
+    background: var(--color-danger-muted) !important;
+    color: var(--color-danger) !important;
+  }
+  #settings-container .tw-feedback, .settings-modal .tw-feedback, .settings-modal .addon-prompts-feedback {
+    min-height: 1em;
+    margin-top: 1rem;
+    color: var(--color-ink-muted);
+    font-size: 0.86rem;
+  }
+  #settings-container .tw-inline-actions, .settings-modal .tw-inline-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  #settings-container .tw-inline-actions-end, .settings-modal .tw-inline-actions-end {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+  #settings-container .tw-inline-actions .form-group, #settings-container .tw-inline-actions-end .form-group, .settings-modal .tw-inline-actions .form-group, .settings-modal .tw-inline-actions-end .form-group {
+    margin-bottom: 0;
+  }
+  #settings-container .tw-stack, .settings-modal .tw-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  #settings-container .tw-grow, .settings-modal .tw-grow {
+    flex: 1 1 14rem;
+    min-width: 0;
+  }
+  #settings-container .tw-field-full, .settings-modal .tw-field-full {
+    width: 100%;
+  }
+  #settings-container .tw-field-compact, .settings-modal .tw-field-compact {
+    width: 7rem;
+  }
+  #settings-container .tw-settings-grid-2, .settings-modal .tw-settings-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+  #settings-container .tw-settings-grid-tight, .settings-modal .tw-settings-grid-tight {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  #settings-container .tw-muted-panel, .settings-modal .tw-muted-panel {
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 1rem;
+  }
+  #settings-container .tw-warning-panel, .settings-modal .tw-warning-panel {
+    margin-bottom: 1rem;
+    border: 1px solid color-mix(in srgb, #dc2626 35%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-rule));
+    }
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+    padding: 0.75rem;
+  }
+  #settings-container .tw-empty-inline, .settings-modal .tw-empty-inline {
+    border: 1px dashed var(--color-rule);
+    color: var(--color-ink-muted);
+    padding: 1rem;
+    text-align: center;
+  }
+  #settings-container .addon-mapping-field, .settings-modal .addon-mapping-field {
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 0.8rem;
+  }
+  #settings-container .addon-mapping-rows, .settings-modal .addon-mapping-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.65rem;
+  }
+  #settings-container .addon-mapping-row, .settings-modal .addon-mapping-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.8fr) minmax(12rem, 1.4fr) auto;
+    gap: 0.65rem;
+    align-items: end;
+  }
+  #settings-container .addon-mapping-cell label, .settings-modal .addon-mapping-cell label {
+    margin-bottom: 0.25rem;
+    color: var(--color-ink-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  #settings-container .addon-mapping-cell input, #settings-container .addon-mapping-cell select, .settings-modal .addon-mapping-cell input, .settings-modal .addon-mapping-cell select {
+    width: 100%;
+  }
+  #settings-container .addon-mapping-remove-btn, .settings-modal .addon-mapping-remove-btn {
+    min-width: 2.4rem;
+    padding-inline: 0.65rem;
+  }
+  #settings-container .tw-settings-toolbar, .settings-modal .tw-settings-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 0.75rem;
+  }
+  #settings-container .tw-settings-toolbar input[type="search"], .settings-modal .tw-settings-toolbar input[type="search"] {
+    min-width: min(100%, 20rem);
+  }
+  #settings-container .tw-settings-toolbar label, .settings-modal .tw-settings-toolbar label {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  #settings-container .tw-danger-action, .settings-modal .tw-danger-action {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #settings-container .tw-danger-action:hover, .settings-modal .tw-danger-action:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #settings-container .tw-warning-action, .settings-modal .tw-warning-action {
+    border-color: var(--color-warning);
+    background: var(--color-warning);
+    color: var(--color-surface);
+  }
+  #settings-container .tw-warning-action:hover, .settings-modal .tw-warning-action:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #settings-container .tw-progress-track, .settings-modal .tw-progress-track {
+    width: 100%;
+    height: 0.625rem;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+  }
+  #settings-container .tw-progress-bar, .settings-modal .tw-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: var(--color-active);
+    transition: width 0.3s ease;
+  }
+  #settings-container .tw-scroll-panel, .settings-modal .tw-scroll-panel {
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 1rem;
+  }
+  #automation-container, .tw-addon-shell {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--color-paper);
+    padding: 1.25rem 1rem 2.5rem;
+  }
+  @media (min-width: 768px) {
+    #automation-container, .tw-addon-shell {
+      padding: 1.75rem 2rem 3rem;
+    }
+  }
+  #automation-container > *, .tw-addon-container {
+    width: min(100%, 82rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #automation-container .automation-header, .tw-addon-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding-bottom: 1rem;
+  }
+  #automation-container .automation-header h2, .tw-addon-title {
+    margin: 0;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-size: clamp(1.75rem, 1.3rem + 1.2vw, 2.65rem);
+    font-weight: 650;
+    line-height: 1.05;
+  }
+  #automation-container .automation-header p, .tw-addon-copy {
+    margin: 0.45rem 0 0;
+    max-width: 48rem;
+    color: var(--color-ink-muted);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+  #automation-container .settings-tab-pane-content, .tw-addon-panel {
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-editorial);
+    padding: 1.25rem;
+  }
+  .tw-addon-muted-panel {
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 1rem;
+  }
+  #automation-container .settings-tabs, .tw-addon-tabs {
+    display: flex;
+    gap: 0.35rem;
+    margin: 0 auto 1.25rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--color-rule);
+    background: transparent;
+    scrollbar-width: thin;
+  }
+  #automation-container .settings-tab-link, .tw-addon-tab {
+    flex: 0 0 auto;
+    margin: 0;
+    border: 1px solid transparent;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--color-ink-muted);
+    padding: 0.75rem 0.9rem 0.65rem;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 650;
+  }
+  #automation-container .settings-tab-link:hover, .tw-addon-tab:hover {
+    border-color: var(--color-rule);
+    background: var(--color-paper-muted);
+    color: var(--color-ink);
+  }
+  #automation-container .settings-tab-link.active, .tw-addon-tab.active {
+    border-color: var(--color-rule);
+    border-bottom-color: var(--color-ink);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-weight: 750;
+  }
+  #automation-container .settings-tab-pane {
+    display: none;
+  }
+  #automation-container .settings-tab-pane.active {
+    display: block;
+  }
+  #automation-container .form-group, .tw-addon-field {
+    margin-bottom: 1rem;
+  }
+  #automation-container .form-group label, .tw-addon-field > label, .tw-addon-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--color-ink-soft);
+    font-size: 0.76rem;
+    font-weight: 750;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  #automation-container .form-group small, .tw-addon-note {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--color-ink-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+  #automation-container .form-group-checkbox, #automation-container .form-group-radio, .tw-addon-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+  #automation-container .form-group-checkbox label, #automation-container .form-group-radio label, .tw-addon-check label {
+    margin: 0;
+    color: var(--color-ink-soft);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: normal;
+    line-height: 1.5;
+    text-transform: none;
+  }
+  #automation-container :where(input[type="text"], input[type="url"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], input[type="search"], select, textarea), .tw-addon-shell :where(input[type="text"], input[type="url"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], input[type="search"], select, textarea) {
+    max-width: 100%;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.9rem;
+    padding: 0.58rem 0.7rem;
+  }
+  #automation-container :where(input[type="text"], input[type="url"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], input[type="search"], select, textarea):focus, .tw-addon-shell :where(input[type="text"], input[type="url"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], input[type="search"], select, textarea):focus {
+    border-color: var(--color-ink);
+    outline: 2px solid color-mix(in srgb, #000000 22%, transparent);
+    @supports (color: color-mix(in lab, red, red)) {
+      outline: 2px solid color-mix(in srgb, var(--color-active) 22%, transparent);
+    }
+    outline-offset: 1px;
+  }
+  #automation-container :where(input[type="checkbox"], input[type="radio"]), .tw-addon-shell :where(input[type="checkbox"], input[type="radio"]) {
+    width: auto;
+    margin-top: 0.18rem;
+    accent-color: var(--color-active);
+  }
+  #automation-container .button, #automation-container button[type="submit"], .tw-addon-shell .button, .tw-addon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 650;
+    line-height: 1;
+    padding: 0.62rem 0.8rem;
+    text-decoration: none;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  }
+  #automation-container .button:hover, #automation-container button[type="submit"]:hover, .tw-addon-shell .button:hover, .tw-addon-button:hover {
+    border-color: var(--color-ink);
+    background: var(--color-ink);
+    color: var(--color-surface);
+  }
+  #automation-container .button:disabled, #automation-container button:disabled, .tw-addon-shell .button:disabled, .tw-addon-button:disabled {
+    border-color: var(--color-rule);
+    background: var(--color-paper-muted);
+    color: var(--color-ink-muted);
+  }
+  #automation-container .button-cancel, .tw-addon-shell .button-cancel, .tw-addon-button-danger {
+    border-color: var(--color-danger);
+    background: var(--color-danger-muted);
+    color: var(--color-danger);
+  }
+  #automation-container .button-cancel:hover, .tw-addon-shell .button-cancel:hover, .tw-addon-button-danger:hover {
+    background: var(--color-danger);
+    color: var(--color-surface);
+  }
+  #automation-container #automation-progress-bar-container, #automation-container .tw-progress-track, .tw-addon-shell .tw-progress-track {
+    width: 100%;
+    height: 0.625rem;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+  }
+  #automation-container #automation-progress-bar, #automation-container .automation-progress-bar, #automation-container .tw-progress-bar, .tw-addon-shell .tw-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: var(--color-active);
+    transition: width 0.3s ease;
+  }
+  #automation-container :where(#automation-log, #process-log), .tw-addon-code {
+    overflow: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    color: var(--color-ink-soft);
+    padding: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  @media (max-width: 760px) {
+    #automation-container .form-grid, #automation-container .side-by-side-container {
+      grid-template-columns: 1fr !important;
+    }
+    #automation-container .automation-header, .tw-addon-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+  #addon-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  #settings-container .addon-group-section {
+    border: 1px solid var(--color-rule);
+    background: color-mix(in srgb, #f4f4f5 62%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-paper-muted) 62%, var(--color-surface));
+    }
+    padding: 0.8rem;
+  }
+  #settings-container .addon-group-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.7rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding-bottom: 0.55rem;
+  }
+  #settings-container .addon-group-header h4 {
+    margin: 0;
+    color: var(--color-ink);
+    font-size: 0.95rem;
+    font-weight: 750;
+  }
+  #settings-container .addon-group-header p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-size: 0.8rem;
+  }
+  #settings-container .addon-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+    gap: 1rem;
+  }
+  #settings-container .addon-card {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+    box-shadow: 0 1px 0 rgba(23, 26, 23, 0.04);
+  }
+  #settings-container .addon-card-hub {
+    border-left: 3px solid color-mix(in srgb, #000000 45%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-left: 3px solid color-mix(in srgb, var(--color-active) 45%, var(--color-rule));
+    }
+  }
+  #settings-container .addon-card-spoke {
+    border-left: 3px solid color-mix(in srgb, #000000 22%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-left: 3px solid color-mix(in srgb, var(--color-active) 22%, var(--color-rule));
+    }
+  }
+  #settings-container .addon-card-header, #settings-container .addon-card-body, #settings-container .addon-card-footer {
+    padding: 1rem;
+  }
+  #settings-container .addon-card-header {
+    border-bottom: 1px solid var(--color-rule);
+  }
+  #settings-container .addon-name {
+    color: var(--color-ink);
+    font-weight: 750;
+  }
+  #settings-container .addon-name small {
+    color: var(--color-ink-muted);
+    font-weight: 500;
+  }
+  #settings-container .addon-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+  }
+  #settings-container .addon-type-badge, #settings-container .status-badge {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--color-rule);
+    background: color-mix(in srgb, #f4f4f5 85%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-paper-muted) 85%, var(--color-surface));
+    }
+    color: var(--color-ink);
+    padding: 0.15rem 0.45rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+  #settings-container .addon-category-badge {
+    background: color-mix(in srgb, #000000 8%, #ffffff);
+    @supports (color: color-mix(in lab, red, red)) {
+      background: color-mix(in srgb, var(--color-active) 8%, var(--color-surface));
+    }
+    border-color: color-mix(in srgb, #000000 20%, #e4e4e7);
+    @supports (color: color-mix(in lab, red, red)) {
+      border-color: color-mix(in srgb, var(--color-active) 20%, var(--color-rule));
+    }
+  }
+  #settings-container .status-badge {
+    margin-left: 0.4rem;
+    border-color: var(--color-rule);
+  }
+  #settings-container .status-badge.status-active {
+    border-color: var(--color-active);
+    background: var(--color-active-muted);
+    color: color-mix(in srgb, #000000 82%, #0d1f18);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in srgb, var(--color-active) 82%, #0d1f18);
+    }
+  }
+  #settings-container .addon-card-body {
+    flex: 1 1 auto;
+  }
+  #settings-container .addon-description {
+    margin: 0 0 1rem;
+    color: var(--color-ink);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  #settings-container .addon-author, #settings-container .addon-dependencies, #settings-container .addon-detail-block {
+    color: var(--color-ink);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+  #settings-container .addon-hub-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.7rem;
+    color: var(--color-ink);
+    font-size: 0.8rem;
+  }
+  #settings-container .addon-detail-block {
+    margin-top: 0.75rem;
+  }
+  #settings-container .addon-detail-lines {
+    margin-top: 0.35rem;
+  }
+  #settings-container .addon-dependencies code, #settings-container .user-role code {
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 0.08rem 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+  }
+  #settings-container .addon-card-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    border-top: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+  }
+  #settings-container .addon-action-icon {
+    min-width: 2.2rem;
+    padding: 0.58rem 0.68rem;
+  }
+  #settings-container #user-list-container, #settings-container .settings-list-container, .settings-modal .settings-list-container {
+    max-height: 18rem;
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+  }
+  #settings-container .user-list-item, .settings-modal .user-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-surface);
+    padding: 0.75rem;
+  }
+  #settings-container .user-list-item:last-child, .settings-modal .user-list-item:last-child {
+    border-bottom: 0;
+  }
+  #settings-container .user-list-item-info, .settings-modal .user-list-item-info {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+  }
+  #settings-container .user-email, .settings-modal .user-email {
+    color: var(--color-ink);
+    font-weight: 700;
+  }
+  #settings-container .user-role, .settings-modal .user-role {
+    color: var(--color-ink-muted);
+    font-size: 0.78rem;
+  }
+  #settings-container .user-list-item-actions, .settings-modal .user-list-item-actions, #settings-container .form-actions, .settings-modal .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+  #settings-container .form-actions, .settings-modal .form-actions {
+    margin-top: 1rem;
+  }
+  #settings-container .user-list-item-actions button, .settings-modal .user-list-item-actions button, #settings-container .docker-logs-btn, #settings-container .docker-action-btn, #settings-container .docker-img-delete-btn {
+    padding: 0.35rem 0.55rem !important;
+    font-size: 0.76rem !important;
+    margin-left: 0 !important;
+  }
+  #settings-container .delete-user-btn, #settings-container .delete-key-btn, #settings-container .docker-img-delete-btn, #settings-container .docker-action-btn[data-action="remove"] {
+    border-color: var(--color-danger) !important;
+    color: var(--color-danger) !important;
+  }
+  #settings-container .delete-user-btn:hover, #settings-container .delete-key-btn:hover, #settings-container .docker-img-delete-btn:hover, #settings-container .docker-action-btn[data-action="remove"]:hover {
+    background: var(--color-danger) !important;
+    color: var(--color-surface) !important;
+  }
+  #settings-container .settings-sub-tabs, .settings-modal .settings-sub-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 1.5rem 0 1rem;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  #settings-container .settings-sub-tab-link, .settings-modal .settings-sub-tab-link {
+    border: 1px solid transparent;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--color-ink-muted);
+    padding: 0.55rem 0.8rem 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  #settings-container .settings-sub-tab-link.active, .settings-modal .settings-sub-tab-link.active {
+    border-color: var(--color-rule);
+    border-bottom-color: var(--color-ink);
+    color: var(--color-ink);
+  }
+  #settings-container .settings-sub-tab-pane, .settings-modal .settings-sub-tab-pane {
+    display: none;
+  }
+  #settings-container .settings-sub-tab-pane.active, .settings-modal .settings-sub-tab-pane.active {
+    display: block;
+  }
+  #settings-container .prompt-form-group, .settings-modal .prompt-form-group {
+    margin-bottom: 1.5rem;
+  }
+  #settings-container .prompt-label-row, .settings-modal .prompt-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  #settings-container .prompt-label-row label, .settings-modal .prompt-label-row label {
+    margin-bottom: 0;
+  }
+  #settings-container .prompt-reset-button, .settings-modal .prompt-reset-button {
+    padding: 0.28rem 0.5rem;
+    font-size: 0.76rem;
+  }
+  #settings-container .prompt-form-group textarea, .settings-modal .prompt-form-group textarea {
+    min-height: 7.5rem;
+    width: 100%;
+    resize: vertical;
+  }
+  #settings-container .delegation-list-container, .settings-modal .delegation-list-container {
+    max-height: 18rem;
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+  }
+  #settings-container .delegation-option, .settings-modal .delegation-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.6rem 0.75rem;
+  }
+  #settings-container .delegation-option:hover, .settings-modal .delegation-option:hover {
+    background: var(--color-paper-muted);
+  }
+  #settings-container .delegation-group-header, .settings-modal .delegation-group-header {
+    position: sticky;
+    top: 0;
+    border-bottom: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    color: var(--color-ink-muted);
+    padding: 0.75rem 0.75rem 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  #settings-container .tw-table-wrap, .settings-modal .tw-table-wrap {
+    max-height: 25rem;
+    overflow: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+  }
+  #settings-container .tw-data-table, .settings-modal .tw-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  #settings-container .tw-data-table thead, .settings-modal .tw-data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--color-paper-muted);
+    text-align: left;
+  }
+  #settings-container .tw-data-table th, #settings-container .tw-data-table td, .settings-modal .tw-data-table th, .settings-modal .tw-data-table td {
+    border-bottom: 1px solid var(--color-rule);
+    padding: 0.5rem;
+    vertical-align: top;
+  }
+  #settings-container .tw-data-table th, .settings-modal .tw-data-table th {
+    color: var(--color-ink-soft);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  #settings-container .tw-data-table .tw-center, .settings-modal .tw-data-table .tw-center {
+    text-align: center;
+    vertical-align: middle;
+  }
+  #settings-container .tw-table-actions, .settings-modal .tw-table-actions {
+    white-space: nowrap;
+  }
+  #settings-container .tw-table-actions .button, .settings-modal .tw-table-actions .button {
+    margin-right: 0.25rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.76rem;
+  }
+  #settings-container .tw-switch-small, .settings-modal .tw-switch-small {
+    transform: scale(0.8);
+    transform-origin: center;
+  }
+  #settings-container .tw-user-model-badge, .settings-modal .tw-user-model-badge {
+    border-color: var(--color-active);
+    background: var(--color-active-muted);
+    color: var(--color-active);
+  }
+  #settings-container .tw-stat-total, .settings-modal .tw-stat-total {
+    margin-top: 2rem;
+    border-top: 1px solid var(--color-rule);
+    padding-top: 1.5rem;
+    color: var(--color-ink);
+    font-size: 1.05rem;
+    font-weight: 750;
+  }
+  #assistant-capability-list, #assistant-plugin-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .plugin-control input[type="checkbox"] {
+    display: none;
+  }
+  .plugin-control label {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    padding: 0.55rem 0.65rem;
+    text-align: center;
+  }
+  .plugin-control input[type="checkbox"]:checked + label {
+    border-color: var(--color-active);
+    background: var(--color-active-muted);
+    color: var(--color-active);
+  }
+  .assistant-scope-summary {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid var(--color-rule);
+    background: var(--color-surface-muted);
+    padding: 0.7rem 0.8rem;
+    color: var(--color-ink-soft);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+  .assistant-scope-summary strong {
+    color: var(--color-ink);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+  .assistant-scope-summary ul {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+  .assistant-scope-summary li + li {
+    margin-top: 0.2rem;
+  }
+  .settings-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    background: rgba(23, 26, 23, 0.46);
+    backdrop-filter: blur(2px);
+  }
+  .settings-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 32rem;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-editorial);
+    background: var(--color-surface);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-editorial);
+  }
+  .settings-modal-content.tw-modal-sm {
+    max-width: 25rem;
+  }
+  .settings-modal-content.tw-modal-md {
+    max-width: 32rem;
+  }
+  .settings-modal-content.tw-modal-lg {
+    max-width: 44rem;
+  }
+  .settings-modal-content.tw-modal-xl {
+    max-width: 56rem;
+  }
+  .settings-modal-content .tw-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .settings-modal-content .tw-modal-header h3 {
+    margin: 0 0 0.35rem;
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 650;
+  }
+  .settings-modal-content .tw-modal-header p {
+    margin: 0;
+    color: var(--color-ink-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .settings-modal-content .tw-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .settings-modal-content .tw-modal-linkbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin: 1rem 0 0.25rem;
+    font-size: 0.8rem;
+  }
+  .settings-modal-content .tw-modal-scroll {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid var(--color-rule);
+    background: var(--color-paper-muted);
+    padding: 1rem;
+  }
+  .settings-close-button {
+    position: static;
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink-muted);
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .settings-close-button:hover, .settings-close-button:focus {
+    color: var(--color-danger);
+  }
+  @media (max-width: 768px) {
+    #app-container {
+      width: 100%;
+    }
+    #sidebar {
+      width: min(18rem, 86vw);
+      max-width: 86vw;
+    }
+    #main-content {
+      min-width: 0;
+      border-left: 0;
+    }
+    header {
+      gap: 0.5rem;
+    }
+    #user-info .user-greeting, #chat-header-info {
+      display: none;
+    }
+    footer {
+      padding: 0.75rem;
+    }
+    #chat-container {
+      padding: 1rem 0.75rem;
+    }
+    #chat-display .message, #chat-display .message.tool-call, #chat-display .message.tool {
+      max-width: 100%;
+      padding: 0.75rem 0.85rem;
+    }
+    #chat-display .message-actions {
+      position: static;
+      justify-content: flex-end;
+      margin-bottom: 0.4rem;
+      opacity: 1;
+    }
+    #chat-display .tw-agent-event-main {
+      grid-template-columns: 1.55rem minmax(0, 1fr);
+      align-items: start;
+    }
+    #chat-display .tw-agent-event-status {
+      grid-column: 2;
+      white-space: normal;
+    }
+    #chat-display .tw-agent-event-details, #chat-display .tw-agent-event-context-info, #chat-display .tw-agent-event-card > .tw-runtime-actions, #chat-display .tw-agent-event-resource-actions {
+      padding-left: 0.7rem;
+    }
+    #chat-display .tw-agent-event-inline-input {
+      flex-basis: 100%;
+    }
+    #chat-display .tw-agent-event-card .button, #chat-display .tw-agent-event-card .button-cancel {
+      min-height: 2.25rem;
+      padding: 0.45rem 0.58rem;
+    }
+    #chat-footer #prompt-form {
+      grid-template-columns: 1fr;
+    }
+    #chat-footer .prompt-left-controls {
+      flex-direction: row;
+      order: 2;
+    }
+    #chat-footer .file-input-label {
+      min-height: 2.5rem;
+    }
+    #chat-footer .prompt-input-wrapper, #chat-footer #prompt-input {
+      min-width: 0;
+      order: 1;
+    }
+    #chat-footer #prompt-input {
+      min-height: 6rem;
+    }
+    #chat-footer #footer-controls {
+      order: 3;
+      width: 100%;
+    }
+    #settings-container {
+      padding: 1rem 0.75rem 2rem;
+    }
+    #settings-container .settings-tabs {
+      margin-left: -0.75rem;
+      margin-right: -0.75rem;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    #settings-container .settings-tab-link {
+      padding: 0.65rem 0.75rem 0.58rem;
+      font-size: 0.78rem;
+    }
+    #settings-container .settings-section, .settings-modal .settings-section {
+      padding: 1rem;
+      box-shadow: none;
+    }
+    #settings-container .tw-settings-grid-2, #settings-container .tw-settings-grid-tight, .settings-modal .tw-settings-grid-2, .settings-modal .tw-settings-grid-tight, #settings-container .addon-mapping-row, .settings-modal .addon-mapping-row, #assistant-capability-list, #assistant-plugin-list {
+      grid-template-columns: 1fr;
+    }
+    #settings-container .user-list-item, .settings-modal .user-list-item {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    #settings-container .user-list-item-actions, .settings-modal .user-list-item-actions, #settings-container .addon-card-footer, .settings-modal .form-actions, #settings-container .form-actions {
+      justify-content: flex-start;
+    }
+    #settings-container .tw-inline-actions, #settings-container .tw-inline-actions-end, .settings-modal .tw-inline-actions, .settings-modal .tw-inline-actions-end {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    #settings-container .tw-inline-actions > *, #settings-container .tw-inline-actions-end > *, .settings-modal .tw-inline-actions > *, .settings-modal .tw-inline-actions-end > * {
+      width: 100%;
+    }
+    #settings-container .settings-section [style*="display: flex"], #settings-container .settings-section [style*="display: grid"] {
+      flex-direction: column !important;
+      grid-template-columns: 1fr !important;
+      align-items: stretch !important;
+    }
+  }
+}
+@property --tw-border-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
+@property --tw-leading {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-font-weight {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-tracking {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-inset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-ring-inset {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-offset-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --tw-ring-offset-color {
+  syntax: "*";
+  inherits: false;
+  initial-value: #fff;
+}
+@property --tw-ring-offset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-outline-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-border-style: solid;
+      --tw-leading: initial;
+      --tw-font-weight: initial;
+      --tw-tracking: initial;
+      --tw-shadow: 0 0 #0000;
+      --tw-shadow-color: initial;
+      --tw-shadow-alpha: 100%;
+      --tw-inset-shadow: 0 0 #0000;
+      --tw-inset-shadow-color: initial;
+      --tw-inset-shadow-alpha: 100%;
+      --tw-ring-color: initial;
+      --tw-ring-shadow: 0 0 #0000;
+      --tw-inset-ring-color: initial;
+      --tw-inset-ring-shadow: 0 0 #0000;
+      --tw-ring-inset: initial;
+      --tw-ring-offset-width: 0px;
+      --tw-ring-offset-color: #fff;
+      --tw-ring-offset-shadow: 0 0 #0000;
+      --tw-outline-style: solid;
+    }
+  }
+}

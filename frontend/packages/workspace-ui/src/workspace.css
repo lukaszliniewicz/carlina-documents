@@ -1,0 +1,655 @@
+@reference "tailwindcss";
+
+[data-carlina-addon-target] .ws-shell,
+[data-carlina-addon-target] .ws-shell * {
+  box-sizing: border-box;
+}
+
+[data-carlina-addon-target] .ws-shell {
+  min-height: calc(100vh - var(--header-height, 4rem));
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--workspace-accent, #69735a) 5%, transparent), transparent 32%),
+    var(--color-canvas, #f4f0e8);
+  color: var(--color-ink, #292723);
+  font-family: var(--font-sans, Inter, ui-sans-serif, system-ui, sans-serif);
+}
+
+[data-carlina-addon-target] .ws-shell button,
+[data-carlina-addon-target] .ws-shell input,
+[data-carlina-addon-target] .ws-shell textarea,
+[data-carlina-addon-target] .ws-shell select {
+  border-radius: 0;
+  font: inherit;
+}
+
+[data-carlina-addon-target] .ws-shell button {
+  cursor: pointer;
+}
+
+[data-carlina-addon-target] .ws-shell button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+[data-carlina-addon-target] .ws-shell button:focus-visible,
+[data-carlina-addon-target] .ws-shell input:focus-visible,
+[data-carlina-addon-target] .ws-shell textarea:focus-visible,
+[data-carlina-addon-target] .ws-shell select:focus-visible {
+  outline: 2px solid var(--color-focus, #526b70);
+  outline-offset: -2px;
+}
+
+[data-carlina-addon-target] .ws-header {
+  @apply flex items-start justify-between gap-8 px-8 py-7;
+  border-bottom: 1px solid var(--color-rule-strong, #958a7d);
+  background: var(--color-surface, #faf8f3);
+}
+
+[data-carlina-addon-target] .ws-header h1,
+[data-carlina-addon-target] .ws-section-heading h2,
+[data-carlina-addon-target] .ws-empty h3,
+[data-carlina-addon-target] .ws-result-group h4 {
+  margin: 0;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-weight: 450;
+  letter-spacing: -0.025em;
+}
+
+[data-carlina-addon-target] .ws-header h1 {
+  font-size: clamp(1.85rem, 3.2vw, 3rem);
+  line-height: 1;
+}
+
+[data-carlina-addon-target] .ws-header > div:first-child > p:last-child {
+  max-width: 48rem;
+  margin: 0.7rem 0 0;
+  color: var(--color-ink-muted, #6f6a62);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+[data-carlina-addon-target] .ws-eyebrow {
+  margin: 0 0 0.4rem;
+  color: var(--workspace-accent, var(--color-accent-sage, #59634c));
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-status {
+  @apply flex min-w-44 items-center gap-3 border px-4 py-3;
+  border-color: var(--color-rule, #d0c8bc);
+  background: var(--color-surface-muted, #e9e4db);
+}
+
+[data-carlina-addon-target] .ws-status > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--workspace-accent, #69735a);
+}
+
+[data-carlina-addon-target] .ws-status.active > span {
+  animation: ws-pulse 0.9s ease-in-out infinite alternate;
+}
+
+[data-carlina-addon-target] .ws-status small,
+[data-carlina-addon-target] .ws-status strong {
+  display: block;
+}
+
+[data-carlina-addon-target] .ws-status small {
+  color: var(--color-ink-subtle, #888177);
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-status strong {
+  margin-top: 0.15rem;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.78rem;
+  font-weight: 550;
+}
+
+[data-carlina-addon-target] .ws-layout {
+  @apply grid min-h-0;
+  grid-template-columns: minmax(26rem, 0.95fr) minmax(22rem, 1.05fr);
+}
+
+[data-carlina-addon-target] .ws-form,
+[data-carlina-addon-target] .ws-output {
+  min-width: 0;
+}
+
+[data-carlina-addon-target] .ws-form {
+  border-right: 1px solid var(--color-rule-strong, #958a7d);
+  background: var(--color-surface, #faf8f3);
+}
+
+[data-carlina-addon-target] .ws-output {
+  background: color-mix(in srgb, var(--color-surface-muted, #e9e4db) 46%, var(--color-surface, #faf8f3));
+}
+
+[data-carlina-addon-target] .ws-section-heading {
+  @apply flex items-start gap-4 border-b px-7 py-5;
+  border-color: var(--color-rule-strong, #958a7d);
+}
+
+[data-carlina-addon-target] .ws-section-heading > span {
+  color: var(--workspace-accent, #59634c);
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.72rem;
+}
+
+[data-carlina-addon-target] .ws-section-heading h2 {
+  font-size: 1.25rem;
+}
+
+[data-carlina-addon-target] .ws-section-heading p {
+  margin: 0.3rem 0 0;
+  color: var(--color-ink-muted, #6f6a62);
+  font-size: 0.65rem;
+}
+
+[data-carlina-addon-target] .ws-fields {
+  @apply grid gap-x-5 gap-y-5 px-7 py-6;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-carlina-addon-target] .ws-fields > label {
+  @apply grid content-start gap-1;
+  min-width: 0;
+  color: var(--color-ink-muted, #6f6a62);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-fields > label.wide {
+  grid-column: 1 / -1;
+}
+
+[data-carlina-addon-target] .ws-fields > label > span:first-child {
+  @apply flex items-center justify-between gap-3;
+}
+
+[data-carlina-addon-target] .ws-fields em {
+  color: var(--workspace-accent, #59634c);
+  font-size: 0.5rem;
+  font-style: normal;
+}
+
+[data-carlina-addon-target] .ws-fields input:not([type="checkbox"]),
+[data-carlina-addon-target] .ws-fields textarea,
+[data-carlina-addon-target] .ws-fields select {
+  width: 100%;
+  min-height: 2.65rem;
+  border: 1px solid var(--color-rule-strong, #958a7d);
+  padding: 0.58rem 0.7rem;
+  background: var(--color-surface, #faf8f3);
+  color: var(--color-ink, #292723);
+  font-size: 0.75rem;
+  font-weight: 450;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+[data-carlina-addon-target] .ws-fields textarea {
+  min-height: 8rem;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+[data-carlina-addon-target] .ws-fields input[type="file"] {
+  padding: 0.45rem;
+}
+
+[data-carlina-addon-target] .ws-fields label > small {
+  color: var(--color-ink-subtle, #888177);
+  font-size: 0.56rem;
+  font-weight: 450;
+  letter-spacing: normal;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+[data-carlina-addon-target] .ws-option-availability {
+  display: grid;
+  gap: 0.2rem;
+  border-left: 2px solid var(--color-rule-strong, #958a7d);
+  padding-left: 0.55rem;
+}
+
+[data-carlina-addon-target] .ws-field-notice {
+  grid-column: 1 / -1;
+  margin: 0 1.75rem 1.5rem;
+  border-left: 3px solid var(--workspace-accent, #59634c);
+  padding: 0.65rem 0.75rem;
+  background: color-mix(in srgb, var(--workspace-accent, #59634c) 8%, var(--color-surface, #faf8f3));
+  color: var(--color-ink-muted, #6f6a62);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+[data-carlina-addon-target] .ws-check {
+  min-height: 2.65rem;
+  justify-content: flex-start !important;
+  border: 1px solid var(--color-rule, #d0c8bc);
+  padding: 0.6rem 0.7rem;
+  background: var(--color-surface-muted, #e9e4db);
+}
+
+[data-carlina-addon-target] .ws-check input {
+  accent-color: var(--workspace-accent, #59634c);
+}
+
+[data-carlina-addon-target] .ws-check strong {
+  color: var(--color-ink, #292723);
+  font-size: 0.67rem;
+}
+
+[data-carlina-addon-target] .ws-component-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.3rem;
+  border: 1px solid var(--color-rule-strong, #958a7d);
+  padding: 0.35rem;
+  background: var(--color-surface-muted, #e9e4db);
+}
+
+[data-carlina-addon-target] .ws-component-field > strong {
+  overflow: hidden;
+  color: var(--color-ink, #292723);
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.76rem;
+  font-weight: 550;
+  letter-spacing: normal;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+[data-carlina-addon-target] .ws-actions {
+  @apply flex items-center justify-between gap-4 border-t px-7 py-5;
+  border-color: var(--color-rule-strong, #958a7d);
+}
+
+[data-carlina-addon-target] .ws-actions > div {
+  @apply flex flex-wrap gap-2;
+}
+
+[data-carlina-addon-target] .ws-shell button.primary,
+[data-carlina-addon-target] .ws-shell button.quiet {
+  min-height: 2.55rem;
+  border: 1px solid var(--color-rule-strong, #958a7d);
+  padding: 0.55rem 0.9rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+[data-carlina-addon-target] .ws-shell button.primary {
+  border-color: var(--workspace-accent, #59634c);
+  background: var(--workspace-accent, #59634c);
+  color: var(--color-surface, #faf8f3);
+}
+
+[data-carlina-addon-target] .ws-shell button.quiet {
+  background: transparent;
+  color: var(--color-ink, #292723);
+}
+
+[data-carlina-addon-target] .ws-progress {
+  @apply flex items-center gap-3 border-b px-7 py-4;
+  border-color: var(--color-rule, #d0c8bc);
+}
+
+[data-carlina-addon-target] .ws-progress > div {
+  flex: 1;
+  height: 0.3rem;
+  background: var(--color-rule, #d0c8bc);
+}
+
+[data-carlina-addon-target] .ws-progress > div > span {
+  display: block;
+  height: 100%;
+  background: var(--workspace-accent, #59634c);
+  transition: width 180ms ease;
+}
+
+[data-carlina-addon-target] .ws-progress small {
+  width: 2.5rem;
+  color: var(--color-ink-muted, #6f6a62);
+  font-size: 0.6rem;
+  text-align: right;
+}
+
+[data-carlina-addon-target] .ws-alert {
+  margin: 1.5rem;
+  border: 1px solid var(--color-danger, #934f47);
+  padding: 1rem 1.15rem;
+  background: color-mix(in srgb, var(--color-danger, #934f47) 6%, var(--color-surface, #faf8f3));
+  color: var(--color-danger, #7d403b);
+}
+
+[data-carlina-addon-target] .ws-alert strong,
+[data-carlina-addon-target] .ws-alert p {
+  margin: 0;
+}
+
+[data-carlina-addon-target] .ws-alert p {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+[data-carlina-addon-target] .ws-empty,
+[data-carlina-addon-target] .ws-loading {
+  @apply grid min-h-80 place-items-center content-center gap-3 p-10 text-center;
+  color: var(--color-ink-muted, #6f6a62);
+}
+
+[data-carlina-addon-target] .ws-empty > span {
+  border: 1px solid var(--workspace-accent, #59634c);
+  padding: 0.3rem 0.55rem;
+  color: var(--workspace-accent, #59634c);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-empty h3 {
+  font-size: 1.35rem;
+}
+
+[data-carlina-addon-target] .ws-empty p {
+  max-width: 27rem;
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+[data-carlina-addon-target] .ws-timeline {
+  max-height: calc(100vh - 18rem);
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-carlina-addon-target] .ws-timeline li {
+  @apply grid gap-4 border-b px-7 py-4;
+  grid-template-columns: auto 1fr;
+  border-color: var(--color-rule, #d0c8bc);
+}
+
+[data-carlina-addon-target] .ws-timeline li > span {
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: 0.25rem;
+  background: var(--workspace-accent, #59634c);
+}
+
+[data-carlina-addon-target] .ws-timeline li.error > span {
+  background: var(--color-danger, #934f47);
+}
+
+[data-carlina-addon-target] .ws-timeline strong {
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-timeline p {
+  margin: 0.3rem 0 0;
+  color: var(--color-ink-muted, #6f6a62);
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+[data-carlina-addon-target] .ws-result {
+  max-height: calc(100vh - 13rem);
+  overflow: auto;
+  padding: 1.5rem;
+}
+
+[data-carlina-addon-target] .ws-result-group {
+  border: 1px solid var(--color-rule, #d0c8bc);
+  background: var(--color-surface, #faf8f3);
+}
+
+[data-carlina-addon-target] .ws-result-group + .ws-result-group {
+  margin-top: 0.75rem;
+}
+
+[data-carlina-addon-target] .ws-result-group h4 {
+  @apply flex items-center justify-between gap-4 border-b px-4 py-3;
+  border-color: var(--color-rule, #d0c8bc);
+  font-size: 0.88rem;
+}
+
+[data-carlina-addon-target] .ws-result-group h4 span {
+  color: var(--workspace-accent, #59634c);
+  font-family: var(--font-sans, Inter, sans-serif);
+  font-size: 0.55rem;
+}
+
+[data-carlina-addon-target] .ws-result-grid {
+  @apply grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+[data-carlina-addon-target] .ws-result-grid > div {
+  min-width: 0;
+  border-right: 1px solid var(--color-rule, #d0c8bc);
+  border-bottom: 1px solid var(--color-rule, #d0c8bc);
+  padding: 0.8rem 1rem;
+}
+
+[data-carlina-addon-target] .ws-result-grid > .ws-result-nested {
+  grid-column: 1 / -1;
+  border-right: 0;
+  padding: 0.75rem;
+}
+
+[data-carlina-addon-target] .ws-result-grid dt {
+  color: var(--color-ink-subtle, #888177);
+  font-size: 0.52rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-result-grid dd {
+  overflow-wrap: anywhere;
+  margin: 0.3rem 0 0;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+[data-carlina-addon-target] .ws-result-list {
+  @apply grid gap-2 p-2;
+}
+
+[data-carlina-addon-target] .ws-empty-value {
+  color: var(--color-ink-subtle, #888177);
+  font-style: italic;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout {
+  @apply grid min-h-0;
+  grid-template-columns: 15rem minmax(24rem, 0.9fr) minmax(22rem, 1.1fr);
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside {
+  max-height: calc(100vh - 9rem);
+  overflow-y: auto;
+  border-right: 1px solid var(--color-rule-strong, #958a7d);
+  background: var(--color-surface, #faf8f3);
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside > .ws-eyebrow {
+  padding: 1rem 1.15rem 0.45rem;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside > button {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--color-rule, #d0c8bc);
+  padding: 0.8rem 1.15rem;
+  background: transparent;
+  color: var(--color-ink, #292723);
+  text-align: left;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside > button.active {
+  box-shadow: inset 3px 0 0 var(--workspace-accent, #59634c);
+  background: color-mix(in srgb, var(--workspace-accent, #59634c) 7%, transparent);
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside span,
+[data-carlina-addon-target] .ws-dynamic-layout > aside strong {
+  display: block;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside small {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--color-danger, #934f47);
+  font-size: 0.56rem;
+  line-height: 1.35;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside span {
+  color: var(--color-ink-subtle, #888177);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+}
+
+[data-carlina-addon-target] .ws-dynamic-layout > aside strong {
+  margin-top: 0.2rem;
+  font-family: var(--font-editorial, Georgia, serif);
+  font-size: 0.72rem;
+  font-weight: 550;
+}
+
+[data-carlina-addon-target] .ws-multicheck {
+  @apply grid border p-3;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-color: var(--color-rule, #d0c8bc);
+  background: var(--color-surface-muted, #e9e4db);
+}
+
+[data-carlina-addon-target] .ws-multicheck label {
+  @apply flex items-center gap-2 py-1;
+  color: var(--color-ink, #292723);
+  font-size: 0.58rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@keyframes ws-pulse {
+  from { opacity: 0.35; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+@media (max-width: 1000px) {
+  [data-carlina-addon-target] .ws-layout {
+    grid-template-columns: 1fr;
+  }
+
+  [data-carlina-addon-target] .ws-form {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-rule-strong, #958a7d);
+  }
+
+  [data-carlina-addon-target] .ws-dynamic-layout {
+    grid-template-columns: 13rem minmax(0, 1fr);
+  }
+
+  [data-carlina-addon-target] .ws-dynamic-layout > .ws-output {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--color-rule-strong, #958a7d);
+  }
+}
+
+@media (max-width: 640px) {
+  [data-carlina-addon-target] .ws-header {
+    @apply flex-col px-5 py-5;
+  }
+
+  [data-carlina-addon-target] .ws-status {
+    width: 100%;
+  }
+
+  [data-carlina-addon-target] .ws-fields {
+    grid-template-columns: 1fr;
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  [data-carlina-addon-target] .ws-fields > label.wide {
+    grid-column: auto;
+  }
+
+  [data-carlina-addon-target] .ws-field-notice {
+    grid-column: auto;
+    margin-right: 1.25rem;
+    margin-left: 1.25rem;
+  }
+
+  [data-carlina-addon-target] .ws-section-heading,
+  [data-carlina-addon-target] .ws-actions {
+    padding-right: 1.25rem;
+    padding-left: 1.25rem;
+  }
+
+  [data-carlina-addon-target] .ws-dynamic-layout {
+    grid-template-columns: 1fr;
+  }
+
+  [data-carlina-addon-target] .ws-dynamic-layout > aside {
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-rule-strong, #958a7d);
+  }
+
+  [data-carlina-addon-target] .ws-dynamic-layout > aside > .ws-eyebrow {
+    display: none;
+  }
+
+  [data-carlina-addon-target] .ws-dynamic-layout > aside > button {
+    min-width: 10rem;
+    border-top: 0;
+    border-right: 1px solid var(--color-rule, #d0c8bc);
+  }
+
+  [data-carlina-addon-target] .ws-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-carlina-addon-target] .ws-status.active > span {
+    animation: none;
+  }
+
+  [data-carlina-addon-target] .ws-progress > div > span {
+    transition: none;
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/schemas/release-index-v3.json",
+  "title": "Carlina signed release index v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schema_version",
+    "channel",
+    "generated_at",
+    "releases",
+    "signatures"
+  ],
+  "properties": {
+    "format": {"const": "carlina.release-index"},
+    "schema_version": {"const": 3},
+    "application_profile": {"enum": ["workbench", "documents"]},
+    "channel": {"enum": ["stable", "preview"]},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "releases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/release"}
+    },
+    "signatures": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/signature"}
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "kind", "filename", "url", "sha256", "size"],
+      "properties": {
+        "platform": {
+          "enum": [
+            "win-64",
+            "win-arm64",
+            "linux-64",
+            "linux-aarch64",
+            "osx-64",
+            "osx-arm64"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "pixi-pack-bundle",
+            "pixi-pack-executable",
+            "publisher-bootstrap-executable"
+          ]
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 180,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "url": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "size": {"type": "integer", "minimum": 1, "maximum": 21474836480}
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["known_revisions", "heads", "rollback"],
+      "properties": {
+        "known_revisions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 128}
+        },
+        "heads": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 128}
+        },
+        "rollback": {"enum": ["compatible", "restore_required"]}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_impact",
+        "migration",
+        "bootstrap",
+        "rollback",
+        "recovery",
+        "probe"
+      ],
+      "properties": {
+        "data_impact": {
+          "enum": ["none", "reversible_metadata", "migration", "opaque"]
+        },
+        "migration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {"enum": ["none", "constrained_data_only", "python_alembic"]}
+          }
+        },
+        "bootstrap": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {"enum": ["none", "repair_and_reconciliation"]}
+          }
+        },
+        "rollback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {"enum": ["pointer_only", "restore_required"]}
+          }
+        },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["automatic_coverage"],
+          "properties": {
+            "automatic_coverage": {"enum": ["none", "database_only", "full"]}
+          }
+        },
+        "probe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["protocol", "schema_version", "isolation"],
+          "properties": {
+            "protocol": {"const": "carlina.managed-release-probe"},
+            "schema_version": {"const": 1},
+            "isolation": {
+              "enum": ["live_data_root", "host_filesystem_and_network_denied_v1"]
+            }
+          }
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "published_at",
+        "addon_api_version",
+        "database",
+        "artifacts",
+        "execution"
+      ],
+      "properties": {
+        "version": {"type": "string", "minLength": 1, "maxLength": 80},
+        "published_at": {"type": "string", "format": "date-time"},
+        "addon_api_version": {"type": "string", "minLength": 1, "maxLength": 40},
+        "database": {"$ref": "#/$defs/database"},
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/artifact"}
+        },
+        "execution": {"$ref": "#/$defs/execution"},
+        "notes_url": {"type": ["string", "null"], "maxLength": 2048}
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "value"],
+      "properties": {
+        "key_id": {"type": "string", "pattern": "^ed25519:[0-9a-f]{16}$"},
+        "algorithm": {"const": "ed25519"},
+        "value": {"type": "string", "minLength": 80, "maxLength": 120}
+      }
+    }
+  }
+}

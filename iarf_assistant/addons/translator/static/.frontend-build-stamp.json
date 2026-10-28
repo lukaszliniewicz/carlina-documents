@@ -1,0 +1,33 @@
+{
+  "addon_id": "translator",
+  "addon_version": "2.10.0",
+  "build_command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "built_at": "2026-10-28T22:01:02Z",
+  "frontend_api_range": "^1.0",
+  "lockfile_hash": "4d9f71c349b8583611052cc777786eb1ee0048cf5cc42e31d761a753525f7b46",
+  "lockfile_paths": [
+    "@workspace/package-lock.json"
+  ],
+  "output_paths": [
+    "static/dist/application.js",
+    "static/dist/workspace.js",
+    "static/dist/application.css",
+    "static/dist/WorkspaceGate.css"
+  ],
+  "schema_version": 3,
+  "source_hash": "c58393f2a296d30b90cc50a5fc6dafeebb8f7e27574b0c9dda5f44bfb4a512a0",
+  "source_paths": [
+    "frontend/src",
+    "frontend/package.json",
+    "frontend/vite.config.js",
+    "frontend/tsconfig.json",
+    "@workspace/frontend/packages/sdk/src",
+    "@workspace/frontend/packages/sdk/package.json",
+    "@workspace/frontend/packages/ui/src",
+    "@workspace/frontend/packages/ui/package.json"
+  ]
+}

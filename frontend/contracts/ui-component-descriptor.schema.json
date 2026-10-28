@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iarf.local/contracts/ui-component-descriptor.schema.json",
+  "title": "IARF reusable UI component module descriptor",
+  "type": "object",
+  "required": [
+    "id",
+    "addon_id",
+    "module_url",
+    "frontend_api_range",
+    "input_schema_id",
+    "output_schema_id"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "addon_id": { "type": "string", "minLength": 1 },
+    "module_url": {
+      "type": "string",
+      "pattern": "^/addons/[^/]+/"
+    },
+    "frontend_api_range": {
+      "type": "string",
+      "pattern": "^\\^[0-9]+\\.[0-9]+$"
+    },
+    "input_schema_id": { "type": "string", "minLength": 1 },
+    "output_schema_id": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

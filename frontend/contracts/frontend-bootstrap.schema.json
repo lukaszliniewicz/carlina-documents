@@ -1,0 +1,349 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/contracts/frontend-bootstrap.schema.json",
+  "title": "Carlina frontend bootstrap",
+  "type": "object",
+  "required": [
+    "frontend_api_version",
+    "supported_frontend_api_majors",
+    "product",
+    "current_path",
+    "user",
+    "feature_flags",
+    "navigation",
+    "capabilities",
+    "runtime_readiness",
+    "build",
+    "addons",
+    "ui_contributions",
+    "ui_components"
+  ],
+  "properties": {
+    "frontend_api_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "supported_frontend_api_majors": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "product": {
+      "type": "object",
+      "required": [
+        "name",
+        "short_name",
+        "descriptor",
+        "mark",
+        "distribution_name",
+        "cli_name",
+        "environment_prefix",
+        "import_package",
+        "repository_url"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "short_name": { "type": "string", "minLength": 1 },
+        "descriptor": { "type": "string", "minLength": 1 },
+        "mark": { "type": "string", "minLength": 1 },
+        "distribution_name": { "type": "string", "minLength": 1 },
+        "cli_name": { "type": "string", "minLength": 1 },
+        "environment_prefix": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*_$" },
+        "import_package": { "type": "string", "minLength": 1 },
+        "repository_url": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
+    },
+    "application": {
+      "type": "object",
+      "required": ["profile", "label", "home_url"],
+      "properties": {
+        "profile": { "enum": ["workbench", "documents"] },
+        "label": { "type": "string", "minLength": 1 },
+        "home_url": { "type": "string", "pattern": "^/" }
+      },
+      "additionalProperties": false
+    },
+    "current_path": {
+      "type": "string",
+      "pattern": "^/"
+    },
+    "user": {
+      "type": "object",
+      "required": ["id", "display_name", "is_admin"],
+      "properties": {
+        "id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "is_admin": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "feature_flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "navigation": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/navigationItem" }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "runtime_readiness": {
+      "type": "object",
+      "required": [
+        "state",
+        "phase",
+        "started_at",
+        "completed_at",
+        "elapsed_ms",
+        "timings_ms",
+        "details",
+        "errors"
+      ],
+      "properties": {
+        "state": { "type": "string" },
+        "phase": { "type": "string" },
+        "started_at": { "type": ["string", "null"] },
+        "completed_at": { "type": ["string", "null"] },
+        "elapsed_ms": { "type": "number", "minimum": 0 },
+        "timings_ms": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["phase", "message"],
+            "properties": {
+              "phase": { "type": "string" },
+              "message": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "required": ["core"],
+      "properties": {
+        "core": {
+          "type": "object",
+          "required": ["id", "status", "entry_url", "css_urls"],
+          "properties": {
+            "id": { "type": ["string", "null"] },
+            "status": { "type": "string" },
+            "entry_url": {
+              "type": ["string", "null"],
+              "pattern": "^/static/frontend/"
+            },
+            "css_urls": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^/static/frontend/"
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "addons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/addon" }
+    },
+    "ui_contributions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uiContribution" }
+    },
+    "ui_components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/uiComponent" }
+    }
+  },
+  "$defs": {
+    "navigationItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "href",
+        "icon",
+        "section",
+        "client_route"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "href": { "type": "string", "pattern": "^/" },
+        "icon": { "type": "string" },
+        "section": { "type": "string" },
+        "client_route": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "addon": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "active",
+        "compatible",
+        "module_url",
+        "css_urls",
+        "legacy_routes",
+        "build"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "active": { "type": "boolean" },
+        "tier": { "type": ["string", "null"] },
+        "frontend_api_range": { "type": ["string", "null"] },
+        "compatible": { "type": "boolean" },
+        "module_url": {
+          "type": ["string", "null"],
+          "pattern": "^/addons/"
+        },
+        "css_urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/addons/"
+          }
+        },
+        "legacy_routes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^/" }
+        },
+        "build": {
+          "type": "object",
+          "required": ["status", "rebuild_needed", "log_source_id"],
+          "properties": {
+            "status": { "type": "string" },
+            "rebuild_needed": { "type": "boolean" },
+            "log_source_id": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "uiContribution": {
+      "type": "object",
+      "required": [
+        "id",
+        "addon_id",
+        "kind",
+        "title",
+        "description",
+        "routes",
+        "entrypoint_kinds",
+        "component_id",
+        "section",
+        "icon",
+        "status"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "addon_id": { "type": "string" },
+        "kind": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "routes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^/" }
+        },
+        "entrypoint_kinds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "component_id": { "type": ["string", "null"] },
+        "section": { "type": "string" },
+        "icon": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "uiComponent": {
+      "type": "object",
+      "required": [
+        "id",
+        "addon_id",
+        "name",
+        "description",
+        "frontend_api_range",
+        "compatible",
+        "module_url",
+        "css_urls",
+        "input_schema_id",
+        "output_schema_id",
+        "input_schema",
+        "output_schema",
+        "legacy",
+        "status"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "addon_id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "frontend_api_range": { "type": ["string", "null"] },
+        "compatible": { "type": "boolean" },
+        "module_url": {
+          "type": ["string", "null"],
+          "pattern": "^/addons/"
+        },
+        "css_urls": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^/addons/" }
+        },
+        "input_schema_id": { "type": ["string", "null"] },
+        "output_schema_id": { "type": ["string", "null"] },
+        "input_schema": { "type": ["object", "null"] },
+        "output_schema": { "type": ["object", "null"] },
+        "legacy": {
+          "type": "object",
+          "required": ["css_urls", "js_urls", "global_names"],
+          "properties": {
+            "css_urls": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^/addons/" }
+            },
+            "js_urls": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^/addons/" }
+            },
+            "global_names": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": true
+        },
+        "status": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/lukaszliniewicz/carlina-documents",
+  "shared_source": [
+    "carlina/", "iarf_assistant/core/", "iarf_assistant/database/",
+    "iarf_assistant/migrations/", "iarf_assistant/addon_api/",
+    "iarf_assistant/knowledge_index/", "iarf_assistant/*.py",
+    "frontend/", "scripts/", "tests/"
+  ],
+  "products": ["doc_processor", "translator", "sentence_segmenter"],
+  "composition_owned": [
+    "application metadata and policy", "application documentation",
+    "generated browser assets"
+  ],
+  "compatibility": {
+    "distribution": "carlina",
+    "legacy_python_namespace": "iarf_assistant",
+    "add_on_ids_and_migration_lineage": "preserved"
+  },
+  "consumer": "Private Workbench pins this repository; its exact overrides are reviewed in composition.lock.json."
+}

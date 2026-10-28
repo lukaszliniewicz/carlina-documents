@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/contracts/compass/v1/capture-relation.schema.json",
+  "title": "Carlina Compass v1 capture annotation relation",
+  "description": "Owner-scoped immutable evidence topology for already committed Compass captures. The authenticated client gateway derives owner and device scope; request bodies never supply those identities. This additive contract does not alter the frozen capture detail schema.",
+  "$ref": "#/$defs/CaptureRelationCreateRequest",
+  "$defs": {
+    "UuidV7": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "Canonical lower-case RFC 9562 UUID version 7."
+    },
+    "Rfc3339Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "RFC 3339 date-time with an explicit UTC designator or numeric offset."
+    },
+    "CaptureRelationKind": {
+      "type": "string",
+      "enum": ["annotation"],
+      "description": "A text or voice annotation capture attached to a screenshot capture."
+    },
+    "CaptureRelationCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationId", "kind", "parentCaptureId", "childCaptureId"],
+      "properties": {
+        "relationId": { "$ref": "#/$defs/UuidV7" },
+        "kind": { "$ref": "#/$defs/CaptureRelationKind" },
+        "parentCaptureId": { "$ref": "#/$defs/UuidV7" },
+        "childCaptureId": { "$ref": "#/$defs/UuidV7" }
+      },
+      "description": "Creates an immutable directed relation. The parent must be a committed screenshot; the child must be a committed text or voice capture in the same owner scope."
+    },
+    "CaptureRelationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationId", "kind", "parentCaptureId", "childCaptureId", "outcome", "createdAt"],
+      "properties": {
+        "relationId": { "$ref": "#/$defs/UuidV7" },
+        "kind": { "$ref": "#/$defs/CaptureRelationKind" },
+        "parentCaptureId": { "$ref": "#/$defs/UuidV7" },
+        "childCaptureId": { "$ref": "#/$defs/UuidV7" },
+        "outcome": {
+          "type": "string",
+          "enum": ["created", "existing"],
+          "description": "created means this request established the relation; existing means a concurrent or prior request had already established the same immutable semantic relation."
+        },
+        "createdAt": { "$ref": "#/$defs/Rfc3339Timestamp" }
+      }
+    },
+    "CaptureRelationDirection": {
+      "type": "string",
+      "enum": ["parent", "child"],
+      "description": "The requested capture's role in this directed relation."
+    },
+    "CaptureRelationDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationId", "kind", "parentCaptureId", "childCaptureId", "direction", "createdAt"],
+      "properties": {
+        "relationId": { "$ref": "#/$defs/UuidV7" },
+        "kind": { "$ref": "#/$defs/CaptureRelationKind" },
+        "parentCaptureId": { "$ref": "#/$defs/UuidV7" },
+        "childCaptureId": { "$ref": "#/$defs/UuidV7" },
+        "direction": { "$ref": "#/$defs/CaptureRelationDirection" },
+        "createdAt": { "$ref": "#/$defs/Rfc3339Timestamp" }
+      }
+    },
+    "CaptureRelationDiscovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["captureId", "relations"],
+      "properties": {
+        "captureId": { "$ref": "#/$defs/UuidV7" },
+        "relations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CaptureRelationDetail" }
+        }
+      },
+      "description": "All owner-visible immutable relations in which captureId is either the parent or child. Attachment bytes and capture content are intentionally not included."
+    }
+  }
+}

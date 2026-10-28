@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "description": "Exact, scope-owned baseline for legacy Carlina identifiers. Reductions require lowering the corresponding expectation; additions and unclassified paths fail CI.",
+  "ignored_paths": [
+    "*.lock",
+    "**/*.lock",
+    "policy/legacy-identifiers.json",
+    "iarf_assistant/static/frontend/**",
+    "iarf_assistant/addons/*/static/**"
+  ],
+  "scopes": [
+    {
+      "id": "canonical_bridge",
+      "classification": "temporary_forwarding_boundary",
+      "owner": "canonical Python package migration",
+      "removal": "Lower to zero as implementation modules move beneath carlina; do not add general-purpose forwarding imports.",
+      "paths": [
+        "carlina/**"
+      ]
+    },
+    {
+      "id": "private_integrations",
+      "classification": "durable_external_identity",
+      "owner": "private add-on integrations",
+      "removal": "Only with a dedicated remote API and data migration.",
+      "paths": [
+        "iarf_assistant/addons/contact_scraping/**",
+        "iarf_assistant/addons/iarfcalendar/**",
+        "iarf_assistant/addons/iarfpoll/**",
+        "iarf_assistant/addons/iarfrm/**",
+        "iarf_assistant/addons/volunteer/**"
+      ]
+    },
+    {
+      "id": "historical_contracts",
+      "classification": "immutable_or_explanatory",
+      "owner": "architecture and migration history",
+      "removal": "Historical migrations stay immutable; current documentation is updated when its referenced compatibility surface changes.",
+      "paths": [
+        "docs/**",
+        "iarf_assistant/migrations/versions/**",
+        "iarf_assistant/addons/*/migrations/versions/**"
+      ]
+    },
+    {
+      "id": "legacy_implementation",
+      "classification": "temporary_compatibility_debt",
+      "owner": "Carlina core and bundled add-ons",
+      "removal": "Migrate bottom-up to canonical Python, frontend, environment, browser, HTTP, and resource namespaces before the public compatibility line is frozen.",
+      "paths": [
+        "iarf_assistant/**",
+        "frontend/**",
+        "examples/**"
+      ]
+    },
+    {
+      "id": "verification_and_tooling",
+      "classification": "temporary_tests_and_build_tools",
+      "owner": "quality and release tooling",
+      "removal": "Keep explicit compatibility tests; migrate all other consumers with the surface they verify.",
+      "paths": [
+        "tests/**",
+        "test_e2e_workflow.py",
+        "scripts/**",
+        ".github/**"
+      ]
+    },
+    {
+      "id": "root_configuration",
+      "classification": "temporary_packaging_and_operator_aliases",
+      "owner": "managed distribution and quality policy",
+      "removal": "Analysis roots and boundary declarations migrate with implementation modules; documented legacy launch aliases remain for the compatibility window.",
+      "paths": [
+        "pyproject.toml",
+        "pixi.toml",
+        "package.json",
+        "Dockerfile",
+        "docker-compose.yml",
+        ".env.example",
+        "README.md",
+        ".dockerignore",
+        ".gitattributes",
+        ".gitignore",
+        ".graphifyignore",
+        "MANIFEST.in",
+        "package-lock.json",
+        "policy/managed-pixi-smoke.json",
+        "policy/documents-closure.json",
+        "policy/python-quality.json",
+        "policy/python-typing-baseline.json",
+        "pyrightconfig.json",
+        "pyrightconfig.documents.json",
+        "eslint.config.mjs",
+        "run_waitress.py",
+        "AGENTS.md",
+        ".gitleaks.toml",
+        "source-ownership.json"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "python_import_namespace",
+      "pattern": "(?<![A-Za-z0-9_])iarf_assistant(?![A-Za-z0-9_])",
+      "expected_by_scope": {
+        "canonical_bridge": 22,
+        "private_integrations": 0,
+        "historical_contracts": 41,
+        "legacy_implementation": 814,
+        "verification_and_tooling": 1695,
+        "root_configuration": 615
+      }
+    },
+    {
+      "id": "frontend_npm_scope",
+      "pattern": "@iarf/",
+      "expected_by_scope": {
+        "canonical_bridge": 0,
+        "private_integrations": 0,
+        "historical_contracts": 0,
+        "legacy_implementation": 0,
+        "verification_and_tooling": 0,
+        "root_configuration": 0
+      }
+    },
+    {
+      "id": "legacy_environment_namespace",
+      "pattern": "\\bIARF_[A-Z][A-Z0-9_]*\\b",
+      "expected_by_scope": {
+        "canonical_bridge": 2,
+        "private_integrations": 0,
+        "historical_contracts": 0,
+        "legacy_implementation": 26,
+        "verification_and_tooling": 5,
+        "root_configuration": 0
+      }
+    },
+    {
+      "id": "legacy_http_header_namespace",
+      "pattern": "\\bX-IARF-[A-Za-z0-9-]+",
+      "expected_by_scope": {
+        "canonical_bridge": 0,
+        "private_integrations": 0,
+        "historical_contracts": 0,
+        "legacy_implementation": 3,
+        "verification_and_tooling": 0,
+        "root_configuration": 0
+      }
+    },
+    {
+      "id": "legacy_browser_global",
+      "pattern": "(?:window\\.)?IARF_AI\\b",
+      "expected_by_scope": {
+        "canonical_bridge": 0,
+        "private_integrations": 0,
+        "historical_contracts": 0,
+        "legacy_implementation": 13,
+        "verification_and_tooling": 0,
+        "root_configuration": 0
+      }
+    },
+    {
+      "id": "legacy_container_resource_namespace",
+      "pattern": "\\biarf-addon-[A-Za-z0-9_.*{}-]*",
+      "expected_by_scope": {
+        "canonical_bridge": 0,
+        "private_integrations": 0,
+        "historical_contracts": 0,
+        "legacy_implementation": 5,
+        "verification_and_tooling": 0,
+        "root_configuration": 0
+      }
+    }
+  ]
+}

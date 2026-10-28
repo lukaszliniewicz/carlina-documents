@@ -1,0 +1,66 @@
+{% extends "public_layout.html" %}
+
+{% block title %}Sign in · {{ product.name }}{% if is_documents %} Documents{% endif %}{% endblock %}
+{% block eyebrow %}Private workspace{% endblock %}
+{% block heading %}Welcome back.{% endblock %}
+{% block introduction %}
+    <p class="public-lede">
+        {% if is_documents %}
+            Sign in to extract, review and translate documents, then export the result.
+        {% else %}
+            Return to your conversations, working memory, and editorial tools.
+            Your password also unlocks personally protected data for this session.
+        {% endif %}
+    </p>
+{% endblock %}
+
+{% block content %}
+    <div class="public-panel">
+        <form method="post" class="public-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <p class="public-notice" role="alert">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="public-field">
+                <label for="email">Email address</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    autocomplete="username"
+                    inputmode="email"
+                    required
+                    autofocus
+                >
+            </div>
+            <div class="public-field">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    autocomplete="current-password"
+                    required
+                >
+            </div>
+            <button type="submit" class="public-action">{% if is_documents %}Open Documents{% else %}Enter the workspace{% endif %}</button>
+            {% if not is_documents %}
+                <p class="public-note">
+                    Sign-in is intentionally kept independent from the application
+                    bundle, so access remains available during frontend maintenance.
+                </p>
+            {% endif %}
+        </form>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    {% if show_terms_link %}
+        <a href="{{ url_for('terms') }}" class="public-link">Site policy & privacy</a>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!requirements.lock
+!server.py
+!service_runtime.py
+!batch_protocol.py
+!wtpsplit-requirements.lock

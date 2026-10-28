@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#f1eee7">
+    <meta name="description" content="{{ product.name }} is a private, extensible workspace for assistants, workflows, knowledge, and add-ons.">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <title>{{ product.name }}</title>
+    <script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+    {% for stylesheet_url in frontend_css_urls %}
+    <link rel="stylesheet" href="{{ stylesheet_url }}">
+    {% endfor %}
+</head>
+<body>
+    <a class="shell-skip-link" href="#main-content">Skip to content</a>
+    <div
+        id="iarf-core-root"
+        data-iarf-core-root
+        data-bootstrap-url="{{ url_for('frontend_api.get_frontend_bootstrap') }}"
+        data-route-id="{{ route_id }}"
+    >
+        <div class="shell-boot" role="status" aria-live="polite">
+            <span class="shell-boot__mark" aria-hidden="true">{{ product.mark }}</span>
+            <span>Preparing your workspace…</span>
+        </div>
+    </div>
+    <noscript>
+        <p class="shell-noscript">
+            The private workspace requires JavaScript.
+            Enable it and reload, or use the sign-out action after JavaScript is available.
+        </p>
+    </noscript>
+    <script type="module" src="{{ frontend_entry_url }}"></script>
+</body>
+</html>

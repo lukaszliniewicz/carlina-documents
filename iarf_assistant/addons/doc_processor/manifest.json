@@ -1,0 +1,467 @@
+{
+  "id": "doc_processor",
+  "name": "Document Processor",
+  "version": "2.8.0",
+  "package_format_version": 1,
+  "addon_api": {
+    "requires": ">=1,<2"
+  },
+  "kind": "application",
+  "distribution": {
+    "channel": "built_in",
+    "publisher": "Carlina Project"
+  },
+  "runtime": {
+    "units": [
+      {
+        "id": "host",
+        "mode": "in_process",
+        "entry_point": {
+          "module": ".",
+          "class": "DocProcessorAddon"
+        },
+        "lifecycle": "host_managed"
+      },
+      {
+        "id": "document_processing",
+        "mode": "managed_process",
+        "lifecycle": "always_on",
+        "config": {
+          "script": "worker.py",
+          "environment": "addon_pixi",
+          "app_runtime_bridge": "host_v1"
+        }
+      }
+    ]
+  },
+  "ui": {
+    "entries": [
+      {
+        "id": "workspace",
+        "mode": "svelte_application",
+        "module": "static/dist/workspace.js",
+        "route": "/addons/doc_processor/",
+        "css_assets": [
+          "static/dist/workspace.css"
+        ]
+      }
+    ]
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "document_processor",
+        "capability": "document.processing",
+        "version": "1.0.0",
+        "operations": [
+          "parse",
+          "convert",
+          "export",
+          "list",
+          "read",
+          "job_status"
+        ],
+        "runtime_unit": "document_processing"
+      },
+      {
+        "id": "semantic_export",
+        "capability": "document.semantic_export",
+        "version": "1.0.0",
+        "operations": [
+          "export",
+          "preflight"
+        ],
+        "runtime_unit": "document_processing"
+      }
+    ]
+  },
+  "requires": {
+    "packages": [],
+    "capabilities": [
+      {
+        "id": "extractors",
+        "capability": "document.extraction",
+        "version": ">=1,<2",
+        "operations": [
+          "extract"
+        ],
+        "cardinality": "optional",
+        "activation": "on_first_use",
+        "scope": "user"
+      }
+    ]
+  },
+  "permissions": [
+    {
+      "id": "network.outbound",
+      "reason": "Fetch user-selected remote document resources with bounded requests."
+    },
+    {
+      "id": "tools.execute",
+      "reason": "Expose the add-on's reviewed tools to workflows and agents."
+    },
+    {
+      "id": "ui.serve",
+      "reason": "Serve the declared Svelte or schema-driven user interface."
+    },
+    {
+      "id": "process.spawn",
+      "reason": "Run declared supervised background workers."
+    },
+    {
+      "id": "model.invoke",
+      "reason": "Invoke configured language or multimodal models for the declared workflow."
+    },
+    {
+      "id": "filesystem.user_files",
+      "reason": "Read or write files explicitly selected or produced by the user."
+    },
+    {
+      "id": "database.shared",
+      "reason": "Persist the add-on's declared application records."
+    }
+  ],
+  "resources": [
+    {
+      "id": "doc_processor.user_files",
+      "access": [
+        "read",
+        "write"
+      ],
+      "description": "Files selected or generated through this add-on."
+    }
+  ],
+  "storage": {
+    "state": "persistent",
+    "worker_temp": "temporary",
+    "artifacts": "user_managed"
+  },
+  "roles": [
+    "toolkit",
+    "workspace",
+    "page"
+  ],
+  "categories": [
+    "documents",
+    "knowledge",
+    "productivity"
+  ],
+  "visibility": "user",
+  "author": "Carlina Project",
+  "description": "A centralized hub for converting documents (PDF, Outlook MSG, Office, etc.) to Markdown and Semantic HTML. Orchestrates native LLM Vision extraction and third-party engines like Marker or PyMuPDF.",
+  "frontend": {
+    "tier": "compiled_workspace",
+    "api_version": "^1.0",
+    "module": "static/dist/workspace.js",
+    "css_assets": [
+      "static/dist/workspace.css"
+    ],
+    "build": {
+      "source_dir": "frontend",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "watch_command": [
+        "npm",
+        "run",
+        "dev"
+      ],
+      "source_paths": [
+        "frontend/src",
+        "frontend/package.json",
+        "frontend/vite.config.js",
+        "frontend/tsconfig.json"
+      ],
+      "workspace_lockfiles": [
+        "package-lock.json"
+      ],
+      "workspace_source_paths": [
+        "frontend/packages/sdk/src",
+        "frontend/packages/sdk/package.json",
+        "frontend/packages/ui/src",
+        "frontend/packages/ui/package.json"
+      ],
+      "outputs": [
+        "dist/workspace.js",
+        "dist/workspace.css"
+      ]
+    }
+  },
+  "prompts": [
+    {
+      "id": "plugin_prompt",
+      "type": "toolkit",
+      "name": "Document Parser Toolkit Prompt",
+      "content": "You have access to a universal document parser. Use the `parse_document` tool to read the full contents of PDF files, Outlook MSG emails, and other documents."
+    }
+  ],
+  "tools": [
+    {
+      "id": "parse_document",
+      "function_name": "doc_processor_parse_document",
+      "name": "Parse Document",
+      "side_effects": []
+    }
+  ],
+  "skills": [
+    {
+      "id": "parse_document",
+      "path": "skills/parse_document",
+      "tools": [
+        "parse_document"
+      ],
+      "required_workers": [
+        "document_processing"
+      ]
+    }
+  ],
+  "entry_point_class": "DocProcessorAddon",
+  "dependency_notices": [
+    {
+      "id": "pymupdf-agpl",
+      "packages": [
+        "PyMuPDF"
+      ],
+      "license": "GNU AGPL-3.0 or commercial license",
+      "purpose": "PDF rendering, extraction, previews, page operations, and export in Document Processor.",
+      "review_required": true,
+      "source_url": "https://pymupdf.readthedocs.io/en/latest/about.html#license-and-copyright"
+    },
+    {
+      "id": "extract-msg-gpl",
+      "packages": [
+        "extract-msg",
+        "pcodedmp",
+        "RTFDE"
+      ],
+      "license": "GPL-3.0 and LGPL-3.0 family licenses",
+      "purpose": "Outlook MSG parsing and rich-text body extraction in Document Processor.",
+      "review_required": true,
+      "source_url": "https://github.com/TeamMsgExtractor/msg-extractor/blob/master/LICENSE.txt"
+    }
+  ],
+  "ui_contributions": [
+    {
+      "id": "document_library",
+      "kind": "task_page",
+      "title": "Document Library",
+      "description": "Convert and inspect PDF, Office, EPUB, TXT, and HTML documents.",
+      "surfaces": [
+        {
+          "kind": "page",
+          "view_func": "doc_processor.index",
+          "active_page": "doc_processor"
+        }
+      ],
+      "entrypoints": [
+        {
+          "kind": "tools_tab",
+          "section": "Tools",
+          "icon": "fa-file-pdf"
+        }
+      ]
+    }
+  ],
+  "settings_schema": [
+    {
+      "id": "prompt_pdf_system",
+      "name": "PDF Parsing System Prompt",
+      "description": "Core instructions/persona for the PDF visual analysis model.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_base_user",
+      "name": "PDF Parsing Base User Prompt",
+      "description": "Base structural mapping instructions for the PDF visual analysis model.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_footnotes_full",
+      "name": "PDF Footnotes Prompt Fragment (Full)",
+      "description": "Strict footnote/reference-list instructions injected into the PDF base prompt when full footnote handling is enabled.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_footnotes_simple",
+      "name": "PDF Footnotes Prompt Fragment (Simple)",
+      "description": "Class-only footnote instructions injected into the PDF base prompt when simple footnote handling is enabled.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_footnotes_ignore",
+      "name": "PDF Footnotes Prompt Fragment (Ignore)",
+      "description": "Footnote omission instructions injected into the PDF base prompt when footnotes are ignored.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_figures",
+      "name": "PDF Figures Prompt Fragment",
+      "description": "Figure and image bounding-box instructions injected only when image extraction is enabled.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_headers_footers_render",
+      "name": "PDF Headers/Footers Prompt Fragment (Preserve)",
+      "description": "Header and footer rendering instructions injected when repeated headers/footers are preserved.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_headers_footers_ignore",
+      "name": "PDF Headers/Footers Prompt Fragment (Ignore)",
+      "description": "Header and footer omission instructions injected when repeated headers/footers are removed.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_examples",
+      "name": "PDF Examples Prompt Fragment Override",
+      "description": "Optional full examples block override. Leave blank to use the default examples selected for the active PDF settings.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_evaluation",
+      "name": "PDF Evaluation Prompt (2-Pass)",
+      "description": "Instructions for the secondary evaluation pass over the PDF OCR output.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_metadata",
+      "name": "PDF Metadata Pre-Pass Prompt",
+      "description": "Instructions used for the document-level metadata pre-pass.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_pdf_boundary",
+      "name": "PDF Boundary Merge Prompt",
+      "description": "Instructions used by the visual boundary merge classifier.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "prompt_txt_structuring",
+      "name": "TXT Structuring Prompt",
+      "description": "System prompt used when structuring flat TXT files into semantic HTML.",
+      "type": "textarea",
+      "scope": "user",
+      "default": "See default in prompts.py"
+    },
+    {
+      "id": "parsing_model",
+      "name": "Default Extraction Model",
+      "description": "Default model to use for PDF/document extraction/LLM parsing.",
+      "type": "select",
+      "scope": "user",
+      "options": [
+        {
+          "value": "gemini/gemini-2.5-pro",
+          "label": "Gemini 2.5 Pro"
+        },
+        {
+          "value": "gemini/gemini-2.5-flash",
+          "label": "Gemini 2.5 Flash"
+        }
+      ],
+      "default": "gemini/gemini-2.5-pro"
+    },
+    {
+      "id": "metadata_model",
+      "name": "Default Metadata Model",
+      "description": "Default model to use for the document-level metadata pre-pass.",
+      "type": "select",
+      "scope": "user",
+      "options": [
+        {
+          "value": "gemini/gemini-2.5-pro",
+          "label": "Gemini 2.5 Pro"
+        },
+        {
+          "value": "gemini/gemini-2.5-flash",
+          "label": "Gemini 2.5 Flash"
+        }
+      ],
+      "default": "gemini/gemini-2.5-flash"
+    },
+    {
+      "id": "correct_images",
+      "name": "Manual Bounding Box Review",
+      "description": "Pause processing to manually review/adjust extracted image crop coordinates.",
+      "type": "boolean",
+      "scope": "user",
+      "default": true
+    }
+  ],
+  "workers": [
+    {
+      "id": "document_processing",
+      "name": "Document Processing Worker",
+      "entrypoint": "worker.py",
+      "runtime": "python",
+      "execution_environment": "addon_pixi",
+      "app_runtime_bridge": "host_v1",
+      "allow_environment_fallback": false
+    }
+  ],
+  "dependencies": {
+    "python": {
+      "environments": [
+        {
+          "id": "host",
+          "environment": "in_process_vendor",
+          "runtime_units": [
+            "host"
+          ],
+          "python_version": "3.14",
+          "lockfile": "requirements-host.lock",
+          "lock_format": "pip_requirements",
+          "require_hashes": true,
+          "pip_packages": [
+            "beautifulsoup4>=4.15,<5",
+            "defusedxml>=0.7,<0.8",
+            "html-to-markdown>=3.10,<4",
+            "lxml>=6.1.1,<7",
+            "pymupdf>=1.27,<2",
+            "pyjpegli==0.3.2"
+          ]
+        },
+        {
+          "id": "document_processing",
+          "environment": "managed_process_pixi",
+          "runtime_units": [
+            "document_processing"
+          ],
+          "python_version": "3.14",
+          "lockfile": "pixi.lock",
+          "lock_format": "pixi",
+          "require_hashes": false,
+          "manifest": "pixi.toml"
+        }
+      ]
+    }
+  },
+  "manifest_schema_version": 2,
+  "migration_status": "explicit_migrated"
+}

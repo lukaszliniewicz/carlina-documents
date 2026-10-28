@@ -1,0 +1,622 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/schemas/addon-manifest.schema.json",
+  "title": "Carlina Add-on Manifest",
+  "type": "object",
+  "required": ["id", "name", "version"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+$"},
+    "name": {"type": "string"},
+    "version": {"type": "string"},
+    "package_format_version": {"type": "integer", "const": 1},
+    "manifest_schema_version": {"type": "integer", "enum": [1, 2]},
+    "addon_api": {
+      "type": "object",
+      "required": ["requires"],
+      "properties": {
+        "requires": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "execution": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["native", "isolated_service", "remote_integration"]
+        },
+        "module": {"type": "string"},
+        "class": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "string"},
+          {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {"type": "string"},
+              "reason": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "string"},
+          {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {"type": "string"},
+              "access": {"type": "array", "items": {"type": "string"}},
+              "description": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["persistent", "user_managed", "rebuildable", "temporary"]
+      }
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "download_bytes": {"type": "integer", "minimum": 1},
+        "unpacked_image_bytes": {"type": "integer", "minimum": 1},
+        "model_cache_bytes": {"type": "integer", "minimum": 1},
+        "build_cache_bytes": {"type": "integer", "minimum": 1},
+        "required_disk_bytes": {"type": "integer", "minimum": 1},
+        "environment_bytes": {"type": "integer", "minimum": 1},
+        "minimum_ram_bytes": {"type": "integer", "minimum": 1},
+        "estimated_seconds": {"type": "integer", "minimum": 1},
+        "architectures": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 100}
+        }
+      }
+    },
+    "migration_status": {
+      "type": "string",
+      "enum": ["legacy_adapter", "representative_migrated", "explicit_migrated", "deferred", "retired"]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["application", "toolkit", "connector", "engine", "component"]
+    },
+    "distribution": {
+      "type": "object",
+      "required": ["channel"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "enum": ["built_in", "first_party", "community", "private", "local_development"]
+        },
+        "publisher": {"type": "string"},
+        "source_uri": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["units"],
+      "properties": {
+        "units": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/runtime_unit"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "ui": {
+      "type": "object",
+      "required": ["entries"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/ui_entry"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "provides": {
+      "type": "object",
+      "required": ["capabilities"],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/capability_provider"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "requires": {
+      "type": "object",
+      "required": ["packages", "capabilities"],
+      "properties": {
+        "packages": {"type": "array", "items": {"type": "string"}},
+        "capabilities": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/capability_requirement"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "roles": {"type": "array", "items": {"type": "string"}},
+    "categories": {"type": "array", "items": {"type": "string"}},
+    "frontend": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["schema", "jinja", "server_workspace", "compiled_workspace", "hybrid", "external_service"]
+        },
+        "api_version": {
+          "type": "string",
+          "pattern": "^\\^[0-9]+\\.[0-9]+$"
+        },
+        "module": {
+          "type": "string"
+        },
+        "css_assets": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "build": {
+          "oneOf": [
+            {"type": "object"},
+            {"type": "string"},
+            {"type": "array", "items": {"type": "string"}},
+            {"const": true}
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "dependencies": {
+      "type": "object",
+      "properties": {
+        "addons": {"type": "array", "items": {"type": "string"}},
+        "ui_components": {"type": "array", "items": {"type": "string"}},
+        "providers": {"type": "array", "items": {"type": "string"}},
+        "services": {"type": "array", "items": {"type": "string"}},
+        "workers": {"type": "array", "items": {"type": "string"}},
+        "python": {
+          "type": "object",
+          "properties": {
+            "environment": {
+              "type": "string",
+              "enum": [
+                "in_process_vendor",
+                "managed_process_pixi"
+              ]
+            },
+            "python_version": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+$"
+            },
+            "lockfile": {"type": "string"},
+            "lock_format": {
+              "type": "string",
+              "enum": ["pip_requirements", "pixi"]
+            },
+            "require_hashes": {"type": "boolean"},
+            "pip_packages": {"type": "array", "items": {"type": "string"}},
+            "conda_packages": {"type": "array", "items": {"type": "string"}},
+            "environments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "environment",
+                  "runtime_units",
+                  "python_version"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_.:-]*$"
+                  },
+                  "environment": {
+                    "type": "string",
+                    "enum": [
+                      "in_process_vendor",
+                      "managed_process_pixi"
+                    ]
+                  },
+                  "runtime_units": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_.:-]*$"
+                    }
+                  },
+                  "python_version": {
+                    "type": "string",
+                    "pattern": "^[0-9]+\\.[0-9]+$"
+                  },
+                  "lockfile": {"type": "string"},
+                  "lock_format": {
+                    "type": "string",
+                    "enum": ["pip_requirements", "pixi"]
+                  },
+                  "require_hashes": {"type": "boolean"},
+                  "manifest": {"type": "string"},
+                  "pip_packages": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  },
+                  "conda_packages": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  },
+                  "setup": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "kind",
+                        "provider",
+                        "target",
+                        "runtime_unit"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {"type": "string"},
+                        "kind": {"type": "string"},
+                        "provider": {"type": "string"},
+                        "target": {"type": "string"},
+                        "runtime_unit": {"type": "string"}
+                      }
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "dependency_notices": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": ["id", "packages", "license", "purpose"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 128},
+          "packages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {"type": "string", "minLength": 1, "maxLength": 200}
+          },
+          "license": {"type": "string", "minLength": 1, "maxLength": 500},
+          "purpose": {"type": "string", "minLength": 1, "maxLength": 4000},
+          "review_required": {"type": "boolean"},
+          "source_url": {"type": "string", "maxLength": 2000}
+        },
+        "additionalProperties": false
+      }
+    },
+    "tools": {"type": "array", "items": {"$ref": "#/$defs/tool"}},
+    "tool_views": {"type": "array", "items": {"$ref": "#/$defs/tool_view"}},
+    "ui_components": {"type": "array", "items": {"$ref": "#/$defs/ui_component"}},
+    "ui_contributions": {"type": "array", "items": {"type": "object"}},
+    "providers": {"type": "array", "items": {"type": "object"}},
+    "services": {"type": "array", "items": {"type": "object"}},
+    "workers": {"type": "array", "items": {"$ref": "#/$defs/worker"}},
+    "scheduled_jobs": {"type": "array", "items": {"type": "object"}},
+    "prompts": {"type": "array", "items": {"type": "object"}},
+    "guidance": {"type": "array", "items": {"type": "object"}},
+    "skills": {"type": "array", "items": {"type": "object"}},
+    "workflows": {"type": "array", "items": {"type": "object"}},
+    "agent_profiles": {"type": "array", "items": {"type": "object"}},
+    "settings_schema": {"type": "array", "items": {"type": "object"}},
+    "docker": {
+      "type": "object",
+      "properties": {
+        "lifecycle": {"type": "string", "enum": ["on_demand", "always_on"]},
+        "startup_timeout_seconds": {"type": "integer", "minimum": 1},
+        "idle_timeout_seconds": {"type": "integer", "minimum": 1},
+        "build_context": {"type": "string"},
+        "services": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/docker_service"}
+        }
+      },
+      "additionalProperties": true
+    },
+    "audio": {"type": "object"},
+    "documents": {"type": "object"},
+    "scraping": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "allOf": [
+          {
+            "properties": {"migration_status": {"const": "explicit_migrated"}},
+            "required": ["migration_status"]
+          },
+          {
+            "not": {
+              "properties": {"manifest_schema_version": {"const": 2}},
+              "required": ["manifest_schema_version"]
+            }
+          }
+        ]
+      },
+      "then": {
+        "required": ["manifest_schema_version", "roles", "categories", "frontend"],
+        "not": {
+          "anyOf": [
+            {"required": ["addon_type"]},
+            {"required": ["plugin_prompt"]},
+            {"required": ["automation_prompts"]},
+            {"required": ["helpers"]},
+            {"required": ["ui_entry_points"]},
+            {"required": ["ui_surfaces"]}
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"manifest_schema_version": {"const": 2}},
+        "required": ["manifest_schema_version"]
+      },
+      "then": {
+        "required": ["kind", "distribution", "runtime", "ui", "provides", "requires"]
+      }
+    }
+  ],
+  "$defs": {
+    "worker": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "name": {"type": "string", "minLength": 1},
+        "entrypoint": {"type": "string", "pattern": "^[^/\\\\]+\\.py$"},
+        "runtime": {"type": "string", "const": "python"},
+        "execution_environment": {
+          "type": "string",
+          "enum": ["auto", "app", "addon_pixi"]
+        },
+        "worker_environment": {
+          "type": "string",
+          "enum": ["auto", "app", "addon_pixi"]
+        },
+        "app_runtime_bridge": {
+          "type": "string",
+          "enum": ["none", "host_v1"]
+        },
+        "allow_environment_fallback": {"const": false},
+        "allow_fallback": {"const": false}
+      },
+      "additionalProperties": true
+    },
+    "runtime_unit": {
+      "type": "object",
+      "required": ["id", "mode"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "mode": {
+          "type": "string",
+          "enum": ["in_process", "managed_process", "container", "remote"]
+        },
+        "entry_point": {
+          "type": "object",
+          "properties": {
+            "module": {"type": "string"},
+            "class": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": ["host_managed", "on_demand", "always_on"]
+        },
+        "dependency_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "format"],
+            "properties": {
+              "path": {"type": "string", "minLength": 1},
+              "format": {
+                "type": "string",
+                "enum": ["pip_requirements", "conda_explicit"]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "requirements": {"type": "object"},
+        "config": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "ui_entry": {
+      "type": "object",
+      "required": ["id", "mode"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "mode": {
+          "type": "string",
+          "enum": ["none", "schema", "svelte_application", "svelte_component", "external"]
+        },
+        "module": {"type": "string"},
+        "route": {"type": "string"},
+        "css_assets": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "capability_provider": {
+      "type": "object",
+      "required": ["id", "capability", "version"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "capability": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "version": {"type": "string", "minLength": 1},
+        "operations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"}
+        },
+        "runtime_unit": {"type": "string"},
+        "connector_definition": {"type": "string"},
+        "setup": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["oauth", "credentials", "derived", "external", "none"]
+            },
+            "url": {"type": "string"},
+            "label": {"type": "string"}
+          },
+          "additionalProperties": false
+        },
+        "qualifiers": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "capability_requirement": {
+      "type": "object",
+      "required": ["id", "capability", "version"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "capability": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"},
+        "version": {"type": "string", "minLength": 1},
+        "operations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.:-]*$"}
+        },
+        "cardinality": {
+          "type": "string",
+          "enum": ["one", "many", "optional"]
+        },
+        "activation": {
+          "type": "string",
+          "enum": ["install", "activate", "on_first_use"]
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["installation", "user", "workspace", "workflow"]
+        },
+        "qualifiers": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "ui_component": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "module": {"type": "string"},
+        "api_version": {
+          "type": "string",
+          "pattern": "^\\^[0-9]+\\.[0-9]+$"
+        },
+        "css_assets": {"type": "array", "items": {"type": "string"}},
+        "legacy_css_assets": {"type": "array", "items": {"type": "string"}},
+        "js_assets": {"type": "array", "items": {"type": "string"}},
+        "input_schema_id": {"type": "string"},
+        "output_schema_id": {"type": "string"},
+        "options_schema": {"type": "object"},
+        "result_schema": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "tool": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "legacy_name": {"type": "string"},
+        "function_name": {"type": "string"},
+        "function_schema": {"type": "object"},
+        "schema": {"type": "object"},
+        "input_schema": {"type": "object"},
+        "output_schema": {"type": "object"},
+        "side_effects": {"type": ["array", "object"], "items": {"type": "string"}},
+        "approval_required": {"type": "boolean"},
+        "resources": {"type": "array", "items": {"type": "string"}},
+        "resource_requirements": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "tool_view": {
+      "type": "object",
+      "required": ["id", "tool", "allowed_parameters"],
+      "properties": {
+        "id": {"type": "string"},
+        "tool": {"type": "string"},
+        "tool_id": {"type": "string"},
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "allowed_parameters": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "docker_service": {
+      "type": "object",
+      "properties": {
+        "strategy": {"type": "string", "enum": ["pull", "build"]},
+        "image": {"type": "string"},
+        "build_context": {"type": "string"},
+        "internal_port": {"type": "integer", "minimum": 1},
+        "primary": {"type": "boolean"},
+        "healthcheck_path": {"type": "string"},
+        "lifecycle": {"type": "string", "enum": ["on_demand", "always_on"]},
+        "startup_timeout_seconds": {"type": "integer", "minimum": 1},
+        "idle_timeout_seconds": {"type": "integer", "minimum": 1},
+        "gpu": {"type": "string", "enum": ["none", "optional", "required"]},
+        "gpu_required": {"type": "boolean"},
+        "environment": {"type": "object"},
+        "volumes": {"type": "object"},
+        "depends_on": {"type": "array", "items": {"type": "string"}},
+        "command": {
+          "oneOf": [
+            {"type": "string"},
+            {"type": "array", "items": {"type": "string"}}
+          ]
+        },
+        "mem_limit": {"type": "string"},
+        "shm_size": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  }
+}

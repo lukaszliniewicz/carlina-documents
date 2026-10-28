@@ -1,0 +1,761 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/contracts/compass/v1/capture.schema.json",
+  "title": "Carlina Compass v1 capture create request",
+  "description": "Owner-scoped Compass capture ingestion. The authenticated client gateway derives owner and device scope; request bodies never carry those identities. This schema freezes capture and attachment reservation metadata only, not server storage, authentication issuance, classification, or UI behavior.",
+  "$ref": "#/$defs/CaptureCreateRequest",
+  "$defs": {
+    "UuidV7": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "Canonical lower-case RFC 9562 UUID version 7."
+    },
+    "Rfc3339Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+      "description": "RFC 3339 date-time with an explicit UTC designator or numeric offset."
+    },
+    "IanaTimezone": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^(?:UTC|[A-Za-z]+(?:[._+-][A-Za-z0-9_+-]+)*(?:/[A-Za-z0-9._+-]+)+)$",
+      "description": "IANA timezone name captured at the client, or UTC."
+    },
+    "BoundedText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536,
+      "x-carlina-maxUtf8Bytes": 65536,
+      "pattern": ".*\\S.*",
+      "description": "Non-blank capture text. JSON Schema maxLength counts characters; the service MUST additionally enforce x-carlina-maxUtf8Bytes against the UTF-8 encoded byte length."
+    },
+    "ShortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]*$"
+    },
+    "Locator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]*$",
+      "description": "An observed opaque URL or file locator. It is never a caller-controlled server path and does not imply that Carlina inferred an absolute local path."
+    },
+    "Quote": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]*$"
+        },
+        "exact": {
+          "$ref": "#/$defs/BoundedText"
+        },
+        "suffix": {
+          "type": "string",
+          "maxLength": 4096,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]*$"
+        }
+      },
+      "required": [
+        "exact"
+      ],
+      "description": "A bounded text-quote selector. Prefix and suffix are optional observations, not a promise of a resolvable source."
+    },
+    "Producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "browser",
+            "desktop",
+            "reader",
+            "share",
+            "unknown"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._@-]*$",
+          "description": "Producer identity, such as the browser extension identity when available."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]*$"
+        }
+      }
+    },
+    "PasteFileMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "mediaType",
+        "size",
+        "lastModified"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "x-carlina-maxUtf8Bytes": 255,
+          "pattern": "^[^\\u0000-\\u001F\\u007F/\\\\]+$"
+        },
+        "mediaType": {
+          "type": "string",
+          "maxLength": 255,
+          "x-carlina-maxUtf8Bytes": 255,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]*$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 268435456
+        },
+        "lastModified": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "PasteContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offeredFormats"
+      ],
+      "properties": {
+        "offeredFormats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "text/plain",
+              "text/html",
+              "text/uri-list",
+              "Files"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "clipboardReportedUris": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "x-carlina-maxUtf8Bytes": 2048,
+            "pattern": "^https?://[^\\u0000-\\u001F\\u007F]+$"
+          },
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "htmlContentLinks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "x-carlina-maxUtf8Bytes": 2048,
+            "pattern": "^https?://[^\\u0000-\\u001F\\u007F]+$"
+          },
+          "maxItems": 8,
+          "uniqueItems": true
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PasteFileMetadata"
+          },
+          "maxItems": 8
+        }
+      },
+      "description": "Unverified, bounded format evidence observed only during a desktop editor paste event. It is not source identity or application provenance."
+    },
+    "SourceObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "observedAt",
+        "availability",
+        "confidence",
+        "producer"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "webextension_context_menu",
+            "desktop_widget",
+            "desktop_global_shortcut",
+            "desktop_clipboard",
+            "desktop_editor_paste",
+            "desktop_accessibility_selection",
+            "desktop_share",
+            "reader_extension",
+            "file_picker",
+            "unknown"
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        },
+        "availability": {
+          "type": "string",
+          "enum": [
+            "available",
+            "unavailable",
+            "unknown"
+          ],
+          "description": "Unknown is an ordinary result when platform access is absent or restricted."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "exact",
+            "high",
+            "medium",
+            "low",
+            "unknown"
+          ]
+        },
+        "producer": {
+          "$ref": "#/$defs/Producer"
+        },
+        "url": {
+          "$ref": "#/$defs/Locator"
+        },
+        "frameUrl": {
+          "$ref": "#/$defs/Locator"
+        },
+        "title": {
+          "$ref": "#/$defs/ShortText"
+        },
+        "application": {
+          "$ref": "#/$defs/ShortText"
+        },
+        "window": {
+          "$ref": "#/$defs/ShortText"
+        },
+        "fileLocator": {
+          "$ref": "#/$defs/Locator"
+        },
+        "quote": {
+          "$ref": "#/$defs/Quote"
+        },
+        "pasteContext": {
+          "$ref": "#/$defs/PasteContext"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "desktop_editor_paste"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "availability": {
+                "const": "available"
+              },
+              "confidence": {
+                "const": "low"
+              },
+              "producer": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "identity",
+                  "version"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "desktop"
+                  },
+                  "identity": {
+                    "const": "compass-desktop"
+                  },
+                  "version": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+                  }
+                }
+              },
+              "quote": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "exact"
+                ],
+                "properties": {
+                  "exact": {
+                    "$ref": "#/$defs/BoundedText"
+                  }
+                }
+              },
+              "pasteContext": {
+                "$ref": "#/$defs/PasteContext"
+              }
+            },
+            "required": [
+              "quote",
+              "pasteContext"
+            ],
+            "not": {
+              "anyOf": [
+                { "required": ["url"] },
+                { "required": ["frameUrl"] },
+                { "required": ["title"] },
+                { "required": ["application"] },
+                { "required": ["window"] },
+                { "required": ["fileLocator"] }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "pasteContext"
+              ]
+            }
+          }
+        }
+      ],
+      "description": "Explicit, allowlisted source context from a browser, desktop adapter, reader, or share workflow. Arbitrary metadata maps are intentionally not accepted."
+    },
+    "CaptureContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/BoundedText"
+        },
+        "selectedText": {
+          "$ref": "#/$defs/BoundedText"
+        }
+      },
+      "description": "Allowlisted immutable text fields. Source observations are provided separately in sources."
+    },
+    "AttachmentDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attachmentId",
+        "role",
+        "mediaType",
+        "expectedSize",
+        "sha256"
+      ],
+      "properties": {
+        "attachmentId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "audio",
+            "screenshot",
+            "source_file",
+            "thumbnail",
+            "other"
+          ]
+        },
+        "mediaType": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$",
+          "description": "Canonical lower-case base media type; upload content bytes are not interpreted by this contract."
+        },
+        "expectedSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 268435456,
+          "description": "Exact attachment byte count. The v1 contract cap is 256 MiB."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "Lower-case hexadecimal SHA-256 of the exact upload bytes."
+        },
+        "filename": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\\\u0000-\\u001F\\u007F]+$",
+          "description": "Display filename only; it cannot select a server filesystem path."
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "width",
+            "height"
+          ],
+          "properties": {
+            "width": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000
+            }
+          }
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000,
+          "description": "Optional observed duration, bounded to one day."
+        }
+      },
+      "description": "Reservation metadata only. The later raw upload is verified against expectedSize and sha256; no caller-controlled storage path exists."
+    },
+    "CaptureCreateRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "captureId",
+        "kind",
+        "action",
+        "capturedAt",
+        "timezone",
+        "sequence"
+      ],
+      "properties": {
+        "captureId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "text",
+            "voice",
+            "screenshot",
+            "share",
+            "selection",
+            "file",
+            "mixed"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "save",
+            "append_to_draft"
+          ]
+        },
+        "capturedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        },
+        "timezone": {
+          "$ref": "#/$defs/IanaTimezone"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Monotonic client-local sequence used for ordering and diagnostics, not authorization. The maximum is the RFC 8785/I-JSON interoperable safe-integer bound."
+        },
+        "content": {
+          "$ref": "#/$defs/CaptureContent"
+        },
+        "sources": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/SourceObservation"
+          }
+        },
+        "attachments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/AttachmentDescriptor"
+          },
+          "description": "At most 16 attachment reservations. Duplicate attachment IDs are a stable server validation conflict."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "content"
+          ]
+        },
+        {
+          "required": [
+            "attachments"
+          ]
+        }
+      ],
+      "description": "At least one allowlisted text content value or one attachment descriptor is required."
+    },
+    "CaptureLifecycle": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "awaiting_attachments",
+        "ready_to_commit",
+        "committed"
+      ],
+      "description": "Durable v1 lifecycle: create reserves, valid attachment bytes advance readiness, and commit finalizes exactly once."
+    },
+    "AttachmentReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "captureId",
+        "attachmentId",
+        "status",
+        "receivedAt"
+      ],
+      "properties": {
+        "captureId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "attachmentId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "verified"
+          ]
+        },
+        "receivedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        }
+      }
+    },
+    "CaptureReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "captureId",
+        "status",
+        "receivedAt"
+      ],
+      "properties": {
+        "captureId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "status": {
+          "$ref": "#/$defs/CaptureLifecycle"
+        },
+        "receivedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        }
+      }
+    },
+    "CaptureCommitReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "captureId",
+        "status",
+        "receivedAt",
+        "attachmentCount",
+        "verifiedAttachmentCount",
+        "committedAt"
+      ],
+      "properties": {
+        "captureId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "status": {
+          "const": "committed",
+          "description": "A successful commit response is always durably committed."
+        },
+        "receivedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        },
+        "attachmentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "verifiedAttachmentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "committedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        }
+      }
+    },
+    "CaptureDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "captureId",
+        "kind",
+        "action",
+        "capturedAt",
+        "timezone",
+        "sequence",
+        "status",
+        "receivedAt",
+        "attachmentCount",
+        "verifiedAttachmentCount"
+      ],
+      "properties": {
+        "captureId": {
+          "$ref": "#/$defs/UuidV7"
+        },
+        "kind": {
+          "$ref": "#/$defs/CaptureCreateRequest/properties/kind"
+        },
+        "action": {
+          "$ref": "#/$defs/CaptureCreateRequest/properties/action"
+        },
+        "capturedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        },
+        "timezone": {
+          "$ref": "#/$defs/IanaTimezone"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "content": {
+          "$ref": "#/$defs/CaptureContent"
+        },
+        "sources": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/SourceObservation"
+          }
+        },
+        "attachments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/AttachmentDescriptor"
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/CaptureLifecycle"
+        },
+        "receivedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        },
+        "attachmentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "verifiedAttachmentCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "committedAt": {
+          "$ref": "#/$defs/Rfc3339Timestamp"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "content"
+          ]
+        },
+        {
+          "required": [
+            "attachments"
+          ]
+        }
+      ],
+      "description": "Owner-scoped durable capture detail. It intentionally contains no classifier payload, derived record, owner identity, or device identity."
+    },
+    "Problem": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "type",
+        "title",
+        "status",
+        "detail",
+        "code",
+        "retryable",
+        "requestId"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 400,
+          "maximum": 599
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "Safe explanation only; never echo capture payloads, server paths, or exception text."
+        },
+        "instance": {
+          "type": "string",
+          "format": "uri-reference"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "description": "Stable Carlina application error code."
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        }
+      },
+      "description": "RFC 9457 application/problem+json with stable Carlina code, retryable, and requestId extensions. Unknown future extensions are allowed. Problem details never echo private payloads, server paths, or raw exceptions."
+    }
+  }
+}

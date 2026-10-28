@@ -1,0 +1,320 @@
+{
+  "id": "sentence_segmenter",
+  "name": "Advanced Sentence Segmenter (Wtpsplit)",
+  "version": "1.2.4",
+  "package_format_version": 1,
+  "addon_api": {
+    "requires": ">=1,<2"
+  },
+  "kind": "engine",
+  "distribution": {
+    "channel": "first_party",
+    "publisher": "Carlina Project"
+  },
+  "runtime": {
+    "units": [
+      {
+        "id": "host",
+        "mode": "in_process",
+        "entry_point": {
+          "module": ".",
+          "class": "SentenceSegmenterAddon"
+        },
+        "lifecycle": "host_managed"
+      },
+      {
+        "id": "native_segmentation",
+        "mode": "managed_process",
+        "lifecycle": "always_on",
+        "config": {
+          "script": "native_worker.py"
+        }
+      },
+      {
+        "id": "service",
+        "mode": "container",
+        "lifecycle": "on_demand",
+        "dependency_artifacts": [
+          {
+            "path": "container/requirements.lock",
+            "format": "pip_requirements"
+          },
+          {
+            "path": "container/wtpsplit-requirements.lock",
+            "format": "pip_requirements"
+          }
+        ],
+        "requirements": {
+          "gpu": "optional"
+        },
+        "config": {
+          "service": "service",
+          "strategy": "build"
+        }
+      }
+    ]
+  },
+  "ui": {
+    "entries": [
+      {
+        "id": "segmenter_tester",
+        "mode": "svelte_component",
+        "module": "static/dist/segmenter-tester.js",
+        "css_assets": [
+          "static/dist/segmenter-tester.css"
+        ]
+      }
+    ]
+  },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "sentence_segmenter",
+        "capability": "text.segmentation",
+        "version": "1.0.0",
+        "operations": [
+          "segment",
+          "paragraphs",
+          "boundaries",
+          "health"
+        ],
+        "runtime_unit": "host"
+      }
+    ]
+  },
+  "requires": {
+    "packages": [],
+    "capabilities": []
+  },
+  "permissions": [
+    {
+      "id": "network.outbound",
+      "reason": "Prepare pinned public model assets and call the optional loopback service."
+    },
+    {
+      "id": "ui.serve",
+      "reason": "Serve the declared Svelte or schema-driven user interface."
+    },
+    {
+      "id": "containers.manage",
+      "reason": "Run the declared container services through the container broker."
+    }
+  ],
+  "resources": [],
+  "storage": {
+    "runtime_cache": "rebuildable"
+  },
+  "author": "Carlina Project",
+  "description": "Multilingual sentence segmentation with a native CPU worker or an optional CUDA-ready container.",
+  "entry_point_class": "SentenceSegmenterAddon",
+  "docker": {
+    "services": {
+      "service": {
+        "strategy": "build",
+        "internal_port": 8000,
+        "idle_timeout_seconds": 300,
+        "startup_timeout_seconds": 120,
+        "healthcheck_path": "/health",
+        "environment": {
+          "WTPSPLIT_REQUIRE_CUDA": "0"
+        }
+      }
+    }
+  },
+  "settings_schema": [
+    {
+      "id": "backend",
+      "name": "Segmentation Backend",
+      "description": "Auto selects native CPU in the document app and the existing container in Carlina. Native CPU runs on Windows and Linux without Docker.",
+      "type": "select",
+      "scope": "global",
+      "default": "auto",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Auto"
+        },
+        {
+          "value": "native",
+          "label": "Native CPU"
+        },
+        {
+          "value": "container",
+          "label": "Container"
+        }
+      ]
+    },
+    {
+      "id": "stride",
+      "name": "Chunk Stride",
+      "description": "The overlap between chunks for long texts. Default is 128.",
+      "type": "number",
+      "scope": "global",
+      "default": 128
+    },
+    {
+      "id": "block_size",
+      "name": "Block Size",
+      "description": "The maximum token chunk size. Default is 256.",
+      "type": "number",
+      "scope": "global",
+      "default": 256
+    },
+    {
+      "id": "threshold",
+      "name": "Sentence Boundary Threshold",
+      "description": "SaT probability threshold for sentence boundaries. Default 0.25 matches the small SaT model default.",
+      "type": "number",
+      "scope": "global",
+      "default": 0.25
+    }
+  ],
+  "roles": [
+    "ui_component",
+    "service"
+  ],
+  "categories": [
+    "language",
+    "nlp"
+  ],
+  "visibility": "user",
+  "frontend": {
+    "tier": "hybrid",
+    "api_version": "^1.0",
+    "build": {
+      "source_dir": "frontend",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "watch_command": [
+        "npm",
+        "run",
+        "dev"
+      ],
+      "source_paths": [
+        "frontend/src",
+        "frontend/package.json",
+        "frontend/tsconfig.json",
+        "frontend/vite.config.ts"
+      ],
+      "workspace_lockfiles": [
+        "package-lock.json"
+      ],
+      "workspace_source_paths": [
+        "frontend/packages/sdk/src",
+        "frontend/packages/sdk/package.json"
+      ],
+      "outputs": [
+        "dist/segmenter-tester.js",
+        "dist/segmenter-tester.css"
+      ]
+    }
+  },
+  "ui_components": [
+    {
+      "id": "segmenter_tester",
+      "name": "Test Segmenter",
+      "description": "Test multilingual sentence segmentation with the selected native or container backend.",
+      "icon": "fa-scissors",
+      "aliases": [
+        "sentence_segmenter"
+      ],
+      "module": "static/dist/segmenter-tester.js",
+      "api_version": "^1.0",
+      "css_assets": [
+        "static/dist/segmenter-tester.css"
+      ],
+      "input_schema_id": "sentence_segmenter.segmenter_tester.input.v1",
+      "output_schema_id": "sentence_segmenter.segmenter_tester.output.v1",
+      "options_schema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "sentences": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "insert_text": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "sentences",
+          "insert_text"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "ui_contributions": [
+    {
+      "id": "segmenter_tester_quick_access",
+      "kind": "picker",
+      "title": "Test Segmenter",
+      "description": "Test multilingual sentence segmentation with the selected native or container backend.",
+      "component": "segmenter_tester",
+      "surfaces": [
+        {
+          "kind": "modal"
+        }
+      ],
+      "entrypoints": [
+        {
+          "kind": "command_palette",
+          "section": "Components",
+          "icon": "fa-scissors"
+        }
+      ]
+    }
+  ],
+  "workers": [
+    {
+      "id": "native_segmentation",
+      "name": "Native Sentence Segmentation Worker",
+      "entrypoint": "native_worker.py",
+      "runtime": "python",
+      "execution_environment": "addon_pixi",
+      "app_runtime_bridge": "host_v1",
+      "allow_environment_fallback": false
+    }
+  ],
+  "dependencies": {
+    "python": {
+      "environments": [
+        {
+          "id": "native_segmentation",
+          "environment": "managed_process_pixi",
+          "runtime_units": [
+            "native_segmentation"
+          ],
+          "python_version": "3.14",
+          "lockfile": "pixi.lock",
+          "lock_format": "pixi",
+          "manifest": "pixi.toml"
+        }
+      ]
+    }
+  },
+  "manifest_schema_version": 2,
+  "migration_status": "explicit_migrated"
+}

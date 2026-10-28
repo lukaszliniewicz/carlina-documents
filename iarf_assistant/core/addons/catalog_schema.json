@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://carlina.local/schemas/addon-catalog.schema.json",
+  "title": "Carlina Add-on Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schema_version",
+    "channel",
+    "publisher",
+    "generated_at",
+    "packages",
+    "signatures"
+  ],
+  "properties": {
+    "format": {"const": "carlina.addon-catalog"},
+    "schema_version": {"const": 1},
+    "channel": {"enum": ["stable", "preview"]},
+    "publisher": {"type": "string", "minLength": 1, "maxLength": 200},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "packages": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {"$ref": "#/$defs/package"}
+    },
+    "signatures": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/signature"}
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    },
+    "revision_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "maxLength": 32
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channel", "publisher", "source_uri"],
+      "properties": {
+        "channel": {"const": "first_party"},
+        "publisher": {"type": "string", "minLength": 1, "maxLength": 200},
+        "source_uri": {"type": "string", "format": "uri", "maxLength": 2000}
+      }
+    },
+    "archive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "url", "sha256", "size"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*\\.zip$",
+          "maxLength": 240
+        },
+        "url": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size": {"type": "integer", "minimum": 1, "maximum": 268435456}
+      }
+    },
+    "permission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "reason"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "reason": {"type": "string", "maxLength": 4000}
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "access", "description"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "access": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 80}
+        },
+        "description": {"type": "string", "maxLength": 4000}
+      }
+    },
+    "runtime_unit": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "mode"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "mode": {"enum": ["in_process", "managed_process", "container", "remote"]}
+      }
+    },
+    "database_migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "version_table",
+        "purge_tables",
+        "owned_tables",
+        "base_revision",
+        "head_revision",
+        "revision_ids",
+        "revision_count",
+        "graph_sha256"
+      ],
+      "properties": {
+        "format": {"const": "alembic_python_v1"},
+        "version_table": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+          "maxLength": 63
+        },
+        "purge_tables": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "maxLength": 63
+          }
+        },
+        "owned_tables": {
+          "type": "array",
+          "maxItems": 10000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "maxLength": 63
+          }
+        },
+        "base_revision": {"$ref": "#/$defs/revision_id"},
+        "head_revision": {"$ref": "#/$defs/revision_id"},
+        "revision_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/revision_id"}
+        },
+        "revision_count": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "graph_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "dependency_notice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "packages", "license", "purpose", "review_required"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "packages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+        },
+        "license": {"type": "string", "minLength": 1, "maxLength": 500},
+        "purpose": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "review_required": {"type": "boolean"},
+        "source_url": {"type": "string", "maxLength": 2000}
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_sha256",
+        "contract_sha256",
+        "kind",
+        "distribution",
+        "permissions",
+        "resources",
+        "runtime_units",
+        "dependency_notices",
+        "capability_providers"
+      ],
+      "properties": {
+        "manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "contract_sha256": {"$ref": "#/$defs/sha256"},
+        "kind": {"enum": ["application", "toolkit", "connector", "engine", "component"]},
+        "distribution": {"$ref": "#/$defs/distribution"},
+        "permissions": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"$ref": "#/$defs/permission"}
+        },
+        "resources": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {"$ref": "#/$defs/resource"}
+        },
+        "runtime_units": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {"$ref": "#/$defs/runtime_unit"}
+        },
+        "installation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "download_bytes": {"type": "integer", "minimum": 1},
+            "unpacked_image_bytes": {"type": "integer", "minimum": 1},
+            "model_cache_bytes": {"type": "integer", "minimum": 1},
+            "build_cache_bytes": {"type": "integer", "minimum": 1},
+            "required_disk_bytes": {"type": "integer", "minimum": 1},
+            "environment_bytes": {"type": "integer", "minimum": 1},
+            "minimum_ram_bytes": {"type": "integer", "minimum": 1},
+            "estimated_seconds": {"type": "integer", "minimum": 1},
+            "architectures": {
+              "type": "array",
+              "maxItems": 32,
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1, "maxLength": 100}
+            }
+          }
+        },
+        "database_migration": {
+          "anyOf": [
+            {"$ref": "#/$defs/database_migration"},
+            {"type": "null"}
+          ]
+        },
+        "dependency_notices": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {"$ref": "#/$defs/dependency_notice"}
+        },
+        "capability_providers": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["id", "capability", "version"]
+          }
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "published_at",
+        "addon_api_requires",
+        "archive",
+        "contract"
+      ],
+      "properties": {
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "published_at": {"type": "string", "format": "date-time"},
+        "addon_api_requires": {"type": "string", "minLength": 1, "maxLength": 200},
+        "archive": {"$ref": "#/$defs/archive"},
+        "contract": {"$ref": "#/$defs/contract"},
+        "notes_url": {"type": "string", "format": "uri", "maxLength": 2000}
+      }
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "summary",
+        "kind",
+        "distribution",
+        "license",
+        "releases"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 200},
+        "summary": {"type": "string", "maxLength": 4000},
+        "kind": {"enum": ["application", "toolkit", "connector", "engine", "component"]},
+        "distribution": {"$ref": "#/$defs/distribution"},
+        "license": {"type": "string", "minLength": 1, "maxLength": 500},
+        "icon_url": {"type": "string", "format": "uri", "maxLength": 2000},
+        "releases": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "items": {"$ref": "#/$defs/release"}
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "value"],
+      "properties": {
+        "key_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "algorithm": {"const": "ed25519"},
+        "value": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    }
+  }
+}
