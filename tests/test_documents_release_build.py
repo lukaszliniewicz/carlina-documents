@@ -230,6 +230,8 @@ def _write(root: Path, relative: str, payload: bytes) -> None:
 def _make_git_project(root: Path) -> tuple[str, int]:
     root.mkdir(parents=True)
     _run_git(root, "init", "-q")
+    _run_git(root, "config", "user.name", "Documents Builder Test")
+    _run_git(root, "config", "user.email", "documents-builder@example.invalid")
     files: dict[str, bytes] = {
         "LICENSE": b"synthetic license\n",
         "THIRD_PARTY_NOTICES.md": b"synthetic notices\n",
