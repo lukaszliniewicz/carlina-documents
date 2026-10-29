@@ -59,19 +59,17 @@ connection does not require another model API key in Carlina.
 
 ```mermaid
 flowchart TD
-    Import["Import a document<br/>PDF · EPUB · DOCX"]
-    Prepare["Prepare PDFs if needed<br/>Select pages · crop page areas"]
-    Extract["Extract text and structure<br/>Headings · tables · images · linked notes"]
-    Check["Preview and correct in the UI<br/>Edit text and structure · adjust image crops"]
+    Source["Import and extract<br/>PDF · EPUB · DOCX<br/>Crop PDF pages if needed"]
+    Check["Preview and correct in the UI<br/>Text · structure · image crops"]
 
-    Import --> Prepare --> Extract --> Check
+    Source --> Check
 
-    Check -->|Without translation| Edition
+    Check -->|Without translation| Export
     Check -->|Translate| Segment
 
     Segment["Prepare translation units<br/>Document blocks · optional sentence alignment"]
     Manual["Translate by hand<br/>Side-by-side editor"]
-    Context["Build translation context<br/>Glossary · nearby passages · earlier matches"]
+    Context["Add translation context<br/>Glossary · nearby text<br/>Earlier translation matches"]
     AI["Translate with AI<br/>Model API or an AI client via MCP"]
     Review["Review side by side<br/>Edit and correct in the UI"]
 
@@ -80,9 +78,8 @@ flowchart TD
     Manual --> Review
     AI --> Review
 
-    Review --> Edition
-    Edition["Prepare your edition<br/>Metadata · cover · layout"]
-    Edition --> Export["Export<br/>EPUB · DOCX · HTML · PDF"]
+    Review --> Export
+    Export["Prepare an edition and export<br/>Metadata · cover · layout<br/>EPUB 3 · DOCX · HTML · PDF"]
 ```
 
 Earlier matches bring previous source–translation pairs into context. Exact and
