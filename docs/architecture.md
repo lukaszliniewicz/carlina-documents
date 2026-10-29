@@ -85,10 +85,9 @@ writes. Repository selection does not establish a public release channel.
 The native online entry points are shell and PowerShell scripts. The Linux
 AppImage adds a Python/Tk setup and launch window over the same signed-index
 installation path. It can create the first administrator through a private stdin
-handoff and reopen the existing runtime. Public binary qualification remains
-separate from this implemented mechanism. An unsigned per-user Windows setup EXE,
-guided product preparation, desktop integration and managed uninstall remain
-planned. The source preview precedes packaged downloads.
+handoff and reopen the existing runtime. Windows uses the PowerShell installer.
+Product activation is manual; these entry points do not provide menu integration
+or a managed uninstaller.
 Pixi/tool management stays internal; data remains outside immutable program
 generations and independent of the downloaded launcher location.
 
@@ -99,8 +98,8 @@ native adapter over the existing lifecycle. The Linux adapter uses bundled
 portable Python/Tk for its small setup window, with a private stdin handoff for
 first-administrator credentials. Its actual library/FUSE prerequisites need
 testing; AppImage does not imply offline setup or
-universal Linux compatibility. Standard managed bundles are the first binary
-route; alternative publisher reconstruction remains experimental until qualified.
+universal Linux compatibility. Publisher-download payloads reconstruct the runtime
+from hash-pinned package downloads; standard managed bundles are also supported.
 
 The Python install/update/rollback lifecycle exposes opt-in versioned events and
 cooperative cancellation. Ordinary observer errors do not interrupt initialization
@@ -153,9 +152,6 @@ native tool/model preparation, connection setup and readiness should become one
 resumable user flow. Updates retain data/root/key identity; uninstall should remove
 only owned program/integration objects and preserve user data by default. These
 are targets, not claims about the current script installers.
-
-The [release-readiness plan](implementation-plan.md) owns the implementation order
-and exact install, source/trust, compatibility and workflow acceptance gates.
 
 ## State and execution
 

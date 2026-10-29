@@ -187,8 +187,7 @@ The source submission contract also accepts native objects/arrays in
 the same schema and byte limits, and stores the ordinary string completion.
 Existing string completions retain their bytes. Identical native-object retries
 remain idempotent after request redaction. `json_object` requires an object root;
-malformed or double-encoded strings are not silently repaired. The live release
-boundary remains recorded in the ledger; clients must discover the supported
+malformed or double-encoded strings are not silently repaired. Clients must discover the supported
 submission schema rather than infer it from this source contract.
 
 Submission rejection feedback identifies bounded JSON Pointer paths, validator
@@ -865,9 +864,7 @@ MCP-as-add-on remains a separate later decision.
 
 ## Acceptance scope
 
-The [implementation plan](implementation-plan.md) owns the next executable phase;
-the [ledger](project-ledger.md) owns current results and remaining limits. Preserve
-the accepted corpus, output identities and recovery receipts during decomposition.
+Preserve the accepted corpus, output identities and recovery receipts during decomposition.
 Use isolated synthetic roots for reconnect, lease-expiry, duplicate-submit and
 managed differential checks. Bounded real-provider behavior remains separate from
 synthetic passive completion and whole-book linguistic review.

@@ -37,7 +37,6 @@ remediation are best effort.
 
 See the [architecture](../docs/architecture.md),
 [MCP contract](../docs/mcp-integration-architecture.md),
-[recovery contract](../docs/update-and-recovery.md) and
-[release plan](../docs/implementation-plan.md) for the implemented boundaries and
-remaining gates. Security reports should identify a concrete violation of a
+[recovery contract](../docs/update-and-recovery.md) for the implemented boundaries.
+Security reports should identify a concrete violation of a
 supported boundary; broader deployment proposals can be discussed separately.

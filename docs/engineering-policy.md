@@ -6,9 +6,8 @@ repository-wide correctness gate and basic typing lane, and add strict lint,
 formatting and production typing for new files. Standard typing covers the
 shared runtime and document products with a reviewed native legacy baseline.
 Import-linter contracts, 100%-confidence Vulture, dependency ownership and
-namespace checks remain enforced. Broader cycle coverage and product/runtime
-boundaries follow the [implementation plan](implementation-plan.md). Current
-measurements and exceptions belong in the [ledger](project-ledger.md).
+namespace checks remain enforced. Checked-in policy files define the current
+scope, baselines and exceptions.
 
 ## Scope and exceptions
 
@@ -251,8 +250,8 @@ rewriting its result. Reuse artifact/render evidence when exact hashes match.
 Before an expensive native run, audit its command/schema/pin expectations locally.
 Prefer the accepted transport, process fences and corpus over a new per-version
 harness. Tests must target real contracts; an assertion stricter than the product
-contract is a fixture defect. Keep future work in the plan, current evidence in
-the ledger, machine/receipt identities in operations and superseded diaries in Git.
+contract is a fixture defect. Keep machine-specific evidence and release planning
+outside the public source; Git history retains superseded implementation details.
 
 ## Gate inventory
 

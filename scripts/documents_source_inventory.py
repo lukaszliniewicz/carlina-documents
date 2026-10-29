@@ -427,9 +427,7 @@ def _is_allowed_extra(parts: tuple[str, ...]) -> bool:
         "docs/architecture.md",
         "docs/engineering-policy.md",
         "docs/extraction-efficiency.md",
-        "docs/implementation-plan.md",
         "docs/mcp-integration-architecture.md",
-        "docs/project-ledger.md",
         "docs/translator.md",
         "docs/update-and-recovery.md",
     }:

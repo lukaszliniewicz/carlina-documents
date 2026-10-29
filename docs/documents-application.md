@@ -194,7 +194,7 @@ installed users receive the prebuilt interface.
 
 The Linux AppImage is an online bootstrap, not an offline application bundle.
 It carries portable Python/Tk, the small setup/launch adapter and a generated
-Documents installer. That installer downloads the standard managed runtime;
+Documents installer. That installer downloads the managed runtime and its dependencies;
 documents and installed generations live outside the AppImage. Existing configured
 installations are reopened through their own launcher. The current adapter does
 not upgrade an existing installation or add menu entries. Removal and updates

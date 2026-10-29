@@ -1,8 +1,9 @@
 # Contributing to Carlina Documents
 
 Carlina Documents is available as an early source preview. Packaged downloads
-for Windows 11 x86-64 and Linux x86-64 are being prepared. See the
-[release plan](../docs/implementation-plan.md) for the remaining work.
+for Windows 11 x86-64 and Linux x86-64 are being prepared. Published downloads
+and their instructions appear on the
+[Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
 
 ## Set up an isolated checkout
 
@@ -40,8 +41,8 @@ use synthetic content and temporary roots, without real provider calls.
 
 ## Preserve the shared application contract
 
-Read [AGENTS.md](../AGENTS.md), [architecture](../docs/architecture.md),
-[the plan](../docs/implementation-plan.md) and [the ledger](../docs/project-ledger.md).
+Read [AGENTS.md](../AGENTS.md), [architecture](../docs/architecture.md) and the
+relevant component contract.
 This repository owns the shared host, three document products, MCP and common UI.
 Private Workbench consumes a reviewed pin and adds its own products and metadata.
 Shared changes must preserve that broader composition as well as Documents.

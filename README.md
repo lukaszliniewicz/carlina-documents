@@ -73,7 +73,6 @@ documents. See the [security policy](.github/SECURITY.md) for details.
 
 The [documentation index](docs/README.md) links to user guides and technical
 references. To contribute, start with the [contributor guide](.github/CONTRIBUTING.md).
-The [release plan](docs/implementation-plan.md) describes upcoming work.
 
 Please report sensitive security issues through
 [private vulnerability reporting](.github/SECURITY.md).

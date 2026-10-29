@@ -2,9 +2,8 @@
 
 This document is the current product and runtime contract for Carlina's
 Translator add-on. It records the behavior that must survive refactors and the
-limitations that must remain visible. Ordered future work and exit gates live in
-the [implementation plan](implementation-plan.md); current managed evidence
-lives in the [project ledger](project-ledger.md).
+limitations that must remain visible. Release notes identify the version and
+platform limits of published builds.
 
 ## MCP adapter ownership
 

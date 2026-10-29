@@ -3,8 +3,9 @@
 Use focused checks for the boundary being changed, then the full affected lane at
 a coherent checkpoint. Documentation-only changes need links, namespace and
 affected source-packaging checks. They do not require frontend rebuilds, native
-installation or a new document extraction. The [release plan](implementation-plan.md)
-separates source, installer-preview and desktop-beta acceptance.
+installation or a new document extraction. Validate an installer on its advertised
+platform separately from source tests; source checks alone do not prove an
+installed workflow.
 
 ## Python static gates
 

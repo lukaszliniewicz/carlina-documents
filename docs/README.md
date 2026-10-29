@@ -13,7 +13,6 @@
   [security reporting](../.github/SECURITY.md).
 - [Architecture](architecture.md): application, shared source and data boundaries.
 - [Testing](testing.md) and [engineering policy](engineering-policy.md).
-- [Current status](project-ledger.md) and [release plan](implementation-plan.md).
 
 ## Technical contracts
 
@@ -24,5 +23,5 @@
 - [Content policy](adr/0011-root-bound-ordinary-content-policy.md) and
   [distribution decision](adr/0012-documents-agpl-distribution.md).
 
-Operational receipts stay outside the public project. The plan describes future
-work, the status page records current evidence and component docs define behavior.
+Component docs describe the application's behavior and interfaces. Installation
+instructions and known release limitations accompany the published downloads.

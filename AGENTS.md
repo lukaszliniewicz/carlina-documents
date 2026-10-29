@@ -1,7 +1,7 @@
 # Documents repository agreement
 
-Read docs/architecture.md, docs/implementation-plan.md and docs/project-ledger.md
-before substantial changes. Source, contracts, tests and release receipts override
+Read docs/architecture.md, .github/CONTRIBUTING.md and the relevant component
+contract before substantial changes. Source, contracts, tests and release receipts override
 prose. The parent owns architecture, integration, acceptance and all UI work;
 specialists gather bounded non-UI evidence or implement an exact named contract.
 Announce specialist profiles/models, preserve concurrent work and do not create a

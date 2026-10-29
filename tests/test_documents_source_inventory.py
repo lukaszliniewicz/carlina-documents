@@ -460,9 +460,7 @@ def test_opaque_extra_members_follow_the_explicit_allowlist(tmp_path: Path) -> N
         "docs/architecture.md",
         "docs/engineering-policy.md",
         "docs/extraction-efficiency.md",
-        "docs/implementation-plan.md",
         "docs/mcp-integration-architecture.md",
-        "docs/project-ledger.md",
         "docs/translator.md",
         "docs/update-and-recovery.md",
         "docs/adr/0012-documents-agpl-distribution.md",
@@ -527,6 +525,8 @@ def test_malformed_extra_paths_are_rejected_without_echoing_paths(
     "member",
     (
         "docs/private.md",
+        "docs/implementation-plan.md",
+        "docs/project-ledger.md",
         "README.txt",
         "private.py",
         "frontend/apps/other/src/app.bin",
