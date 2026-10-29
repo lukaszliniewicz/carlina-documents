@@ -22,27 +22,28 @@ model API.
 
 ## Download
 
-**Version 0.2.0a2 is an early installer preview.** Choose a download below, or use
+**Version 0.2.0a3 is an early installer preview.** Choose a download below, or use
 the source checkout instructions further down.
 
 | System | Download |
 |---|---|
-| Linux x86-64 | [AppImage](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/Carlina_Documents-0.2.0a2-x86_64.AppImage) |
-| Linux x86-64, terminal setup | [Shell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-linux-64.sh) |
-| Windows 11 x86-64 | [Setup EXE](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/Carlina_Documents-0.2.0a2-Setup-x86_64.exe) |
+| Linux x86-64 | [AppImage](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/Carlina_Documents-0.2.0a3-x86_64.AppImage) |
+| Linux x86-64, terminal setup | [Shell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/install-carlina-documents-linux-64.sh) |
+| Windows 11 x86-64 | [Setup EXE](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/Carlina_Documents-0.2.0a3-Setup-x86_64.exe) |
 
 See the [installation instructions](docs/documents-application.md#packaged-downloads)
 before running a download. Initial setup needs internet access. The Windows
 installer is unsigned. All downloads, checksums and source files are on the
 [Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
 On Windows, double-click the EXE and follow the setup window; Python is included.
-The [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-win-64.ps1)
+The [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/install-carlina-documents-win-64.ps1)
 remains available for terminal setup.
 The AppImage setup needs systemd 254 or newer, cgroup v2 and an X11 or XWayland
 desktop session.
 
-Expect rough edges in this preview, including manual activation of the document
-tools. Feedback and reproducible bug reports are welcome in
+New installations activate the three document tools during setup. Sentence
+splitting still needs the one-time model download described below. Expect rough
+edges in this preview; feedback and reproducible bug reports are welcome in
 [Issues](https://github.com/lukaszliniewicz/carlina-documents/issues).
 
 ## Run from source
@@ -60,13 +61,13 @@ pixi run --locked setup
 pixi run --locked start
 ```
 
-Setup creates your administrator account; start opens the application in your
+Setup creates your administrator account and prepares the three document tools;
+start opens the application in your
 browser. Keep the same terminal open for later commands, and use different ports
 if these are already taken. The dedicated data folder keeps this checkout
 separate from any existing installation.
 
-In **Settings → Add-ons**, activate Document Processor, Translator and Sentence
-Segmenter. Then configure a model connection in Settings, or choose **Connect AI
+Configure a model connection in Settings, or choose **Connect AI
 client** on the home page to use MCP. Follow the
 [model preparation step](docs/documents-application.md#prepare-sentence-segmentation)
 before sentence splitting or aligned sentence translation.

@@ -117,8 +117,11 @@ _ROOT_EXTRA_MEMBERS: Final = frozenset(
         "third_party/frontend/NOTICE.json",
         "third_party/models/NOTICE.json",
         "third_party/appimage/NOTICE.json",
+        "third_party/windows-bootstrap/NOTICE.json",
         "packaging/appimage/AppRun",
         "packaging/appimage/carlina-documents.desktop",
+        "packaging/windows/carlina-documents.ico",
+        "packaging/windows/requirements-build.lock",
         "iarf_assistant/addons/sentence_segmenter/container/.dockerignore",
         "third_party/models/segment-any-text-sat-12l-sm.md",
         "third_party/models/FacebookAI-xlm-roberta-base.md",
@@ -147,6 +150,7 @@ _ROOT_EXTRA_MEMBERS: Final = frozenset(
         "scripts/build_clean_release.py",
         "scripts/build_documents_release.py",
         "scripts/build_documents_appimage.py",
+        "scripts/build_documents_windows_installer.py",
         "scripts/documents_appimage.py",
         "scripts/documents_source_inventory.py",
         "scripts/addon_publication_policy.py",
@@ -415,7 +419,11 @@ def _is_allowed_extra(parts: tuple[str, ...]) -> bool:
     ):
         return True
     if (
-        parts[:3] == ("third_party", "appimage", "notices")
+        parts[:3]
+        in {
+            ("third_party", "appimage", "notices"),
+            ("third_party", "windows-bootstrap", "notices"),
+        }
         and len(parts) == 4
         and parts[-1].endswith(".txt")
     ):

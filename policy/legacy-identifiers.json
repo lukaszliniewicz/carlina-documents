@@ -103,11 +103,11 @@
       "id": "python_import_namespace",
       "pattern": "(?<![A-Za-z0-9_])iarf_assistant(?![A-Za-z0-9_])",
       "expected_by_scope": {
-        "canonical_bridge": 22,
+        "canonical_bridge": 23,
         "private_integrations": 0,
         "historical_contracts": 41,
-        "legacy_implementation": 814,
-        "verification_and_tooling": 1701,
+        "legacy_implementation": 815,
+        "verification_and_tooling": 1709,
         "root_configuration": 615
       }
     },

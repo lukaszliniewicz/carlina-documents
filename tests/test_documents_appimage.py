@@ -437,3 +437,51 @@ def test_windows_server_uses_the_installed_launcher_after_bootstrap_exit(
     )
     assert "'start' '--host' '127.0.0.1'" in script
     assert start.call_args.kwargs["creationflags"] == 0x08000200
+
+
+@pytest.mark.parametrize(
+    ("setup_status", "expected"),
+    [("warning", "prepare"), ("ok", "ready"), (None, "ready")],
+)
+def test_existing_account_resumes_pending_product_setup(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    setup_status: str | None,
+    expected: str,
+) -> None:
+    controller = _controller(tmp_path, monkeypatch)
+    controller.program_root.mkdir()
+    controller.launcher.write_text("synthetic launcher")
+    controller.launcher.chmod(0o700)
+    checks = [{"id": "accounts.admin", "status": "ok"}]
+    if setup_status is not None:
+        checks.append({"id": "documents.setup", "status": setup_status})
+    reports = {
+        "status": {
+            "application_profile": "documents",
+            "managed_install": {"program_root": str(controller.program_root)},
+        },
+        "doctor": {"checks": checks},
+    }
+    monkeypatch.setattr(controller, "_json_command", reports.__getitem__)
+    assert controller._probe() == expected
+
+
+def test_finishing_product_setup_does_not_request_another_password(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    controller = _controller(tmp_path, monkeypatch)
+    controller.message = Mock()
+    controller.detail = Mock()
+    monkeypatch.setattr(controller, "_clear_content", Mock())
+    monkeypatch.setattr(controller, "_probe", lambda: "ready")
+    background = Mock()
+    monkeypatch.setattr(controller, "_background", background)
+    run = Mock(return_value=subprocess.CompletedProcess([], 0))
+    monkeypatch.setattr(image.subprocess, "run", run)
+    controller._initialize()
+    assert background.call_args.args[0] == "prepare"
+    assert background.call_args.args[1]() == "ready"
+    assert run.call_args.args[0][-2:] == ["init", "--no-admin-prompt"]
+    assert run.call_args.kwargs["input"] is None
+    assert run.call_args.kwargs["stdin"] == subprocess.DEVNULL

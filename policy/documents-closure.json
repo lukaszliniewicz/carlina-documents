@@ -3,8 +3,8 @@
   "source": {
     "groups": {
       "carlina": {
-        "member_count": 65,
-        "bytes": 745000
+        "member_count": 66,
+        "bytes": 760500
       },
       "iarf_assistant.host": {
         "member_count": 247,
@@ -43,8 +43,8 @@
     }
   },
   "wheel": {
-    "file_bytes": 33610000,
-    "file_count": 652
+    "file_bytes": 33850000,
+    "file_count": 653
   },
   "fresh_documents_host_module_limit": 140,
   "host_retention": {
@@ -63,6 +63,7 @@
         "carlina/bootstrap.py",
         "carlina/bootstrap_manager.py",
         "carlina/documents.py",
+        "carlina/documents_setup.py",
         "carlina/managed_launcher.py",
         "carlina/mcp_profiles.py",
         "carlina/migration_rendering.py",

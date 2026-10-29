@@ -65,6 +65,7 @@ _EXTRA_EXACT_MEMBERS: Final[tuple[str, ...]] = (
     "third_party/frontend/NOTICE.json",
     "third_party/models/NOTICE.json",
     "third_party/appimage/NOTICE.json",
+    "third_party/windows-bootstrap/NOTICE.json",
     "third_party/models/segment-any-text-sat-12l-sm.md",
     "third_party/models/FacebookAI-xlm-roberta-base.md",
     "pyproject.toml",
@@ -103,9 +104,12 @@ _EXTRA_EXACT_MEMBERS: Final[tuple[str, ...]] = (
     "scripts/build_clean_release.py",
     "scripts/build_documents_release.py",
     "scripts/build_documents_appimage.py",
+    "scripts/build_documents_windows_installer.py",
     "scripts/documents_appimage.py",
     "packaging/appimage/AppRun",
     "packaging/appimage/carlina-documents.desktop",
+    "packaging/windows/carlina-documents.ico",
+    "packaging/windows/requirements-build.lock",
     "scripts/documents_source_inventory.py",
     "scripts/addon_publication_policy.py",
     "scripts/build_managed_pack.py",
@@ -123,6 +127,7 @@ _DOCUMENT_ADDON_IDS: Final[tuple[str, str, str]] = (
 )
 _EXTRA_DIRECTORY_ROOTS: Final[tuple[tuple[str, ...], ...]] = (
     ("third_party", "appimage", "notices"),
+    ("third_party", "windows-bootstrap", "notices"),
     ("third_party", "frontend", "notices"),
     ("iarf_assistant", "static"),
     ("iarf_assistant", "templates"),

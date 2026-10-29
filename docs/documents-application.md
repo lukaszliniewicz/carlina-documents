@@ -15,7 +15,7 @@ to run a checkout.
 
 ### Packaged downloads
 
-Download the AppImage for Linux or `Carlina_Documents-0.2.0a2-Setup-x86_64.exe`
+Download the AppImage for Linux or `Carlina_Documents-0.2.0a3-Setup-x86_64.exe`
 for Windows. Double-click the Windows EXE and follow the setup window; it includes
 Python, so you do not need to install Python separately. The other runtime files in a
 release are downloaded by these installers. Initial setup needs internet access.
@@ -26,10 +26,10 @@ On Linux, make the AppImage executable and run it. If FUSE is unavailable, use
 the runtime's extract-and-run option:
 
 ```sh
-chmod +x Carlina_Documents-0.2.0a2-x86_64.AppImage
-./Carlina_Documents-0.2.0a2-x86_64.AppImage
+chmod +x Carlina_Documents-0.2.0a3-x86_64.AppImage
+./Carlina_Documents-0.2.0a3-x86_64.AppImage
 # Fallback when mounting with FUSE is unavailable:
-./Carlina_Documents-0.2.0a2-x86_64.AppImage --appimage-extract-and-run
+./Carlina_Documents-0.2.0a3-x86_64.AppImage --appimage-extract-and-run
 ```
 
 The shell installer is an alternative:
@@ -53,11 +53,17 @@ the AppImage and Windows EXE provide a setup window. The commands above use the 
 installation folders and skip PATH registration. Use the installed launcher for
 later start, stop and diagnostics.
 
-This preview requires manual product activation and model preparation. The
+New installations prepare and activate Document Processor, Translator and Sentence
+Segmenter after account creation. This can take several minutes while their
+dependencies download. If preparation fails, reopen setup and choose **Finish
+setup**; your account and completed steps are kept. For terminal setup, rerun the
+installed launcher with `init --no-admin-prompt`.
+
+Existing installations keep their add-on choices. Sentence splitting still needs
+the [model preparation step](#prepare-sentence-segmentation). The
 AppImage and Windows EXE reopen an existing installation without upgrading it. Keep
 the downloaded setup file to open Documents again, or use the installed launcher.
-Updates and
-removal use the [managed-runtime guide](update-and-recovery.md); menu integration
+Updates and removal use the [managed-runtime guide](update-and-recovery.md); menu integration
 and a managed uninstaller are not provided.
 
 Source-checkout commands require a dedicated development `CARLINA_HOME` and free
@@ -84,10 +90,11 @@ An explicit `--port` or `CARLINA_PORT` overrides the HTTP default, and
 `CARLINA_MCP_PORT` overrides the MCP default. Session and remember cookies are separate
 so both applications can be used in one browser.
 
-Initialization retains the shared administrator setup. Activate the three products
-through Settings → Add-ons, reviewing their declared code access and dependency
-notices. The home page displays available products and links to configuration
-when activation is needed. Model connections are configured through Settings.
+Initialization creates the first administrator and prepares the bundled products.
+They are trusted native add-ons with the application's code access; their
+dependency licences are listed in the [third-party notices](../THIRD_PARTY_NOTICES.md).
+Older previews may need activation through **Settings → Add-ons**. Model
+connections are configured through Settings.
 Passive MCP extraction and translation do not require a configured direct API
 provider; direct execution does.
 
@@ -95,7 +102,7 @@ provider; direct execution does.
 
 Block translation works without the sentence model. Sentence Segmenter and
 **aligned sentence** translation require a one-time download of the pinned SaT
-model files. Activate the three products first, then run the following for your
+model files. Once setup has finished, run the following for your
 installed copy. Change `program_root` / `$programRoot` if you chose another folder.
 The cache path is read from that installation's status.
 

@@ -88,8 +88,14 @@ the same signed-index installation path. The window can create the first adminis
 handoff and reopen the existing runtime. The Windows EXE packages this adapter
 with PyInstaller and delegates installation to the generated PowerShell script.
 Both script installers remain available for terminal use.
-Product activation is manual; these entry points do not provide menu integration
-or a managed uninstaller.
+New Documents roots record first-run preparation before account creation. After an
+administrator exists, initialization activates the three bundled products through
+the native lifecycle under maintenance authority and the runtime leader lock.
+The known dependency notices are attributed to the bundled distribution; changed
+required notices fail closed. A pending record permits retry without another
+account; a completed record preserves later add-on choices. Older roots without
+the record and Workbench initialization retain their existing behavior.
+These entry points do not provide menu integration or a managed uninstaller.
 Pixi/tool management stays internal; data remains outside immutable program
 generations and independent of the downloaded launcher location.
 
@@ -149,8 +155,8 @@ PowerShell-owned output stream. This does not terminate unpacking or activation.
 The Linux graphical adapter consumes this interface. See the
 [update contract](update-and-recovery.md#installation-event-interface).
 
-Both compositions reuse profile-driven onboarding components. Product activation,
-native tool/model preparation, connection setup and readiness should become one
+Both compositions reuse profile-driven onboarding components. Native model
+preparation, connection setup and readiness should become one
 resumable user flow. Updates retain data/root/key identity; uninstall should remove
 only owned program/integration objects and preserve user data by default. These
 are targets, not claims about the current script installers.

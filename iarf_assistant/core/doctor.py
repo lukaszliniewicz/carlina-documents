@@ -917,6 +917,31 @@ def run_doctor(
     checks.append(_backup_check(paths, deep=deep, key_store=key_store))
     checks.append(_restore_check(paths))
     checks.extend(_addon_checks(paths, runtime_facts))
+    from carlina.documents_setup import DocumentsSetupError, inspect_documents_setup
+
+    try:
+        documents_setup = inspect_documents_setup(paths)
+    except DocumentsSetupError:
+        checks.append(
+            _check(
+                "documents.setup",
+                "Documents first-run setup",
+                "error",
+                "The saved Documents setup state could not be read.",
+            )
+        )
+    else:
+        if documents_setup != "absent":
+            checks.append(
+                _check(
+                    "documents.setup",
+                    "Documents first-run setup",
+                    "ok" if documents_setup == "complete" else "warning",
+                    "Document tools are prepared."
+                    if documents_setup == "complete"
+                    else "Documents setup needs to finish preparing its tools.",
+                )
+            )
     checks.sort(key=lambda item: (-_STATUS_ORDER[item.status], item.id))
     return DoctorReport(
         generated_at=datetime.now(UTC).isoformat(),

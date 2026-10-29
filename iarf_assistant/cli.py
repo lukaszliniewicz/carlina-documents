@@ -327,6 +327,55 @@ def _reconcile_builtin_addons_after_core_migration(app):
         return addon_manager.reconcile_builtin_addons()
 
 
+def _prepare_documents_products(app, *, begin: bool = False) -> None:
+    from carlina.runtime_composition import resolve_runtime_composition
+    from carlina.runtime_profiles import RuntimeProfile
+
+    profile = resolve_runtime_composition().profile
+    if profile is not RuntimeProfile.DOCUMENTS:
+        return
+
+    from carlina.documents_setup import (
+        DocumentsSetupError,
+        begin_documents_setup,
+        complete_documents_setup,
+    )
+    from iarf_assistant.core.app_paths import app_paths_from_context
+
+    paths = app_paths_from_context()
+    try:
+        if begin:
+            begin_documents_setup(
+                paths,
+                profile=profile,
+                has_existing_accounts=User.query.first() is not None,
+            )
+            return
+        names = {
+            "sentence_segmenter": "Sentence Segmenter",
+            "doc_processor": "Document Processor",
+            "translator": "Translator",
+        }
+        manager = getattr(app, "addon_manager", None)
+        if manager is None:
+            raise click.ClickException(
+                "Documents could not load its document tools. Retry setup with "
+                "the same location, or use the installed recovery tools."
+            )
+        complete_documents_setup(
+            paths,
+            profile=profile,
+            has_administrator=User.query.filter_by(is_admin=True).first() is not None,
+            manager=manager,
+            on_product=lambda addon_id: click.echo(f"Preparing {names[addon_id]}..."),
+        )
+    except DocumentsSetupError as error:
+        raise click.ClickException(
+            "Documents setup could not finish. Close any running copy and retry "
+            "setup with the same location. Your account and completed steps are kept."
+        ) from error
+
+
 def register_cli(app, *, assistant_services: bool = True):
     _register_mcp_cli(app)
 
@@ -429,6 +478,8 @@ def register_cli(app, *, assistant_services: bool = True):
             except Exception as e:
                 raise click.ClickException(f"Error seeding data: {e}")
 
+            _prepare_documents_products(app, begin=True)
+
             # After seeding, check if a first user needs to be created
             if User.query.first() is None:
                 click.echo("-" * 40)
@@ -450,6 +501,8 @@ def register_cli(app, *, assistant_services: bool = True):
                         click.echo(f"Admin user '{email}' created successfully.")
                     else:
                         click.echo("An administrator account already exists.")
+
+            _prepare_documents_products(app)
 
         click.echo("Application initialization complete.")
 

@@ -405,11 +405,21 @@ class DocumentsSetup:
             raise LauncherError("The selected location belongs to another application.")
         doctor = self._json_command("doctor")
         checks = doctor.get("checks")
+        account_ready = False
+        setup_pending = False
         if isinstance(checks, list):
             for item in cast(list[object], checks):
                 check = _object(item)
                 if check.get("id") == "accounts.admin" and check.get("status") == "ok":
-                    return "ready"
+                    account_ready = True
+                if check.get("id") == "documents.setup":
+                    if check.get("status") == "error":
+                        raise LauncherError(
+                            "Documents could not read its saved setup progress. Use the installed recovery tools before trying again."
+                        )
+                    setup_pending = check.get("status") == "warning"
+        if account_ready:
+            return "prepare" if setup_pending else "ready"
         return "account"
 
     def _check_windows_launcher(self) -> None:
@@ -446,7 +456,7 @@ class DocumentsSetup:
     def _show_install(self) -> None:
         self.heading.set("Install Documents")
         self.message.set(
-            "Extract, review and translate documents on your computer. Setup downloads the application. After it opens, follow the guide to activate its tools and prepare sentence splitting."
+            "Extract, review and translate documents on your computer. Setup downloads the application and prepares its three document tools. You can configure AI connections after it opens."
         )
         self._clear_content()
         ttk.Label(self.content, text="Program location").grid(sticky="w", pady=(0, 6))
@@ -663,20 +673,39 @@ class DocumentsSetup:
         self.confirmation.set("")
         self._initialize(payload)
 
-    def _initialize(self, payload: bytes) -> None:
+    def _show_prepare(self) -> None:
+        self.heading.set("Finish setting up Documents")
+        self.message.set(
+            "Your account is ready. Setup still needs to finish preparing the document tools."
+        )
+        self._clear_content()
+        self.detail.set(
+            "This may download dependencies and take several minutes. Completed steps are kept if you need to retry."
+        )
+        self.primary.configure(
+            text="Finish setup", state="normal", command=self._initialize
+        )
+
+    def _initialize(self, payload: bytes | None = None) -> None:
         def initialize() -> str:
-            result = subprocess.run(
-                _script_command(self.launcher, ["init", "--admin-stdin"]),
-                input=payload,
-                env=self._environment(),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                check=False,
-                **_process_options(),
-            )
+            arguments = [
+                "init",
+                "--admin-stdin" if payload is not None else "--no-admin-prompt",
+            ]
+            with tempfile.TemporaryFile() as output:
+                result = subprocess.run(
+                    _script_command(self.launcher, arguments),
+                    input=payload,
+                    stdin=subprocess.DEVNULL if payload is None else None,
+                    env=self._environment(),
+                    stdout=output,
+                    stderr=subprocess.STDOUT,
+                    check=False,
+                    **_process_options(),
+                )
             if result.returncode:
                 raise LauncherError(
-                    "Account setup did not finish. An older installation may need its normal setup command. Retry or use an existing account."
+                    "Setup could not finish. Try again with the same location; your account and completed steps are kept."
                 )
             if self._probe() != "ready":
                 raise LauncherError(
@@ -684,12 +713,12 @@ class DocumentsSetup:
                 )
             return "ready"
 
-        self.message.set("Preparing your account…")
+        self.message.set("Finishing setup…")
         self.detail.set(
-            "Finishing database setup. This step must complete before closing."
+            "Preparing the account and document tools. Downloads may take several minutes. Keep this window open until setup finishes."
         )
         self._clear_content()
-        self._background("account", initialize)
+        self._background("account" if payload is not None else "prepare", initialize)
 
     def _start(self) -> str:
         report = self._json_command("status")
@@ -786,11 +815,13 @@ class DocumentsSetup:
                     )
             elif value == "account":
                 self._show_account()
+            elif value == "prepare":
+                self._show_prepare()
             elif value == "ready":
                 self.heading.set("Opening Documents")
                 self.message.set("Starting or reconnecting to your local application…")
                 self.detail.set(
-                    "Activate Document Processor, Translator and Sentence Segmenter in the browser's Settings when you need them."
+                    "Configure AI connections in the app when you need them."
                 )
                 self._background("start", self._start)
         self.root.after(80, self._drain)
