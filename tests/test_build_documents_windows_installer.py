@@ -188,11 +188,13 @@ class _FakeFreezerProcess:
         command: list[str],
         *,
         payload: bytes,
+        working_directory: Path,
         on_start: Any,
         return_code: int = 0,
     ) -> None:
         self.command = command
         self.payload = payload
+        self.working_directory = working_directory
         self.on_start = on_start
         self.return_code = return_code
         self.stdout = io.BytesIO(b"synthetic freezer stdout\n")
@@ -201,7 +203,7 @@ class _FakeFreezerProcess:
 
     def wait(self, timeout: int | None = None) -> int:
         assert timeout == builder._PROCESS_TIMEOUT_SECONDS
-        self.on_start(self.command)
+        self.on_start(self.command, self.working_directory)
         executable = Path(_option(self.command, "--distpath")) / (
             _option(self.command, "--name") + ".exe"
         )
@@ -216,7 +218,7 @@ def _fake_freezer(
     monkeypatch: pytest.MonkeyPatch,
     *,
     payload: bytes | None = None,
-    on_start: Any = lambda _command: None,
+    on_start: Any = lambda _command, _working_directory: None,
     return_code: int = 0,
 ) -> list[list[str]]:
     calls: list[list[str]] = []
@@ -231,6 +233,7 @@ def _fake_freezer(
             return _FakeFreezerProcess(
                 command,
                 payload=payload if payload is not None else _minimal_x64_gui_pe(),
+                working_directory=Path(kwargs["cwd"]),
                 on_start=on_start,
                 return_code=return_code,
             )
@@ -410,10 +413,9 @@ def test_freezer_command_outputs_sidecar_and_preserves_license_paths(
     installer, installer_sha256 = _write_installer(tmp_path)
     observed: dict[str, Any] = {}
 
-    def inspect_staging(command: list[str]) -> None:
-        cwd = Path(_option(command, "--specpath")).parent
-        stage = cwd / "stage"
-        observed["cwd"] = cwd
+    def inspect_staging(command: list[str], working_directory: Path) -> None:
+        stage = working_directory / "stage"
+        observed["cwd"] = working_directory
         observed["bootstrap"] = (stage / "bootstrap.py").read_bytes()
         observed["installer"] = (stage / "installer.ps1").read_bytes()
         observed["launcher"] = json.loads((stage / "launcher.json").read_text("utf-8"))
@@ -425,6 +427,19 @@ def test_freezer_command_outputs_sidecar_and_preserves_license_paths(
         observed["version_resource"] = Path(
             _option(command, "--version-file")
         ).read_text("utf-8")
+        assert Path(_option(command, "--specpath")) == working_directory
+        assert (working_directory / _option(command, "--icon")).is_file()
+        assert (working_directory / command[-1]).is_file()
+        add_data = [
+            command[index + 1]
+            for index, argument in enumerate(command[:-1])
+            if argument == "--add-data"
+        ]
+        assert add_data
+        assert all(
+            (working_directory / specification.rsplit(":", maxsplit=1)[0]).exists()
+            for specification in add_data
+        )
 
     calls = _fake_freezer(monkeypatch, on_start=inspect_staging)
     executable, sidecar_path, checksum_path = _build(
@@ -509,7 +524,8 @@ def test_freezer_command_outputs_sidecar_and_preserves_license_paths(
         assert flag in command
     assert _option(command, "--name") == executable.stem
     assert _option(command, "--icon") == "stage/carlina-documents.ico"
-    for option in ("--specpath", "--workpath", "--distpath"):
+    assert Path(_option(command, "--specpath")) == observed["cwd"]
+    for option in ("--workpath", "--distpath"):
         assert Path(_option(command, option)).parent == observed["cwd"]
     assert "stage/carlina-documents.ico:." in [
         command[index + 1]

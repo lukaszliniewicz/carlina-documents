@@ -99,10 +99,18 @@ def _powershell_command(script: str) -> list[str]:
     ]
 
 
-def _script_command(path: Path, arguments: list[str]) -> list[str]:
+def _script_command(
+    path: Path, arguments: list[str], *, named_parameters: bool = False
+) -> list[str]:
     if not _is_windows():
         return [str(path), *arguments]
-    quoted = ["'" + value.replace("'", "''") + "'" for value in [str(path), *arguments]]
+    quoted = ["'" + str(path).replace("'", "''") + "'"]
+    quoted.extend(
+        value
+        if named_parameters and re.fullmatch(r"-[A-Za-z][A-Za-z0-9]*", value)
+        else "'" + value.replace("'", "''") + "'"
+        for value in arguments
+    )
     return _powershell_command("& " + " ".join(quoted) + "; exit $LASTEXITCODE")
 
 
@@ -513,6 +521,7 @@ class DocumentsSetup:
                         "-CancelFile",
                         str(cancel_path),
                     ],
+                    named_parameters=True,
                 )
             with tempfile.TemporaryFile() as errors:
                 process = subprocess.Popen(

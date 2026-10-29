@@ -262,6 +262,14 @@ def test_powershell_arguments_preserve_unicode_and_cannot_add_commands(
     assert image._process_options() == {"creationflags": 0x08000000}
     assert image._process_options(detached=True) == {"creationflags": 0x08000200}
 
+    installer = image._script_command(
+        path,
+        ["-ProgramRoot", "C:\\P Ω it's; throw 'unsafe'", "-SkipInit"],
+        named_parameters=True,
+    )
+    script = base64.b64decode(installer[-1]).decode("utf-16le")
+    assert " -ProgramRoot 'C:\\P Ω it''s; throw ''unsafe''' -SkipInit;" in script
+
 
 def test_frozen_environment_does_not_leak_into_installed_programs(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -349,7 +357,8 @@ def test_windows_install_uses_supervision_and_the_same_event_protocol(
         "-SkipInit",
         "-CancelFile",
     ):
-        assert "'" + argument + "'" in script
+        assert " " + argument + " " in script
+        assert "'" + argument + "'" not in script
     assert "installer.ps1" in script and "--program-root" not in script
     assert start.call_args.kwargs["creationflags"] == 0x08000000
     child.wait.assert_called_once()

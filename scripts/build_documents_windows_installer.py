@@ -782,13 +782,12 @@ def build_windows_installer(
         ) as temporary_directory:
             work_root = Path(temporary_directory)
             stage = work_root / "stage"
-            spec_directory = work_root / "spec"
+            spec_directory = work_root
             work_directory = work_root / "work"
             dist_directory = work_root / "dist"
             config_directory = work_root / "pyinstaller-config"
             for directory in (
                 stage,
-                spec_directory,
                 work_directory,
                 dist_directory,
                 config_directory,
