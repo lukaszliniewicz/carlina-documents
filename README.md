@@ -35,12 +35,14 @@ See the [installation instructions](docs/documents-application.md#packaged-downl
 before running a download. Initial setup needs internet access. The Windows
 installer is unsigned. All downloads, checksums and source files are on the
 [Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
+The AppImage setup needs systemd 254 or newer, cgroup v2 and an X11 or XWayland
+desktop session.
 
 Expect rough edges in this preview, including manual activation of the document
 tools. Feedback and reproducible bug reports are welcome in
 [Issues](https://github.com/lukaszliniewicz/carlina-documents/issues).
 
-## Get started
+## Run from source
 
 Install Git and [Pixi 0.81.0](https://github.com/prefix-dev/pixi/releases/tag/v0.81.0)
 first. On Linux:

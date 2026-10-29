@@ -357,7 +357,8 @@ with event mode and its existing skip-init/no-path-update options. Publisher
 admission stays Documents-only. Ordinary carrier interfaces keep their existing
 behavior.
 Linux requires cgroup v2, systemd tooling version 254 or later and an accessible
-systemd user manager. Supervised publisher progress also requires GNU tail.
+systemd user manager. Supervised publisher progress also requires a `tail`
+implementation supporting `--pid` and `--sleep-interval`.
 Windows requires 64-bit Windows PowerShell Desktop 5.1 and Windows 10 or later;
 Windows 11 remains the release target. Missing capability refuses supervised
 execution. This source interface is not clean-machine installer qualification.

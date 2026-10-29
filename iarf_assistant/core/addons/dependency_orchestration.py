@@ -628,6 +628,8 @@ class DependencyOrchestrationMixin:
             else:
                 exec_cmd = [
                     sys.executable,
+                    "-X",
+                    "utf8",
                     "-m",
                     "pip",
                     "install",
@@ -1403,6 +1405,8 @@ class DependencyOrchestrationMixin:
                 else:
                     command = [
                         sys.executable,
+                        "-X",
+                        "utf8",
                         "-m",
                         "pip",
                         "install",

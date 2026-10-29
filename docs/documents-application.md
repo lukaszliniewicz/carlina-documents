@@ -9,16 +9,17 @@ AI client handle model responses through MCP.
 
 The [public release](https://github.com/lukaszliniewicz/carlina-documents/releases)
 provides the Linux AppImage and Linux/Windows script installers. Windows
-downloads are unsigned. Follow the
+downloads are unsigned. Use the packaged instructions below, or follow the
 [source setup instructions](https://github.com/lukaszliniewicz/carlina-documents/blob/main/.github/CONTRIBUTING.md#set-up-an-isolated-checkout)
-to try this preview. The commands below also describe management of an installed
-application once packaged downloads are available.
+to run a checkout.
 
 ### Packaged downloads
 
 Download the AppImage or `install-carlina-documents-linux-64.sh` for Linux, or
 `install-carlina-documents-win-64.ps1` for Windows. The other runtime files in a
 release are downloaded by these installers. Initial setup needs internet access.
+The AppImage setup requires systemd 254 or newer, an accessible systemd user
+session with cgroup v2, and X11 or XWayland for its window.
 
 On Linux, make the AppImage executable and run it. If FUSE is unavailable, use
 the runtime's extract-and-run option:
@@ -54,19 +55,6 @@ This preview requires manual product activation and model preparation. The
 AppImage reopens an existing installation without upgrading it. Updates and
 removal use the [managed-runtime guide](update-and-recovery.md); menu integration
 and a managed uninstaller are not provided.
-
-The Python `install`, applying `update` and `rollback` commands also support opt-in
-`--events-jsonl`, with a closed [event schema](../carlina/core/installation-event-v1.schema.json).
-`--cancel-file PATH` requests cancellation at safe boundaries. Once target code
-can access mutable data, the manager finishes activation or recovery before its
-terminal event. Generated shell/PowerShell installers also offer an opt-in
-noninteractive adoption stream, correlated through Python and completed after
-scratch cleanup. Their event mode skips the separate interactive setup and PATH
-integration. Publisher substep progress and explicit retained-generation retry are
-implemented in source; complete publisher payloads remain experimental. The
-AppImage adapter consumes this stream and creates the first administrator over
-private stdin. Full desktop onboarding remains open. The shared source's update guide
-defines the handoff and its limits.
 
 Source-checkout commands require a dedicated development `CARLINA_HOME` and free
 HTTP/MCP ports. Do not point them at a root owned by an installed or running
@@ -501,8 +489,7 @@ updates share this artifact path and existing profile/recovery/registration chec
 Accept the exact generated installer and installed launcher, including real
 initialization, product activation and source HTTP/MCP readback. Historical preview
 tests retain their own artifact scope; packaging checks alone do not renew
-onboarding, engines or recovery acceptance. Final public source/notice/trust and
-desktop delivery gates remain in the plan.
+onboarding, engines or recovery acceptance.
 
 The Linux bootstrap requires Bash, curl, CA certificates, `flock` and the usual POSIX
 file utilities. It uses the bundled Python and Pixi after verified unpacking;
