@@ -1,24 +1,93 @@
 # Carlina Documents
 
-Carlina Documents helps you extract, review and translate documents on your own
-computer, then turn the results into EPUB, DOCX, HTML or PDF.
+Carlina Documents puts **quality before speed or the lowest possible cost**. It
+is a workflow for carefully extracting and translating books, with the goal of
+near-perfect results: preserving footnotes and endnotes, internal links,
+diagrams, tables, images, captions and document structure alongside the text.
+
+Start with a PDF, EPUB or DOCX and work towards a reviewed reading edition or
+translation in **EPUB 3, PDF, DOCX or HTML**. You can preview and correct the
+extraction, translate or edit by hand, and use AI for the parts you choose.
+Expect to inspect difficult pages and review translation choices before
+publishing. EPUB export targets EPUB 3.3; the [publishing guide](docs/epub-export.md#validation-and-qualification)
+explains the checks and how to require EPUBCheck for the final edition.
+
+[Download](#download) · [Quick start](#quick-start) · [Workflow](#workflow) ·
+[Let an agent set it up](#let-an-agent-set-it-up)
 
 ## What you can do
 
-- **Extract and review documents.** Import PDF, EPUB or DOCX files. Review text,
-  headings, tables, images and linked notes before publishing.
-- **Translate with the source alongside.** Keep source and translation aligned,
-  maintain a glossary, and review changes before exporting.
-- **Prepare and publish text.** Split text into sentences locally, edit edition
-  details and covers, and export in several formats.
-- **Work with your choice of AI.** Configure a model API in Carlina, or connect an
-  AI client through MCP and let that client handle the model responses. The MCP
-  option does not require a separate model API key in Carlina.
+- **Prepare and correct the source.** Select and crop PDF pages before extraction.
+  Preview the result, edit text and structure, review linked notes, and adjust
+  extracted image crops afterwards.
+- **Translate with the original alongside.** Work by hand or with AI in a
+  side-by-side editor. Translate document blocks or use local sentence splitting
+  for sentence alignment, with a glossary, nearby passages and earlier
+  source–translation matches supplying context.
+- **Keep long jobs manageable.** Runs, batches and queued work track progress and
+  accepted results. An MCP client can work through a book in smaller batches and
+  continue from saved progress across many model calls.
+- **Prepare an edition.** Review covers, metadata, navigation, notes, tables and
+  image descriptions, then export the original-language text or its translation.
 
 The three tools—Document Processor, Translator and Sentence Segmenter—share one
-browser interface. The application runs locally; your chosen AI provider may
-process document content remotely. Local sentence segmentation does not need a
-model API.
+browser interface. The application and sentence splitting run locally; your
+chosen AI provider may process document content remotely.
+
+## Choosing AI and managing cost
+
+We recommend a capable **general-purpose vision model** for scanned PDFs and
+complex layouts. It needs to read the page and interpret the relationships
+between text, notes, diagrams, tables and captions. Model choice and careful
+review matter more here than getting through the most pages per minute.
+
+You can configure a model API connection in Carlina, or connect an AI client
+through **MCP** and let that client handle model responses. Clients such as
+[Codex](https://developers.openai.com/codex/mcp),
+[OpenCode](https://dev.opencode.ai/v2/docs/mcp-servers/) and
+[Antigravity](https://antigravity.google/docs/mcp?tab=cli) support authenticated
+HTTP MCP connections. For scanned PDFs, try a short sample to check that your
+client passes the page images to its selected vision model.
+
+Carlina manages the document, work queue, batch boundaries and result validation;
+the client supplies the model work. This can reduce separate API spending when
+you already have suitable model access through a client or subscription. Actual
+cost depends on that service's pricing, usage limits and model access. An MCP
+connection does not require another model API key in Carlina.
+
+## Workflow
+
+```mermaid
+flowchart TD
+    Import["Import a document<br/>PDF · EPUB · DOCX"]
+    Prepare["Prepare PDFs if needed<br/>Select pages · crop page areas"]
+    Extract["Extract text and structure<br/>Headings · tables · images · linked notes"]
+    Check["Preview and correct in the UI<br/>Edit text and structure · adjust image crops"]
+
+    Import --> Prepare --> Extract --> Check
+
+    Check -->|Without translation| Edition
+    Check -->|Translate| Segment
+
+    Segment["Prepare translation units<br/>Document blocks · optional sentence alignment"]
+    Manual["Translate by hand<br/>Side-by-side editor"]
+    Context["Build translation context<br/>Glossary · nearby passages · earlier matches"]
+    AI["Translate with AI<br/>Model API or an AI client via MCP"]
+    Review["Review side by side<br/>Edit and correct in the UI"]
+
+    Segment --> Manual
+    Segment --> Context --> AI
+    Manual --> Review
+    AI --> Review
+
+    Review --> Edition
+    Edition["Prepare your edition<br/>Metadata · cover · layout"]
+    Edition --> Export["Export<br/>EPUB · DOCX · HTML · PDF"]
+```
+
+Earlier matches bring previous source–translation pairs into context. Exact and
+similar-wording matches offer guidance while allowing a different translation
+when the passage needs it.
 
 ## Download
 
@@ -42,9 +111,70 @@ The AppImage setup needs systemd 254 or newer, cgroup v2 and an X11 or XWayland
 desktop session.
 
 New installations activate the three document tools during setup. Sentence
-splitting still needs the one-time model download described below. Expect rough
-edges in this preview; feedback and reproducible bug reports are welcome in
+splitting needs a separate one-time model download. Expect rough edges in this
+preview; feedback and reproducible bug reports are welcome in
 [Issues](https://github.com/lukaszliniewicz/carlina-documents/issues).
+
+## Quick start
+
+1. **Install and create your account.** Use the download for your system and
+   follow the [setup instructions](docs/documents-application.md#packaged-downloads).
+   The three tools are prepared automatically; dependency downloads can take a
+   few minutes. Reopening setup lets you finish an interrupted preparation.
+2. **Choose how to use AI.** Configure a model connection in Settings, or select
+   **Connect AI client** on the home page. For MCP, copy the displayed URL and
+   private bearer token into your client's MCP configuration. Keep the token
+   private. You can also review and edit documents manually in the browser.
+3. **Try a few representative pages first.** Import a document. For PDFs, use
+   page selection and cropping where needed, then run extraction. Preview the
+   result and check headings, note links, tables, diagrams, captions and images.
+   Correct the text or image crops in the UI before moving to a full book.
+4. **Translate if needed.** Choose document blocks or aligned sentences. Before
+   sentence splitting, complete the one-time [sentence-model preparation](docs/documents-application.md#prepare-sentence-segmentation).
+   Maintain a glossary, translate by hand or with AI, and review the source and
+   target side by side. Block translation does not need the sentence model.
+5. **Export and check the edition.** Set metadata and cover choices, review the
+   publishing options, and export EPUB, PDF, DOCX or HTML. For an EPUB intended
+   for publication, follow the [validation guide](docs/epub-export.md#validation-and-qualification)
+   and inspect the result in a reader as well as checking it with EPUBCheck.
+
+The [Documents guide](docs/documents-application.md) covers connections, model
+preparation, startup and exports in more detail.
+
+## Let an agent set it up
+
+An agent with access to your computer can help with installation and model
+preparation. Here is an example prompt to adapt:
+
+```text
+Please set up Carlina Documents on this computer.
+
+Read the official README and installation guide first:
+https://github.com/lukaszliniewicz/carlina-documents
+
+Check my OS and architecture, use the documented installer when supported,
+and verify its checksum. Keep any existing Carlina installation and its data
+intact; use separate program and data folders and free local ports if needed.
+Use the documented source-checkout instructions if an installer is unsuitable.
+
+Let me enter the first-account password privately through the setup window or
+terminal. Do not put passwords, API keys or MCP bearer tokens in chat or logs.
+Finish preparing the three bundled tools and download the sentence model using
+the commands in the guide. Verify application status and model readiness.
+
+Help me connect my chosen AI client through MCP, or let me configure a model
+provider in Settings. Leave paid model calls and processing my books for a
+separate instruction.
+
+Show me how to open and stop the app, where my data is stored, and any steps
+that still need my input. Keep the service local to this computer.
+```
+
+For a first document, you can then ask your connected agent:
+
+> Use Carlina Documents to extract a few representative pages from the book I
+> select. Preserve the text, note links, diagrams, tables, images, captions and
+> structure. Show me any uncertain results for review before processing the rest.
 
 ## Run from source
 
@@ -62,9 +192,9 @@ pixi run --locked start
 ```
 
 Setup creates your administrator account and prepares the three document tools;
-start opens the application in your
-browser. Keep the same terminal open for later commands, and use different ports
-if these are already taken. The dedicated data folder keeps this checkout
+start opens the application in your browser. Keep the same terminal open for
+later commands, and use different ports if these are already taken. The dedicated
+data folder keeps this checkout
 separate from any existing installation.
 
 Configure a model connection in Settings, or choose **Connect AI
