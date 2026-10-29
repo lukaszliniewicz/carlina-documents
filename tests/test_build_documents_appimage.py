@@ -340,11 +340,18 @@ def build_environment(
     return root, revision, inputs, trace
 
 
+@pytest.mark.parametrize(
+    "artifact_kind",
+    ["pixi-pack-executable", "publisher-bootstrap-executable"],
+)
 def test_builds_exact_provenance_bound_appimage(
     tmp_path: Path,
     build_environment: tuple[Path, str, BuildInputs, Path],
+    artifact_kind: str,
 ) -> None:
     root, revision, inputs, trace_path = build_environment
+    inputs.installer.write_bytes(_installer_contents(artifact_kind=artifact_kind))
+    inputs = replace(inputs, installer_sha256=_sha256(inputs.installer))
     output_dir = tmp_path / "output"
 
     metadata = _invoke(root, output_dir, revision, inputs)
@@ -507,6 +514,12 @@ def test_hash_mismatch_fails_before_staging_or_subprocess(
         ("index_hash", "b" * 64),
         ("platform_name", "win-64"),
         ("artifact_kind", "standard-bundle"),
+        pytest.param(
+            "artifact_kind",
+            "publisher-bootstrap-bundle",
+            id="publisher-bootstrap-bundle",
+        ),
+        pytest.param("artifact_kind", "unknown-executable", id="unknown-kind"),
     ],
 )
 def test_rejects_wrong_generated_installer_identity_before_staging_or_tool(

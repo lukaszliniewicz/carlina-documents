@@ -22,14 +22,19 @@ model API.
 
 ## Download
 
-**Version 0.2.0a1 is an early source preview.** You can try it from a source
-checkout using the steps below. Ready-to-run downloads are still being prepared
-and will appear under **Assets** on the
-[Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
+**Version 0.2.0a2 is an early installer preview.** Choose a download below, or use
+the source checkout instructions further down.
 
-Planned downloads include a Linux x86-64 AppImage and installers for Linux x86-64
-and Windows 11 x86-64. Initial setup will need an internet connection to download
-runtime packages and model files. Windows downloads will be unsigned.
+| System | Download |
+|---|---|
+| Linux x86-64 | [AppImage](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/Carlina_Documents-0.2.0a2-x86_64.AppImage) |
+| Linux x86-64, terminal setup | [Shell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-linux-64.sh) |
+| Windows 11 x86-64 | [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-win-64.ps1) |
+
+See the [installation instructions](docs/documents-application.md#packaged-downloads)
+before running a download. Initial setup needs internet access. The Windows
+installer is unsigned. All downloads, checksums and source files are on the
+[Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
 
 Expect rough edges in this preview, including manual activation of the document
 tools. Feedback and reproducible bug reports are welcome in
@@ -57,8 +62,9 @@ separate from any existing installation.
 
 In **Settings → Add-ons**, activate Document Processor, Translator and Sentence
 Segmenter. Then configure a model connection in Settings, or choose **Connect AI
-client** on the home page to use MCP. Some tools download additional models on
-first use.
+client** on the home page to use MCP. Follow the
+[model preparation step](docs/documents-application.md#prepare-sentence-segmentation)
+before sentence splitting or aligned sentence translation.
 
 See the [setup guide](.github/CONTRIBUTING.md#set-up-an-isolated-checkout) for
 Windows PowerShell commands and development checks, and the

@@ -267,7 +267,16 @@ def _validate_installer_metadata(
                 raise _fail("The installer metadata is invalid.")
             metadata[name] = value
 
-    if exact_profile_line_count != 1 or metadata != expected:
+    if (
+        exact_profile_line_count != 1
+        or set(metadata) != set(expected)
+        or metadata["ARTIFACT_KIND"]
+        not in {"pixi-pack-executable", "publisher-bootstrap-executable"}
+    ):
+        raise _fail("The installer metadata is invalid.")
+
+    expected["ARTIFACT_KIND"] = metadata["ARTIFACT_KIND"]
+    if metadata != expected:
         raise _fail("The installer metadata is invalid.")
 
 

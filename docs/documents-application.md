@@ -8,11 +8,52 @@ AI client handle model responses through MCP.
 ## Current launch and first use
 
 The [public release](https://github.com/lukaszliniewicz/carlina-documents/releases)
-currently provides source downloads. Linux AppImage and script installers are
-being prepared; Windows downloads will be unsigned. Follow the
+provides the Linux AppImage and Linux/Windows script installers. Windows
+downloads are unsigned. Follow the
 [source setup instructions](https://github.com/lukaszliniewicz/carlina-documents/blob/main/.github/CONTRIBUTING.md#set-up-an-isolated-checkout)
 to try this preview. The commands below also describe management of an installed
 application once packaged downloads are available.
+
+### Packaged downloads
+
+Download the AppImage or `install-carlina-documents-linux-64.sh` for Linux, or
+`install-carlina-documents-win-64.ps1` for Windows. The other runtime files in a
+release are downloaded by these installers. Initial setup needs internet access.
+
+On Linux, make the AppImage executable and run it. If FUSE is unavailable, use
+the runtime's extract-and-run option:
+
+```sh
+chmod +x Carlina_Documents-0.2.0a2-x86_64.AppImage
+./Carlina_Documents-0.2.0a2-x86_64.AppImage
+# Fallback when mounting with FUSE is unavailable:
+./Carlina_Documents-0.2.0a2-x86_64.AppImage --appimage-extract-and-run
+```
+
+The shell installer is an alternative:
+
+```sh
+sh ./install-carlina-documents-linux-64.sh --no-path-link
+"$HOME/.local/lib/carlina-documents/carlina-documents" start --open-browser
+```
+
+On Windows, open PowerShell in the download folder and run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-carlina-documents-win-64.ps1 -NoPathUpdate
+& "$env:LOCALAPPDATA\Programs\CarlinaDocuments\carlina-documents.ps1" start --open-browser
+```
+
+The PowerShell execution-policy option applies to that process only. These
+downloads are unsigned. The script asks you to create an administrator account;
+the AppImage provides its own setup window. The commands above use the default
+installation folders and skip PATH registration. Use the installed launcher for
+later start, stop and diagnostics.
+
+This preview requires manual product activation and model preparation. The
+AppImage reopens an existing installation without upgrading it. Updates and
+removal use the [managed-runtime guide](update-and-recovery.md); menu integration
+and a managed uninstaller are not provided.
 
 The Python `install`, applying `update` and `rollback` commands also support opt-in
 `--events-jsonl`, with a closed [event schema](../carlina/core/installation-event-v1.schema.json).
@@ -57,6 +98,38 @@ notices. The home page displays available products and links to configuration
 when activation is needed. Model connections are configured through Settings.
 Passive MCP extraction and translation do not require a configured direct API
 provider; direct execution does.
+
+### Prepare sentence segmentation
+
+Block translation works without the sentence model. Sentence Segmenter and
+**aligned sentence** translation require a one-time download of the pinned SaT
+model files. Activate the three products first, then run the following for your
+installed copy. Change `program_root` / `$programRoot` if you chose another folder.
+The cache path is read from that installation's status.
+
+Linux:
+
+```sh
+program_root="$HOME/.local/lib/carlina-documents"
+version=$(cat "$program_root/current")
+managed_python="$program_root/versions/$version/env/bin/python"
+cache_root=$("$program_root/carlina-documents" status --json | "$managed_python" -I -c 'import json,sys; print(json.load(sys.stdin)["layout"]["cache_dir"])')
+"$managed_python" -I -m carlina.segmentation.prepare --cache-root "$cache_root/addons/sentence_segmenter/sat"
+```
+
+Windows PowerShell:
+
+```powershell
+$programRoot = Join-Path $env:LOCALAPPDATA 'Programs\CarlinaDocuments'
+$status = (& "$programRoot\carlina-documents.ps1" status --json) | ConvertFrom-Json
+$version = $status.managed_install.active_version
+$modelCache = Join-Path $status.layout.cache_dir 'addons\sentence_segmenter\sat'
+& "$programRoot\versions\$version\env\python.exe" -I -m carlina.segmentation.prepare --cache-root $modelCache
+```
+
+Successful preparation prints `Pinned SaT model is ready`. Add `--check` to
+verify the files later without downloading them. Sentence splitting then runs
+locally, without a model API key.
 
 For passive work, sign in as an administrator and select **Connect AI client**
 on the home page. The panel reports the running listener's actual URL. Give the
