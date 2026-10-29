@@ -1,7 +1,7 @@
 # Contributing to Carlina Documents
 
-Carlina Documents is available as an early source preview. Packaged downloads
-for Windows 11 x86-64 and Linux x86-64 are being prepared. Published downloads
+Carlina Documents is available as an early preview, with packaged downloads
+for Windows 11 x86-64 and Linux x86-64. Downloads
 and their instructions appear on the
 [Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
 

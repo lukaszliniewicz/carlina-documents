@@ -8,15 +8,16 @@ AI client handle model responses through MCP.
 ## Current launch and first use
 
 The [public release](https://github.com/lukaszliniewicz/carlina-documents/releases)
-provides the Linux AppImage and Linux/Windows script installers. Windows
+provides a Linux AppImage, a Windows setup EXE and script installers. Windows
 downloads are unsigned. Use the packaged instructions below, or follow the
 [source setup instructions](https://github.com/lukaszliniewicz/carlina-documents/blob/main/.github/CONTRIBUTING.md#set-up-an-isolated-checkout)
 to run a checkout.
 
 ### Packaged downloads
 
-Download the AppImage or `install-carlina-documents-linux-64.sh` for Linux, or
-`install-carlina-documents-win-64.ps1` for Windows. The other runtime files in a
+Download the AppImage for Linux or `Carlina_Documents-0.2.0a2-Setup-x86_64.exe`
+for Windows. Double-click the Windows EXE and follow the setup window; it includes
+Python, so you do not need to install Python separately. The other runtime files in a
 release are downloaded by these installers. Initial setup needs internet access.
 The AppImage setup requires systemd 254 or newer, an accessible systemd user
 session with cgroup v2, and X11 or XWayland for its window.
@@ -38,7 +39,8 @@ sh ./install-carlina-documents-linux-64.sh --no-path-link
 "$HOME/.local/lib/carlina-documents/carlina-documents" start --open-browser
 ```
 
-On Windows, open PowerShell in the download folder and run:
+For terminal setup on Windows, download `install-carlina-documents-win-64.ps1`,
+open PowerShell in the download folder and run:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-carlina-documents-win-64.ps1 -NoPathUpdate
@@ -47,12 +49,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-carlina-docume
 
 The PowerShell execution-policy option applies to that process only. These
 downloads are unsigned. The script asks you to create an administrator account;
-the AppImage provides its own setup window. The commands above use the default
+the AppImage and Windows EXE provide a setup window. The commands above use the default
 installation folders and skip PATH registration. Use the installed launcher for
 later start, stop and diagnostics.
 
 This preview requires manual product activation and model preparation. The
-AppImage reopens an existing installation without upgrading it. Updates and
+AppImage and Windows EXE reopen an existing installation without upgrading it. Keep
+the downloaded setup file to open Documents again, or use the installed launcher.
+Updates and
 removal use the [managed-runtime guide](update-and-recovery.md); menu integration
 and a managed uninstaller are not provided.
 
@@ -280,6 +284,28 @@ The supervised Linux installer currently requires systemd 254 or newer with a
 working user session and its standard command-line prerequisites. The Tk window
 uses X11 or XWayland. Declare the tested desktop baseline explicitly; these
 requirements are not removed by wrapping the installer in an AppImage.
+
+The Windows EXE uses the same setup adapter, packaged with PyInstaller, and the
+generated PowerShell installer. It downloads the same managed runtime as the
+script. It runs as the current user and does not request administrator elevation.
+The setup process waits for installation to finish before its temporary files are
+removed; the installed application runs from its own program folder.
+
+Build on x86-64 Windows with the pinned CPython 3.14.6 runtime listed in
+[the Windows bootstrap catalogue](../third_party/windows-bootstrap/NOTICE.json).
+Create a separate build environment and install the hash-pinned tools:
+
+```powershell
+python.exe -m venv <build-venv>
+& '<build-venv>\Scripts\python.exe' -m pip install --require-hashes -r packaging/windows/requirements-build.lock
+& '<build-venv>\Scripts\python.exe' scripts/build_documents_windows_installer.py --root <clean-checkout> --revision <commit> --version <version> --output-dir <artifact-directory> --installer <generated-installer.ps1> --installer-sha256 <sha256> --release-index-sha256 <signed-index-sha256>
+```
+
+The builder requires a clean committed checkout, checks the installer's Documents
+identity and hashes, and produces the EXE, its checksum and an artifact record.
+It includes the setup source's original dependency notices. The current release
+is unsigned. Test the frozen executable and the Windows installation path on
+Windows; a Linux test of the adapter does not establish Windows support.
 
 New packaging inputs include the complete AGPL text and the distribution
 decision; older immutable previews retain their original contents. Carlina's MIT

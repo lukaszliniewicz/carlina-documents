@@ -1,8 +1,10 @@
-"""Self-contained Linux setup window over the existing Documents CLI."""
+"""Small Linux/Windows setup window over the existing Documents installers."""
 
 from __future__ import annotations
 
 import argparse
+import base64
+import ctypes
 import hashlib
 import json
 import os
@@ -21,7 +23,7 @@ from collections.abc import Callable
 from pathlib import Path
 from tkinter import filedialog, ttk
 from tkinter.font import families, nametofont
-from typing import cast
+from typing import TypedDict, cast
 from urllib.parse import urlsplit
 
 _HASH = re.compile(r"[0-9a-f]{64}\Z")
@@ -59,6 +61,64 @@ class LauncherError(RuntimeError):
     """A fixed, user-readable diagnostic without native output or credentials."""
 
 
+class _ProcessOptions(TypedDict, total=False):
+    creationflags: int
+    start_new_session: bool
+
+
+def _is_windows() -> bool:
+    return sys.platform == "win32"
+
+
+def _process_options(*, detached: bool = False) -> _ProcessOptions:
+    if _is_windows():
+        # These constants are fixed by the Windows process API. Keeping them
+        # literal also permits contract tests on the Linux development host.
+        return {"creationflags": 0x08000000 | (0x00000200 if detached else 0)}
+    return {"start_new_session": True} if detached else {}
+
+
+def _powershell_command(script: str) -> list[str]:
+    system_root = Path(os.environ.get("SYSTEMROOT", r"C:\Windows"))
+    executable = system_root / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    preamble = (
+        "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; "
+        "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); "
+        "$OutputEncoding=[Text.UTF8Encoding]::new($false); "
+    )
+    encoded = base64.b64encode((preamble + script).encode("utf-16le")).decode("ascii")
+    return [
+        str(executable),
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-EncodedCommand",
+        encoded,
+    ]
+
+
+def _script_command(path: Path, arguments: list[str]) -> list[str]:
+    if not _is_windows():
+        return [str(path), *arguments]
+    quoted = ["'" + value.replace("'", "''") + "'" for value in [str(path), *arguments]]
+    return _powershell_command("& " + " ".join(quoted) + "; exit $LASTEXITCODE")
+
+
+def _restore_child_dll_search() -> None:
+    if _is_windows() and getattr(sys, "frozen", False):
+        # PyInstaller's DLL directory is inherited by subprocesses. All bootstrap
+        # extension modules above are already imported; installed commands must
+        # use their own libraries after the one-file bootstrap exits.
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        reset = kernel.SetDllDirectoryW
+        reset.argtypes = [ctypes.c_wchar_p]
+        reset.restype = ctypes.c_int
+        if not reset(None):
+            raise LauncherError("Documents could not prepare its Windows launcher.")
+
+
 def _object(value: object) -> dict[str, object]:
     if not isinstance(value, dict):
         raise LauncherError("Documents returned an invalid status. Please try again.")
@@ -79,7 +139,10 @@ def load_configuration(appdir: Path) -> dict[str, object]:
     ):
         raise LauncherError("This Documents launcher is incomplete. Download it again.")
     expected = record.get("installer_sha256")
-    installer = appdir / "installer.sh"
+    expected_platform = "win-64" if _is_windows() else "linux-64"
+    if record.get("platform", "linux-64") != expected_platform:
+        raise LauncherError("This Documents launcher is for a different platform.")
+    installer = appdir / ("installer.ps1" if _is_windows() else "installer.sh")
     if (
         not isinstance(expected, str)
         or not _HASH.fullmatch(expected)
@@ -151,7 +214,9 @@ class DocumentsSetup:
 
     @property
     def launcher(self) -> Path:
-        return self.program_root / "carlina-documents"
+        return self.program_root / (
+            "carlina-documents.ps1" if _is_windows() else "carlina-documents"
+        )
 
     def _build_window(self) -> None:
         self.root.title("Carlina Documents")
@@ -163,7 +228,7 @@ class DocumentsSetup:
         family = next(
             (
                 available[name]
-                for name in ("dejavu sans", "liberation sans", "helvetica")
+                for name in ("segoe ui", "dejavu sans", "liberation sans", "helvetica")
                 if name in available
             ),
             "sans",
@@ -221,12 +286,30 @@ class DocumentsSetup:
         self.content.columnconfigure(1, weight=0)
 
     def _environment(self) -> dict[str, str]:
-        return {
+        _restore_child_dll_search()
+        environment = {
             **os.environ,
             "CARLINA_PROFILE": "documents",
             "CARLINA_PROGRAM_ROOT": str(self.program_root),
             "PYTHONNOUSERSITE": "1",
         }
+        for key in tuple(environment):
+            if key in {
+                "PYTHONHOME",
+                "PYTHONPATH",
+                "TCL_LIBRARY",
+                "TK_LIBRARY",
+            } or key.startswith("_PYI_"):
+                environment.pop(key)
+        bundle = getattr(sys, "_MEIPASS", None)
+        if _is_windows() and isinstance(bundle, str):
+            root = Path(bundle).resolve()
+            environment["PATH"] = os.pathsep.join(
+                entry
+                for entry in environment.get("PATH", "").split(os.pathsep)
+                if entry and not Path(entry).resolve().is_relative_to(root)
+            )
+        return environment
 
     def _background(self, operation: str, action: Callable[[], object]) -> None:
         self.busy = True
@@ -264,12 +347,13 @@ class DocumentsSetup:
 
     def _json_command(self, command: str) -> dict[str, object]:
         result = subprocess.run(
-            [str(self.launcher), command, "--json"],
+            _script_command(self.launcher, [command, "--json"]),
             env=self._environment(),
             stdin=subprocess.DEVNULL,
             capture_output=True,
             timeout=60,
             check=False,
+            **_process_options(),
         )
         if len(result.stdout) > 1_048_576:
             raise LauncherError(
@@ -279,9 +363,10 @@ class DocumentsSetup:
 
     def _probe(self) -> str:
         if not self.launcher.exists():
-            if (self.program_root / "current").exists() or (
-                self.program_root / "carlina"
-            ).exists():
+            if any(
+                (self.program_root / name).exists()
+                for name in ("current", "carlina", "carlina.ps1", "carlina.cmd")
+            ):
                 raise LauncherError(
                     "This location contains a managed installation that needs its own launcher or recovery tools. Choose a separate Documents location."
                 )
@@ -289,14 +374,15 @@ class DocumentsSetup:
             # pointer. The native CLI owns frozen-input retry admission.
             return "install"
         status = self.launcher.lstat()
-        if (
-            not stat.S_ISREG(status.st_mode)
-            or status.st_uid != os.getuid()
-            or status.st_mode & 0o022
+        if not stat.S_ISREG(status.st_mode) or (
+            not _is_windows()
+            and (status.st_uid != os.getuid() or status.st_mode & 0o022)
         ):
             raise LauncherError(
                 "The installed Documents launcher has unexpected ownership or permissions."
             )
+        if _is_windows():
+            self._check_windows_launcher()
         report = self._json_command("status")
         managed = _object(report.get("managed_install"))
         if report.get("application_profile") is None:
@@ -318,10 +404,41 @@ class DocumentsSetup:
                     return "ready"
         return "account"
 
+    def _check_windows_launcher(self) -> None:
+        path = "'" + str(self.launcher).replace("'", "''") + "'"
+        script = (
+            "$acl=Get-Acl -LiteralPath " + path + "; "
+            "$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
+            "$owner=$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value; "
+            "$trusted=@($sid,'S-1-5-18','S-1-5-32-544'); $safe=$owner -in $trusted; "
+            "foreach($rule in $acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])) { "
+            "if($rule.AccessControlType -eq 'Allow' -and "
+            "(($rule.FileSystemRights -band 0xD0156) -ne 0) -and "
+            "$rule.IdentityReference.Value -notin $trusted) {$safe=$false} }; "
+            "@{safe=[bool]$safe} | ConvertTo-Json -Compress"
+        )
+        result = subprocess.run(
+            _powershell_command(script),
+            env=self._environment(),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            timeout=30,
+            check=False,
+            **_process_options(),
+        )
+        if (
+            result.returncode
+            or len(result.stdout) > 4096
+            or _object(json.loads(result.stdout)).get("safe") is not True
+        ):
+            raise LauncherError(
+                "The installed Documents launcher can be changed by another account. Choose a private program location."
+            )
+
     def _show_install(self) -> None:
         self.heading.set("Install Documents")
         self.message.set(
-            "Extract, review and translate documents on your computer. Setup downloads the verified runtime; tools and models are prepared when needed."
+            "Extract, review and translate documents on your computer. Setup downloads the application. After it opens, follow the guide to activate its tools and prepare sentence splitting."
         )
         self._clear_content()
         ttk.Label(self.content, text="Program location").grid(sticky="w", pady=(0, 6))
@@ -331,7 +448,7 @@ class DocumentsSetup:
             row=1, column=1, padx=(8, 0)
         )
         self.detail.set(
-            "An internet connection is needed. Your documents are stored separately from this AppImage."
+            "An internet connection is needed. Your documents are stored separately from this setup program."
         )
         self.primary.configure(
             text="Install Documents", state="normal", command=self.install
@@ -363,7 +480,9 @@ class DocumentsSetup:
         if selected_state != "install":
             return selected_state
         identifier = uuid.uuid4().hex
-        with tempfile.TemporaryDirectory(prefix="carlina-appimage-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="carlina-documents-setup-"
+        ) as temporary:
             cancel_path = Path(temporary) / "cancel"
             command = [
                 "/bin/sh",
@@ -379,6 +498,22 @@ class DocumentsSetup:
                 "--cancel-file",
                 str(cancel_path),
             ]
+            if _is_windows():
+                command = _script_command(
+                    self.appdir / "installer.ps1",
+                    [
+                        "-ProgramRoot",
+                        str(self.program_root),
+                        "-SkipInit",
+                        "-NoPathUpdate",
+                        "-SupervisedPreparation",
+                        "-EventsJsonl",
+                        "-OperationId",
+                        identifier,
+                        "-CancelFile",
+                        str(cancel_path),
+                    ],
+                )
             with tempfile.TemporaryFile() as errors:
                 process = subprocess.Popen(
                     command,
@@ -386,6 +521,7 @@ class DocumentsSetup:
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.PIPE,
                     stderr=errors,
+                    **_process_options(),
                 )
                 finished = threading.Event()
 
@@ -450,7 +586,7 @@ class DocumentsSetup:
                     return "cancelled"
                 if code != 0 or terminal["state"] != "succeeded":
                     raise LauncherError(
-                        "Installation did not complete. Check the Linux prerequisites, network connection and free disk space, then retry the same location."
+                        "Installation did not complete. Check the setup requirements, network connection and free disk space, then retry the same location."
                     )
         return "account"
 
@@ -521,12 +657,13 @@ class DocumentsSetup:
     def _initialize(self, payload: bytes) -> None:
         def initialize() -> str:
             result = subprocess.run(
-                [str(self.launcher), "init", "--admin-stdin"],
+                _script_command(self.launcher, ["init", "--admin-stdin"]),
                 input=payload,
                 env=self._environment(),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 check=False,
+                **_process_options(),
             )
             if result.returncode:
                 raise LauncherError(
@@ -553,12 +690,12 @@ class DocumentsSetup:
             )
         if report.get("running") is not True:
             child = subprocess.Popen(
-                [str(self.launcher), "start", "--host", "127.0.0.1"],
+                _script_command(self.launcher, ["start", "--host", "127.0.0.1"]),
                 env=self._environment(),
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                start_new_session=True,
+                **_process_options(detached=True),
             )
             deadline = time.monotonic() + 120
             while time.monotonic() < deadline:
@@ -662,21 +799,54 @@ class DocumentsSetup:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Carlina Documents AppImage")
+    parser = argparse.ArgumentParser(description="Carlina Documents setup")
     parser.add_argument("--program-root", type=Path)
     parser.add_argument("--version", action="store_true")
+    parser.add_argument("--diagnostics", type=Path)
     arguments = parser.parse_args(argv)
     appdir = Path(__file__).resolve().parent
     try:
         configuration = load_configuration(appdir)
+        if arguments.diagnostics:
+            with arguments.diagnostics.open("x", encoding="utf-8") as output:
+                json.dump(
+                    {
+                        "product": "carlina-documents",
+                        "version": configuration["version"],
+                        "source_revision": configuration["source_revision"],
+                        "platform": "win-64" if _is_windows() else "linux-64",
+                        "frozen": bool(getattr(sys, "frozen", False)),
+                        "python": sys.version.split()[0],
+                        "tcl": tk.TclVersion,
+                        "tk": tk.TkVersion,
+                        "tcl_patchlevel": str(tk.Tcl().eval("info patchlevel")),
+                        "bundled_installer_verified": True,
+                    },
+                    output,
+                    indent=2,
+                )
+            return 0
         if arguments.version:
-            print(f"Carlina Documents {configuration['version']}")
+            if sys.stdout is not None:
+                print(f"Carlina Documents {configuration['version']}")
             return 0
         root = tk.Tk(className="CarlinaDocuments")
+        if _is_windows():
+            iconbitmap = cast(Callable[..., str], root.iconbitmap)
+            iconbitmap(default=str(appdir / "carlina-documents.ico"))
         program_root = arguments.program_root or Path(
             os.environ.get(
                 "CARLINA_PROGRAM_ROOT",
-                str(Path.home() / ".local/lib/carlina-documents"),
+                str(
+                    Path(
+                        os.environ.get(
+                            "LOCALAPPDATA", str(Path.home() / "AppData/Local")
+                        )
+                    )
+                    / "Programs/CarlinaDocuments"
+                    if _is_windows()
+                    else Path.home() / ".local/lib/carlina-documents"
+                ),
             )
         )
         setup = DocumentsSetup(root, appdir, program_root.expanduser().absolute())
@@ -688,10 +858,11 @@ def main(argv: list[str] | None = None) -> int:
                 setup.worker.join()
         return 0
     except LauncherError, OSError, ValueError, tk.TclError:
-        print(
-            "Documents could not open its setup window. Run the AppImage from a supported graphical Linux desktop.",
-            file=sys.stderr,
-        )
+        message = "Documents could not open its setup window. Download the installer again or use the setup guide."
+        if sys.stderr is not None:
+            print(message, file=sys.stderr)
+        elif _is_windows() and not arguments.version and not arguments.diagnostics:
+            ctypes.windll.user32.MessageBoxW(None, message, "Carlina Documents", 0x10)
         return 1
 
 

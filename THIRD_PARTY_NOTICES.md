@@ -185,6 +185,14 @@ cover other upstream build targets, so this collection is not a claim about
 minimal binary membership or completed corresponding-source acceptance.
 `appimagetool` is a build tool, separate from the shipped runtime.
 
+The Windows setup EXE bundles CPython/Tk and uses PyInstaller's bootloader and
+runtime hooks. Its pinned runtime, build tools and original licence texts are
+listed in [the Windows bootstrap inventory](third_party/windows-bootstrap/NOTICE.json)
+and copied into the EXE. PyInstaller's bootloader exception permits distributing
+generated applications under their own licence; its own notices remain included.
+The application runtime downloaded by setup retains its separate dependency
+inventory and source companions.
+
 For a public binary candidate, use the existing inventory tooling to generate
 and retain:
 

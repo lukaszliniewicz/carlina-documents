@@ -25,3 +25,7 @@ third_party/frontend/notices/* -text
 third_party/frontend/notices/vite--8.2.4--LICENSE.md whitespace=-blank-at-eol
 # The original X11 notice ends with a blank line; preserve its upstream bytes.
 third_party/appimage/notices/python-LICENSE.libX11.txt whitespace=-blank-at-eof
+# Preserve original Windows publisher notices, including their CRLF endings.
+third_party/windows-bootstrap/notices/* -text whitespace=cr-at-eol
+third_party/windows-bootstrap/notices/pyinstaller-COPYING.txt whitespace=cr-at-eol,-blank-at-eol
+third_party/windows-bootstrap/notices/python-LICENSE.txt whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof

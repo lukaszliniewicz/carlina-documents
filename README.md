@@ -29,12 +29,15 @@ the source checkout instructions further down.
 |---|---|
 | Linux x86-64 | [AppImage](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/Carlina_Documents-0.2.0a2-x86_64.AppImage) |
 | Linux x86-64, terminal setup | [Shell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-linux-64.sh) |
-| Windows 11 x86-64 | [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-win-64.ps1) |
+| Windows 11 x86-64 | [Setup EXE](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/Carlina_Documents-0.2.0a2-Setup-x86_64.exe) |
 
 See the [installation instructions](docs/documents-application.md#packaged-downloads)
 before running a download. Initial setup needs internet access. The Windows
 installer is unsigned. All downloads, checksums and source files are on the
 [Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
+On Windows, double-click the EXE and follow the setup window; Python is included.
+The [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a2/install-carlina-documents-win-64.ps1)
+remains available for terminal setup.
 The AppImage setup needs systemd 254 or newer, cgroup v2 and an X11 or XWayland
 desktop session.
 

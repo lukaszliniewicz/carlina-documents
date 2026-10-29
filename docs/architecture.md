@@ -83,9 +83,11 @@ writes. Repository selection does not establish a public release channel.
 ## Desktop delivery
 
 The native online entry points are shell and PowerShell scripts. The Linux
-AppImage adds a Python/Tk setup and launch window over the same signed-index
-installation path. It can create the first administrator through a private stdin
-handoff and reopen the existing runtime. Windows uses the PowerShell installer.
+AppImage and Windows setup EXE add a shared Python/Tk setup and launch window over
+the same signed-index installation path. The window can create the first administrator through a private stdin
+handoff and reopen the existing runtime. The Windows EXE packages this adapter
+with PyInstaller and delegates installation to the generated PowerShell script.
+Both script installers remain available for terminal use.
 Product activation is manual; these entry points do not provide menu integration
 or a managed uninstaller.
 Pixi/tool management stays internal; data remains outside immutable program
@@ -94,7 +96,7 @@ generations and independent of the downloaded launcher location.
 Platform wrappers consume the same release identity and installation/lifecycle
 contracts. They show progress and errors and open the shared browser application;
 engines, provider setup, jobs and document UI keep one implementation. Use a small
-native adapter over the existing lifecycle. The Linux adapter uses bundled
+native adapter over the existing lifecycle. The adapters use bundled
 portable Python/Tk for its small setup window, with a private stdin handoff for
 first-administrator credentials. Its actual library/FUSE prerequisites need
 testing; AppImage does not imply offline setup or

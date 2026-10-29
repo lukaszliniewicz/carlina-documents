@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "platform": "win-64",
+  "scope": "Windows setup bootstrap runtime and build-tool notices; application dependencies keep their existing notices.",
+  "runtime": {
+    "python": "3.14.6",
+    "tcl": "8.6.14",
+    "tk": "8.6.14",
+    "seed_python_sha256": "4786142399b93a3b311897233b2c39d64f7a833709a99b46651a182cdc257850",
+    "openssl": "3.5.7",
+    "zlib_runtime": "1.3.1.zlib-ng",
+    "archive": {
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260623/cpython-3.14.6%2B20260623-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+      "sha256": "ec05b628ad749682d06d225780fbc02e7bbb5ce2146c9bd8e74a3659b14b693a",
+      "build": "20260623",
+      "seed_executable_matches": true
+    }
+  },
+  "build_tools": {
+    "pyinstaller": "6.22.3",
+    "hooks": "2026.9"
+  },
+  "files": [
+    {
+      "path": "notices/python-LICENSE.txt",
+      "bytes": 23601,
+      "sha256": "e745807dbaab26bb1050dc9d12e655ca8d946c38d6cb59a593c2d9557830250c",
+      "source_root": "python-runtime-root",
+      "source_relative_path": "LICENSE.txt"
+    },
+    {
+      "path": "notices/tk-license.terms.txt",
+      "bytes": 2307,
+      "sha256": "0d1e4405f6273f091732764ed89b57066be63ce64869be6c71ea337dc4f2f9b5",
+      "source_root": "python-runtime-root",
+      "source_relative_path": "tcl/tk8.6/license.terms"
+    },
+    {
+      "path": "notices/packaging-LICENSE.txt",
+      "bytes": 197,
+      "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+      "source_root": "venv/Lib/site-packages",
+      "source_relative_path": "packaging-26.3.dist-info/licenses/LICENSE"
+    },
+    {
+      "path": "notices/packaging-LICENSE.APACHE.txt",
+      "bytes": 10174,
+      "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+      "source_root": "venv/Lib/site-packages",
+      "source_relative_path": "packaging-26.3.dist-info/licenses/LICENSE.APACHE"
+    },
+    {
+      "path": "notices/packaging-LICENSE.BSD.txt",
+      "bytes": 1344,
+      "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+      "source_root": "venv/Lib/site-packages",
+      "source_relative_path": "packaging-26.3.dist-info/licenses/LICENSE.BSD"
+    },
+    {
+      "path": "notices/pyinstaller-COPYING.txt",
+      "bytes": 32604,
+      "sha256": "0598064c7d2718e38d7914a7d08343b2fa008e3bea9ebba2aa7a6ffa5900dd64",
+      "source_root": "venv/Lib/site-packages",
+      "source_relative_path": "pyinstaller-6.22.3.dist-info/licenses/COPYING.txt"
+    },
+    {
+      "path": "notices/pyinstaller-hooks-contrib-LICENSE.txt",
+      "bytes": 27666,
+      "sha256": "91d0baaff00773038e72c0a1fc9d5d2d38706b7a2b9c04f34296608f931b9cd0",
+      "source_root": "venv/Lib/site-packages",
+      "source_relative_path": "pyinstaller_hooks_contrib-2026.9.dist-info/licenses/LICENSE"
+    },
+    {
+      "path": "notices/setuptools-LICENSE.txt",
+      "bytes": 1023,
+      "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+      "source_root": "venv/Lib/site-packages",
+      "source_relative_path": "setuptools-84.2.1.dist-info/licenses/LICENSE"
+    },
+    {
+      "path": "notices/python-LICENSE.libffi.txt",
+      "bytes": 1153,
+      "sha256": "9afb8970cd29fc1031fa647278e4bef613399e2e3468a1e3a397f4d158c6101c",
+      "source_root": "supplemental-pbs-full-archive",
+      "source_relative_path": "python/licenses/LICENSE.libffi.txt"
+    },
+    {
+      "path": "notices/python-LICENSE.liblzma.txt",
+      "bytes": 673,
+      "sha256": "d87d218dd908b3243ec4cbc72af400e5b7437513ea9d9229291d0812b8464fec",
+      "source_root": "supplemental-pbs-full-archive",
+      "source_relative_path": "python/licenses/LICENSE.liblzma.txt"
+    },
+    {
+      "path": "notices/python-LICENSE.openssl-3.txt",
+      "bytes": 10352,
+      "sha256": "ed72ce2b51ee58f117e5a021e2e04af158857f40269fbc03491f0b2a99dbcc96",
+      "source_root": "supplemental-pbs-full-archive",
+      "source_relative_path": "python/licenses/LICENSE.openssl-3.txt"
+    },
+    {
+      "path": "notices/python-LICENSE.tcl.txt",
+      "bytes": 2295,
+      "sha256": "41613eabfc08921a7da9c4bfd7f3ce5d5406f55214b253d89f392ed86eebeb8f",
+      "source_root": "supplemental-pbs-full-archive",
+      "source_relative_path": "python/licenses/LICENSE.tcl.txt"
+    },
+    {
+      "path": "notices/python-LICENSE.zlib.txt",
+      "bytes": 1016,
+      "sha256": "365e36720db366054863235aea5d6f440142ab968834bfaf81fa9d187c99b9b8",
+      "source_root": "supplemental-pbs-full-archive",
+      "source_relative_path": "python/licenses/LICENSE.zlib.txt"
+    },
+    {
+      "path": "notices/zlib-ng-LICENSE.txt",
+      "bytes": 867,
+      "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+      "source_url": "https://github.com/zlib-ng/zlib-ng/blob/2.2.4/LICENSE.md",
+      "scope": "Supplemental zlib-ng notice from the CPython build recipe pin; the runtime reports the zlib-compatible version, not the zlib-ng release."
+    }
+  ],
+  "supplemental_notices": {
+    "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260623/cpython-3.14.6%2B20260623-x86_64-pc-windows-msvc-pgo-full.tar.zst",
+    "sha256": "81e1d5e072ec677d05287f09ce7bfcef35e998c2511ee37ae470c477bace967a",
+    "scope": "Original dependency notices from the same upstream release. This full PGO archive has a different executable hash from the stripped runtime; these supplemental texts do not establish exact dependency versions or binary membership."
+  }
+}

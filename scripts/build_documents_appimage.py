@@ -1093,5 +1093,14 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+# Public source-integrity helpers for companion release builders.
+validate_version = _validate_version
+validate_revision = _validate_revision
+validate_hash = _validate_hash
+require_source_file = _require_source_file
+validate_source_checkout = _validate_source_checkout
+validate_source_payloads = _validate_source_payloads
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
