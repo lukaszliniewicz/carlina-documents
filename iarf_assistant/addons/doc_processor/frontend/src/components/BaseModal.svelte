@@ -1,19 +1,21 @@
 <script lang="ts">
-  import { Icon } from "@carlina/ui";
+  import { Icon, confirmDiscardChanges, guardUnsavedChanges } from "@carlina/ui";
   import { createEventDispatcher } from "svelte";
 
   export let open = false;
   export let title = "";
   export let size: "small" | "medium" | "large" | "full" = "medium";
   export let bodyClass = "";
+  export let dirty = false;
+  export let busy = false;
 
   const dispatch = createEventDispatcher<{ close: void }>();
   const titleId = `doc-processor-dialog-${Math.random().toString(36).slice(2)}`;
   let dialog: HTMLDialogElement;
   let restoreTarget: HTMLElement | null = null;
 
-  function close() {
-    dispatch("close");
+  async function close() {
+    if (await confirmDiscardChanges({ dirty, busy }) && open && !busy) dispatch("close");
   }
 
   function restoreFocus() {
@@ -37,6 +39,7 @@
 
 <dialog
   bind:this={dialog}
+  use:guardUnsavedChanges={{ dirty: open && dirty, busy: open && busy }}
   class="dp-modal dp-modal-{size}"
   aria-labelledby={titleId}
   on:cancel={(event) => {
@@ -55,12 +58,12 @@
         <slot name="header-actions" />
       </div>
     </div>
-    <button class="dp-icon-btn" type="button" aria-label="Close" title="Close" on:click={close}>
+    <button class="dp-icon-btn" type="button" aria-label="Close" title={busy ? "Wait for saving to finish" : "Close"} disabled={busy} on:click={close}>
       <Icon name="close" size={17} />
     </button>
   </header>
   <div class={`dp-modal-body ${bodyClass}`.trim()}>
-    <slot />
+    {#if open}<slot />{/if}
   </div>
-  <slot name="footer" />
+  {#if open}<slot name="footer" />{/if}
 </dialog>

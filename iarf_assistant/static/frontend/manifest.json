@@ -1,44 +1,44 @@
 {
   "../../packages/runtime-ui/src/RunGraph.svelte": {
-    "file": "assets/RunGraph-ClakC_1S.js",
+    "file": "assets/RunGraph-jfjUycmo.js",
     "name": "RunGraph",
     "src": "../../packages/runtime-ui/src/RunGraph.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
-      "_StatusMark-CB1rwBiX.js"
+      "_src-DHuoMAI2.js",
+      "_StatusMark-CGlaQP-0.js"
     ],
     "css": [
       "assets/core-BvEoDmO7.css"
     ]
   },
-  "_ArtifactViewer--gsn_QsC.js": {
-    "file": "assets/ArtifactViewer--gsn_QsC.js",
+  "_ArtifactViewer-Bi0pbLa2.js": {
+    "file": "assets/ArtifactViewer-Bi0pbLa2.js",
     "name": "ArtifactViewer",
     "imports": [
       "_rolldown-runtime-DK3Fl9T5.js",
-      "_src-BcnWbAjV.js",
-      "_StructuredData-B9CYGoot.js"
+      "_src-DHuoMAI2.js",
+      "_StructuredData-Df66vJGq.js"
     ],
     "css": [
       "assets/core-BrJH6gV4.css"
     ]
   },
-  "_StatusMark-CB1rwBiX.js": {
-    "file": "assets/StatusMark-CB1rwBiX.js",
+  "_StatusMark-CGlaQP-0.js": {
+    "file": "assets/StatusMark-CGlaQP-0.js",
     "name": "StatusMark",
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-DgCV69p_.css"
     ]
   },
-  "_StructuredData-B9CYGoot.js": {
-    "file": "assets/StructuredData-B9CYGoot.js",
+  "_StructuredData-Df66vJGq.js": {
+    "file": "assets/StructuredData-Df66vJGq.js",
     "name": "StructuredData",
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-DDELLC88.css"
@@ -67,13 +67,13 @@
     "file": "assets/core-BrJH6gV4.css",
     "src": "_core-BrJH6gV4.css"
   },
+  "_core-Cwx_Z-m5.css": {
+    "file": "assets/core-Cwx_Z-m5.css",
+    "src": "_core-Cwx_Z-m5.css"
+  },
   "_core-DDELLC88.css": {
     "file": "assets/core-DDELLC88.css",
     "src": "_core-DDELLC88.css"
-  },
-  "_core-DHnULySo.css": {
-    "file": "assets/core-DHnULySo.css",
-    "src": "_core-DHnULySo.css"
   },
   "_core-DgCV69p_.css": {
     "file": "assets/core-DgCV69p_.css",
@@ -95,15 +95,15 @@
     "file": "assets/rolldown-runtime-DK3Fl9T5.js",
     "name": "rolldown-runtime"
   },
-  "_router-BD4de6SN.js": {
-    "file": "assets/router-BD4de6SN.js",
+  "_router-BL6LIkbM.js": {
+    "file": "assets/router-BL6LIkbM.js",
     "name": "router"
   },
-  "_src-BcnWbAjV.js": {
-    "file": "assets/src-BcnWbAjV.js",
+  "_src-DHuoMAI2.js": {
+    "file": "assets/src-DHuoMAI2.js",
     "name": "src",
     "css": [
-      "assets/core-DHnULySo.css"
+      "assets/core-Cwx_Z-m5.css"
     ]
   },
   "_ui-components-zxh8VatL.js": {
@@ -114,34 +114,34 @@
     ]
   },
   "src/components/context/ContextInspector.svelte": {
-    "file": "assets/ContextInspector-CeFdLf1-.js",
+    "file": "assets/ContextInspector-ByMz3uiX.js",
     "name": "ContextInspector",
     "src": "src/components/context/ContextInspector.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
-      "_router-BD4de6SN.js",
+      "_src-DHuoMAI2.js",
+      "_router-BL6LIkbM.js",
       "_preload-helper-HclGiUj8.js",
-      "_StructuredData-B9CYGoot.js"
+      "_StructuredData-Df66vJGq.js"
     ],
     "dynamicImports": [
-      "_ArtifactViewer--gsn_QsC.js"
+      "_ArtifactViewer-Bi0pbLa2.js"
     ],
     "css": [
       "assets/core-C9jVz0Ps.css"
     ]
   },
   "src/main.ts": {
-    "file": "assets/core-DsCHIbDp.js",
+    "file": "assets/core-M88lIFD-.js",
     "name": "main",
     "src": "src/main.ts",
     "isEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_api-DGZDY33K.js",
       "_ui-components-zxh8VatL.js",
       "_addon-applications-BSNrP_bf.js",
-      "_router-BD4de6SN.js",
+      "_router-BL6LIkbM.js",
       "_preload-helper-HclGiUj8.js",
       "_restart-required-GaGMT5SM.js",
       "_restart-reconnect-DvfNWKWm.js",
@@ -164,12 +164,12 @@
     ]
   },
   "src/routes/AddonApplicationPage.svelte": {
-    "file": "assets/AddonApplicationPage-Ct4EcS8C.js",
+    "file": "assets/AddonApplicationPage-CY_2_FCy.js",
     "name": "AddonApplicationPage",
     "src": "src/routes/AddonApplicationPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_addon-applications-BSNrP_bf.js"
     ],
     "css": [
@@ -177,15 +177,15 @@
     ]
   },
   "src/routes/AutomationsPage.svelte": {
-    "file": "assets/AutomationsPage-C_ok0FId.js",
+    "file": "assets/AutomationsPage-Ds7r7L1K.js",
     "name": "AutomationsPage",
     "src": "src/routes/AutomationsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
-      "_router-BD4de6SN.js",
+      "_src-DHuoMAI2.js",
+      "_router-BL6LIkbM.js",
       "_preload-helper-HclGiUj8.js",
-      "_StatusMark-CB1rwBiX.js"
+      "_StatusMark-CGlaQP-0.js"
     ],
     "dynamicImports": [
       "../../packages/runtime-ui/src/RunGraph.svelte"
@@ -195,12 +195,12 @@
     ]
   },
   "src/routes/ChatPage.svelte": {
-    "file": "assets/ChatPage-DVsROMXn.js",
+    "file": "assets/ChatPage-UO74vqp2.js",
     "name": "ChatPage",
     "src": "src/routes/ChatPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_api-DGZDY33K.js",
       "_preload-helper-HclGiUj8.js"
     ],
@@ -212,26 +212,26 @@
     ]
   },
   "src/routes/DocumentsHomePage.svelte": {
-    "file": "assets/DocumentsHomePage-DBSjfGMb.js",
+    "file": "assets/DocumentsHomePage-Cc3hlb-R.js",
     "name": "DocumentsHomePage",
     "src": "src/routes/DocumentsHomePage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_addon-applications-BSNrP_bf.js",
-      "_router-BD4de6SN.js"
+      "_router-BL6LIkbM.js"
     ],
     "css": [
       "assets/core-9e6A-k5-.css"
     ]
   },
   "src/routes/KnowledgePage.svelte": {
-    "file": "assets/KnowledgePage-CLQbxLs3.js",
+    "file": "assets/KnowledgePage-hBPxZboF.js",
     "name": "KnowledgePage",
     "src": "src/routes/KnowledgePage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_ui-components-zxh8VatL.js"
     ],
     "css": [
@@ -239,40 +239,40 @@
     ]
   },
   "src/routes/LogsPage.svelte": {
-    "file": "assets/LogsPage-CaSrkDkw.js",
+    "file": "assets/LogsPage-Typbv50D.js",
     "name": "LogsPage",
     "src": "src/routes/LogsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-CIVam_Ho.css"
     ]
   },
   "src/routes/ProfilePage.svelte": {
-    "file": "assets/ProfilePage-joYCmNZL.js",
+    "file": "assets/ProfilePage-B161Ew25.js",
     "name": "ProfilePage",
     "src": "src/routes/ProfilePage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-BnGvYGoZ.css"
     ]
   },
   "src/routes/RunStudioPage.svelte": {
-    "file": "assets/RunStudioPage-gaY9DN-P.js",
+    "file": "assets/RunStudioPage-DaxXeSzl.js",
     "name": "RunStudioPage",
     "src": "src/routes/RunStudioPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_preload-helper-HclGiUj8.js",
-      "_StructuredData-B9CYGoot.js",
-      "_ArtifactViewer--gsn_QsC.js",
-      "_StatusMark-CB1rwBiX.js"
+      "_StructuredData-Df66vJGq.js",
+      "_ArtifactViewer-Bi0pbLa2.js",
+      "_StatusMark-CGlaQP-0.js"
     ],
     "dynamicImports": [
       "../../packages/runtime-ui/src/RunGraph.svelte"
@@ -282,28 +282,28 @@
     ]
   },
   "src/routes/RuntimeOperationsPage.svelte": {
-    "file": "assets/RuntimeOperationsPage-C0msmUSw.js",
+    "file": "assets/RuntimeOperationsPage-D8b2pLHZ.js",
     "name": "RuntimeOperationsPage",
     "src": "src/routes/RuntimeOperationsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
-      "_StructuredData-B9CYGoot.js",
-      "_StatusMark-CB1rwBiX.js"
+      "_src-DHuoMAI2.js",
+      "_StructuredData-Df66vJGq.js",
+      "_StatusMark-CGlaQP-0.js"
     ],
     "css": [
       "assets/core-DK5x24mg.css"
     ]
   },
   "src/routes/SettingsPage.svelte": {
-    "file": "assets/SettingsPage-D6x5YgPI.js",
+    "file": "assets/SettingsPage-TufGmfrg.js",
     "name": "SettingsPage",
     "src": "src/routes/SettingsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-DK3Fl9T5.js",
-      "_src-BcnWbAjV.js",
-      "_router-BD4de6SN.js",
+      "_src-DHuoMAI2.js",
+      "_router-BL6LIkbM.js",
       "_preload-helper-HclGiUj8.js",
       "_application-profile-DKJ3wloX.js"
     ],
@@ -322,27 +322,27 @@
     ]
   },
   "src/routes/WorkspacesPage.svelte": {
-    "file": "assets/WorkspacesPage-DHv7ZUBR.js",
+    "file": "assets/WorkspacesPage-Dhu-9YTi.js",
     "name": "WorkspacesPage",
     "src": "src/routes/WorkspacesPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "_addon-applications-BSNrP_bf.js",
-      "_router-BD4de6SN.js"
+      "_router-BL6LIkbM.js"
     ],
     "css": [
       "assets/core-CDv-vlVU.css"
     ]
   },
   "src/routes/settings/AddonManagerPage.svelte": {
-    "file": "assets/AddonManagerPage-Cd9105Ii.js",
+    "file": "assets/AddonManagerPage-DIABJ2yI.js",
     "name": "AddonManagerPage",
     "src": "src/routes/settings/AddonManagerPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
-      "_router-BD4de6SN.js",
+      "_src-DHuoMAI2.js",
+      "_router-BL6LIkbM.js",
       "_restart-required-GaGMT5SM.js"
     ],
     "css": [
@@ -350,13 +350,13 @@
     ]
   },
   "src/routes/settings/AdministrationPage.svelte": {
-    "file": "assets/AdministrationPage-mxY5WYwj.js",
+    "file": "assets/AdministrationPage--ls0uFdG.js",
     "name": "AdministrationPage",
     "src": "src/routes/settings/AdministrationPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
-      "_router-BD4de6SN.js",
+      "_src-DHuoMAI2.js",
+      "_router-BL6LIkbM.js",
       "_restart-reconnect-DvfNWKWm.js"
     ],
     "css": [
@@ -364,24 +364,24 @@
     ]
   },
   "src/routes/settings/AssistantPolicyPage.svelte": {
-    "file": "assets/AssistantPolicyPage-DNfn4NBJ.js",
+    "file": "assets/AssistantPolicyPage-YjM7rWrh.js",
     "name": "AssistantPolicyPage",
     "src": "src/routes/settings/AssistantPolicyPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-4-XwYnWQ.css"
     ]
   },
   "src/routes/settings/CredentialSharingPage.svelte": {
-    "file": "assets/CredentialSharingPage-BZ4DVopw.js",
+    "file": "assets/CredentialSharingPage-BDbB21VN.js",
     "name": "CredentialSharingPage",
     "src": "src/routes/settings/CredentialSharingPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "src/routes/SettingsPage.svelte"
     ],
     "css": [
@@ -389,24 +389,24 @@
     ]
   },
   "src/routes/settings/GuidanceSettingsPage.svelte": {
-    "file": "assets/GuidanceSettingsPage-Bo3oMI5a.js",
+    "file": "assets/GuidanceSettingsPage-FPTI3k1E.js",
     "name": "GuidanceSettingsPage",
     "src": "src/routes/settings/GuidanceSettingsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-CknKNNpb.css"
     ]
   },
   "src/routes/settings/ModelSettingsPage.svelte": {
-    "file": "assets/ModelSettingsPage-BxfECoV4.js",
+    "file": "assets/ModelSettingsPage-Dl7YPCbN.js",
     "name": "ModelSettingsPage",
     "src": "src/routes/settings/ModelSettingsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js",
+      "_src-DHuoMAI2.js",
       "src/routes/SettingsPage.svelte"
     ],
     "css": [
@@ -414,12 +414,12 @@
     ]
   },
   "src/routes/settings/RoutingSettingsPage.svelte": {
-    "file": "assets/RoutingSettingsPage-CMs1mASR.js",
+    "file": "assets/RoutingSettingsPage-CmTg3_MQ.js",
     "name": "RoutingSettingsPage",
     "src": "src/routes/settings/RoutingSettingsPage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_src-BcnWbAjV.js"
+      "_src-DHuoMAI2.js"
     ],
     "css": [
       "assets/core-CN7sgRlM.css"

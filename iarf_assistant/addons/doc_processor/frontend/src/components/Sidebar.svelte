@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import type { DocumentProject, EngineOption, ModelOption, ProcessingSettings } from "../lib/types";
   import PromptSettingsPanel from "./PromptSettingsPanel.svelte";
   import UploadPanel from "./UploadPanel.svelte";
@@ -13,6 +13,8 @@
   export let promptSaving = false;
   export let creatingProject = false;
   export let uploadResetToken = 0;
+  let expanded = true;
+  onMount(() => { expanded = window.innerWidth >= 900; });
 
   const dispatch = createEventDispatcher<{
     upload: File;
@@ -24,9 +26,10 @@
 </script>
 
 <aside class="dp-sidebar">
+  <details class="dp-source-setup" bind:open={expanded}>
+  <summary class="dp-sidebar-header"><strong>Source setup</strong><small>Add a document or change extraction settings</small></summary>
   <header class="dp-sidebar-header">
     <p class="dp-eyebrow">Extraction desk</p>
-    <h1>Source setup</h1>
     <p>Choose the source, engine, models, and review policy.</p>
   </header>
 
@@ -46,4 +49,5 @@
   />
 
   <PromptSettingsPanel saving={promptSaving} on:open={() => dispatch("openPromptStudio")} />
+  </details>
 </aside>

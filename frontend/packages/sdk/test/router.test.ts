@@ -115,3 +115,40 @@ test("uses History API for descendants of a registered client route", () => {
   assert.equal(changes.at(-1), "/runs/run-123?tab=graph");
   assert.equal(fixture.assigned.length, 0);
 });
+
+test("cancelled navigation preserves the editor on links and browser Back", () => {
+  const fixture = createWindow("/settings");
+  let allow = false;
+  const window = { ...fixture.window, dispatchEvent: (event: Event) => { if (!allow) event.preventDefault(); return !event.defaultPrevented; } };
+  const changes: string[] = [];
+  const router = createFrontendRouter({ window, clientPaths:["/settings","/logs"], onRouteChange:route => changes.push(route) });
+  router.start();
+  router.navigate("/logs");
+  assert.equal(router.current(),"/settings");
+  assert.deepEqual(changes,[]);
+  window.history.replaceState({},"","/logs");
+  fixture.emitPopState();
+  assert.equal(router.current(),"/settings");
+  assert.deepEqual(changes,[]);
+  allow = true;
+  router.navigate("/logs");
+  assert.equal(router.current(),"/logs");
+  assert.deepEqual(changes,["/logs"]);
+  router.stop();
+});
+
+test("resumes a deferred navigation only after approval and ignores older requests", () => {
+  const fixture = createWindow('/settings');
+  const pending: (()=>void)[] = [];
+  const window = { ...fixture.window, dispatchEvent: (event: Event) => { pending.push((event as CustomEvent<{resume:()=>void}>).detail.resume); event.preventDefault(); return false; } };
+  const changes:string[]=[];
+  const router = createFrontendRouter({window,clientPaths:['/settings','/logs','/workspaces'],onRouteChange:r=>changes.push(r)});
+  router.navigate('/logs');
+  assert.equal(router.current(),'/settings');
+  router.navigate('/workspaces');
+  pending[0]();
+  assert.equal(router.current(),'/settings');
+  pending[1]();
+  assert.equal(router.current(),'/workspaces');
+  assert.deepEqual(changes,['/workspaces']);
+});

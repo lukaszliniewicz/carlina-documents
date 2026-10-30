@@ -3,6 +3,7 @@
   import { createEventDispatcher } from "svelte";
   import { getSourceFileUrl } from "../lib/api";
   import BaseModal from "./BaseModal.svelte";
+  import PdfSourceViewer from "./PdfSourceViewer.svelte";
 
   export let open = false;
   export let documentId: string | null = null;
@@ -25,12 +26,7 @@
       <span class="dp-muted">This is a read-only preview of the original source file.</span>
     </div>
     {#if pdfUrl}
-      <iframe
-        class="dp-pdf-frame"
-        src={pdfUrl}
-        title="PDF Preview – {filename}"
-        allowfullscreen
-      ></iframe>
+      <PdfSourceViewer documentId={documentId || ""} {filename} />
     {:else}
       <div class="dp-empty-state">
         <Icon name="file" size={20} />

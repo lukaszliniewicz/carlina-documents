@@ -33,7 +33,7 @@
     PromptEditorSection,
     PromptSettings
   } from "./lib/types";
-  import { isActiveDocumentStatus, isActiveProjectStatus, selectDefaultModels } from "./lib/utils";
+  import { isActiveDocumentStatus, isActiveProjectStatus, needsDocumentAttention, selectDefaultModels } from "./lib/utils";
   import CropModal from "./components/CropModal.svelte";
   import DocumentPreviewModal from "./components/DocumentPreviewModal.svelte";
   import ExportModal from "./components/ExportModal.svelte";
@@ -71,6 +71,8 @@
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   let noticeTimer: ReturnType<typeof setTimeout> | null = null;
   let refreshBusy = false;
+  let connectionError = "";
+  let pollFailures = 0;
   let refreshGeneration = 0;
   let refreshAbortController: AbortController | null = null;
   let mounted = true;
@@ -88,7 +90,7 @@
   $: activeProject = activeProjectId ? projects.find((project) => project.id === activeProjectId) || null : null;
   $: activeDocumentCount = documents.filter((document) => isActiveDocumentStatus(document.status)).length;
   $: completedDocumentCount = documents.filter((document) => ["completed", "completed_with_errors"].includes(document.status)).length;
-  $: attentionDocumentCount = documents.filter((document) => ["error", "needs_cropping", "reviewing_images", "paused"].includes(document.status)).length;
+  $: attentionDocumentCount = documents.filter((document) => needsDocumentAttention(document.status)).length;
 
   onMount(() => {
     const handleVisibility = () => {
@@ -102,8 +104,10 @@
       void refresh().catch((error) => console.warn("Document processor refresh failed.", error));
     };
     document.addEventListener("visibilitychange", handleVisibility);
+    const handleOnline = () => { if (connectionError && !document.hidden) void refresh().catch(() => {}); };
+    window.addEventListener("online", handleOnline);
     void initialize();
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
+    return () => { document.removeEventListener("visibilitychange", handleVisibility); window.removeEventListener("online", handleOnline); };
   });
 
   onDestroy(() => {
@@ -147,19 +151,25 @@
     refreshAbortController?.abort();
     const controller = new AbortController();
     refreshAbortController = controller;
-    const [nextDocuments, nextProjects] = await Promise.all([
-      loadDocuments(controller.signal),
-      loadProjects(controller.signal)
-    ]);
-    if (!mounted || controller.signal.aborted || generation !== refreshGeneration) {
-      return;
+    try {
+      const [nextDocuments, nextProjects] = await Promise.all([
+        loadDocuments(controller.signal), loadProjects(controller.signal)
+      ]);
+      if (!mounted || controller.signal.aborted || generation !== refreshGeneration) return;
+      documents = nextDocuments;
+      projects = nextProjects;
+      connectionError = "";
+      pollFailures = 0;
+      if (activeProjectId && !projects.some((project) => project.id === activeProjectId)) activeProjectId = null;
+    } catch (error) {
+      if (mounted && !controller.signal.aborted && generation === refreshGeneration) {
+        connectionError = "Connection interrupted. Showing the last update and retrying automatically.";
+        pollFailures = Math.min(pollFailures + 1, 4);
+      }
+      throw error;
+    } finally {
+      if (mounted && !controller.signal.aborted && generation === refreshGeneration) schedulePolling();
     }
-    documents = nextDocuments;
-    projects = nextProjects;
-    if (activeProjectId && !projects.some((project) => project.id === activeProjectId)) {
-      activeProjectId = null;
-    }
-    schedulePolling();
   }
 
   function schedulePolling() {
@@ -172,14 +182,14 @@
     }
     const hasActiveDocuments = documents.some((document) => isActiveDocumentStatus(document.status));
     const hasActiveProjects = projects.some((project) => isActiveProjectStatus(project.latest_run?.status));
-    if (hasActiveDocuments || hasActiveProjects) {
+    if (hasActiveDocuments || hasActiveProjects || connectionError) {
       pollTimer = setTimeout(async () => {
         try {
           await refresh();
         } catch (error) {
           console.warn("Document processor polling failed.", error);
         }
-      }, 3000);
+      }, Math.min(3000 * 2 ** pollFailures, 30000));
     }
   }
 
@@ -217,11 +227,14 @@
 
   async function refreshNow() {
     refreshBusy = true;
-    await runAction(async () => {
+    try {
       await refresh();
       showNotice("info", "Library refreshed.");
-    }, "Failed to refresh the document library.");
-    refreshBusy = false;
+    } catch {
+      // The connection notice owns retry and disappears after recovery.
+    } finally {
+      refreshBusy = false;
+    }
   }
 
   async function runAction(action: () => Promise<void>, fallback: string) {
@@ -428,7 +441,7 @@
       <PageHeader
         eyebrow="Document operations"
         title="Document Processor"
-        description="Extract, inspect, refine, and publish source documents through one auditable workspace."
+        description="Extract documents, check the results, and prepare them for reading or translation."
       >
         {#snippet actions()}
           <Button variant="outline" size="sm" disabled={refreshBusy} onclick={refreshNow}>
@@ -446,6 +459,7 @@
       </div>
 
       <NoticeBar {notice} />
+      {#if connectionError}<div class="dp-notice warning" role="status">{connectionError} <button type="button" class="button compact" disabled={refreshBusy} on:click={refreshNow}>Retry now</button></div>{/if}
       {#if activeProject}
         <ProjectView
         project={activeProject}

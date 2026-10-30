@@ -554,8 +554,14 @@ gap in those markers can mean intentionally omitted output and is not evidence
 that source pages are missing. Unmapped endnotes retain unknown page provenance.
 Legacy output can be inspected through a read-only normalized view; scoped edits
 require the current completed semantic contract so they cannot silently normalize
-unrelated legacy content. The existing whole-document HTTP editor remains a
-separate interface; the revision/retry protections described here apply to MCP.
+unrelated legacy content. The whole-document HTTP editor remains a separate
+interface. Its `PUT /addons/doc_processor/api/documents/<id>/content` request
+requires the document's `updated_at` token as `expected_updated_at` or `If-Match`.
+A missing token returns 428; a stale token or active processing returns 409 with
+`code: revision_conflict` and the latest owner-scoped document. The write claims
+the revision atomically and rolls back content and the claim on failure. HTTP
+timestamps and MCP review revisions are different tokens. The scoped retry,
+idempotency and undo protections described above continue to apply to MCP.
 
 ### Extracted-document export
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Icon } from "@carlina/ui";
   import { createEventDispatcher, onDestroy } from "svelte";
   import { loadCropPages, loadCropPreview, saveCrop } from "../lib/api";
   import type { CropBox, CropPage, CropPreviewData } from "../lib/types";
@@ -11,7 +12,8 @@
   export let documentId: string | null = null;
 
   const dispatch = createEventDispatcher<{ close: void; saved: void }>();
-  const rowHeight = 188;
+  const rowHeight = 224;
+  let initialCropState = "";
 
   let lastDocumentId: string | null = null;
   let pages: CropPage[] = [];
@@ -54,7 +56,7 @@
   $: inRangePages = pages.filter((page) => page.in_page_range !== false);
   $: includedPages = inRangePages.filter((page) => !excludedPages.has(page.page_index));
   $: excludedCount = inRangePages.length - includedPages.length;
-  $: pageSideMap = buildPageSideMap();
+  $: pageSideMap = buildPageSideMap(inRangePages, firstPageSide);
   $: previewPageCandidates = includedPages.length ? includedPages : inRangePages;
   $: if (open && pages.length && selectedPageIndex === null) {
     selectedPageIndex = (previewPageCandidates[0] || inRangePages[0] || pages[0])?.page_index ?? null;
@@ -101,6 +103,8 @@
   $: summary = pages.length
     ? `${includedPages.length}/${inRangePages.length} included${skippedByRange ? ` | ${skippedByRange} skipped by range` : ""}${excludedCount ? ` | ${excludedCount} excluded` : ""}`
     : "Loading pages...";
+  $: cropState = JSON.stringify([cropMode, firstPageSide, [...excludedPages].sort((a,b) => a-b), singleCrop, leftCrop, rightCrop]);
+  $: dirty = Boolean(initialCropState) && cropState !== initialCropState;
 
   onDestroy(() => {
     if (previewTimer) {
@@ -135,6 +139,9 @@
     selectedPageIndex = null;
     previewMode = "stack";
     error = "";
+    initialCropState = "";
+    scrollTop = 0;
+    if (pageListEl) pageListEl.scrollTop = 0;
     previewError = "";
     previewAttempted = false;
     previewLoading = true;
@@ -144,6 +151,7 @@
       if (controller.signal.aborted || generation !== loadGeneration || id !== documentId) return;
       pages = payload.pages || [];
       applyCropSettings(payload.crop_settings || {});
+      initialCropState = JSON.stringify([cropMode, firstPageSide, [...excludedPages].sort((a,b) => a-b), singleCrop, leftCrop, rightCrop]);
       loading = false;
       void refreshPreview();
     } catch (err) {
@@ -217,10 +225,10 @@
     rightCrop = rightCrop || clone(singleCrop);
   }
 
-  function buildPageSideMap() {
+  function buildPageSideMap(rangePages: CropPage[], firstSide: "left" | "right") {
     const sideMap = new Map<number, "left" | "right">();
-    let currentSide: "left" | "right" = firstPageSide;
-    for (const page of inRangePages.slice().sort((a, b) => a.page_index - b.page_index)) {
+    let currentSide: "left" | "right" = firstSide;
+    for (const page of rangePages.slice().sort((a, b) => a.page_index - b.page_index)) {
       sideMap.set(page.page_index, currentSide);
       currentSide = currentSide === "right" ? "left" : "right";
     }
@@ -252,6 +260,18 @@
       ? (delta > 0 ? 0 : sorted.length - 1)
       : (currentIndex + delta + sorted.length) % sorted.length;
     selectedPageIndex = sorted[nextIndex].page_index;
+    revealPage(selectedPageIndex);
+  }
+
+  function revealPage(index: number) {
+    const position = pages.findIndex(page => page.page_index === index);
+    scrollTop = Math.max(0, position * rowHeight);
+    if (pageListEl) pageListEl.scrollTop = scrollTop;
+  }
+
+  function jumpToPage(raw: string) {
+    const page = pages.find(item => item.page_number === Number(raw));
+    if (page && page.in_page_range !== false) { selectPage(page); revealPage(page.page_index); }
   }
 
   function pagePreviewUrl(page: CropPage): string {
@@ -506,7 +526,7 @@
   }
 </script>
 
-<BaseModal {open} title="Set Document Margins" size="full" on:close={close}>
+<BaseModal {open} {dirty} busy={saving} title="Set Document Margins" size="full" on:close={close}>
   <div class="dp-crop-modal">
     <div class="dp-crop-toolbar">
       <label>
@@ -530,6 +550,7 @@
           <option value="left">Left Page</option>
         </select>
       </label>
+      <label><span>Preview page</span><input aria-label="Preview PDF page" type="number" min="1" max={pages.length || 1} value={(selectedPageIndex ?? 0) + 1} on:change={(event) => jumpToPage(event.currentTarget.value)} on:keydown={(event) => { if (event.key === "Enter") { event.preventDefault(); jumpToPage(event.currentTarget.value); } }} /></label>
       <div class="dp-crop-summary">{summary}</div>
     </div>
 
@@ -545,7 +566,9 @@
         </header>
         <div
           class="dp-crop-page-list"
+          style={`--dp-crop-row-height:${rowHeight}px`}
           bind:this={pageListEl}
+          bind:clientHeight={viewportHeight}
           on:scroll={(event) => {
             scrollTop = event.currentTarget.scrollTop;
             viewportHeight = event.currentTarget.clientHeight || viewportHeight;
@@ -570,7 +593,7 @@
                   <strong>Page {page.page_number}</strong>
                   <div class="dp-crop-page-actions">
                     <button class="button compact" type="button" disabled={!isInRange} title="Preview page" on:click={() => selectPage(page)}>
-                      <i class="fa-solid fa-eye"></i>
+                      <Icon name="eye" size={16} />
                     </button>
                     <button class="button compact" type="button" disabled={!isInRange} on:click={() => togglePage(page)}>
                       {isExcluded ? "Restore" : "Exclude"}
@@ -607,13 +630,13 @@
             >
               <svelte:fragment slot="actions">
                 <button class="dp-icon-btn" type="button" title="Previous included page" disabled={!previewPageCandidates.length} on:click={() => selectAdjacentPage(-1)}>
-                  <i class="fa-solid fa-chevron-left"></i>
+                  <Icon name="chevron-left" size={16} />
                 </button>
                 <button class="dp-icon-btn" type="button" title="Next included page" disabled={!previewPageCandidates.length} on:click={() => selectAdjacentPage(1)}>
-                  <i class="fa-solid fa-chevron-right"></i>
+                  <Icon name="chevron-right" size={16} />
                 </button>
                 <button class="button compact" type="button" on:click={showStackPreview}>
-                  <i class="fa-solid fa-layer-group"></i>
+                  <Icon name="workspaces" size={16} />
                   Stacks
                 </button>
               </svelte:fragment>
@@ -643,7 +666,7 @@
       </button>
     </div>
     <button class="button success" type="button" disabled={saving} on:click={() => submit(false)}>
-      {#if saving}<i class="fa-solid fa-spinner fa-spin"></i>{/if}
+      {#if saving}<Icon name="refresh" size={16} class="dp-spin" />{/if}
       Save and Begin
     </button>
   </div>

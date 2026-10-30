@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Icon } from "@carlina/ui";
+  import CropCoordinates from "./CropCoordinates.svelte";
   import { createEventDispatcher, onDestroy } from "svelte";
   import type { CropBox } from "../lib/types";
 
@@ -287,10 +289,11 @@
     </div>
     {#if suggestedBox}
       <button class="dp-icon-btn" type="button" title="Use detected text boundary" on:click={useSuggested}>
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <Icon name="crop" size={16} />
       </button>
     {/if}
   </header>
+  <CropCoordinates box={cropBox || suggestedBox} on:change={(event) => dispatch("cropBoxChange", event.detail)} />
   <div class="dp-crop-canvas-shell">
     {#if status}
       <p>{status}</p>

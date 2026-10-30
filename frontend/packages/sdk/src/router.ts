@@ -13,6 +13,7 @@ export interface FrontendRouterWindow {
   };
   addEventListener(type: "popstate", listener: () => void): void;
   removeEventListener(type: "popstate", listener: () => void): void;
+  dispatchEvent?(event: Event): boolean;
 }
 
 export interface FrontendRouter {
@@ -76,31 +77,47 @@ export function createFrontendRouter(options: {
 }): FrontendRouter {
   const { window, clientPaths, onRouteChange } = options;
   let started = false;
-  const notify = () => onRouteChange(relativeBrowserUrl(window.location));
+  let acceptedRoute = relativeBrowserUrl(window.location);
+  let navigationSequence = 0;
+  const canLeave = (href: string, resume: () => void) => {
+    const current = new URL(acceptedRoute, window.location.origin);
+    const target = new URL(href, window.location.origin);
+    if (current.origin === target.origin && current.pathname === target.pathname && current.search === target.search) return true;
+    return window.dispatchEvent?.(new CustomEvent("carlina:before-navigate", { cancelable: true, detail: { resume } })) !== false;
+  };
+  function navigate(href: string, navigationOptions: { replace?: boolean } = {}, confirmed = false, sequence = ++navigationSequence): "client" | "document" {
+    const target = new URL(href, window.location.href);
+    if (target.origin !== window.location.origin || !isClientRoute(target.pathname, clientPaths)) {
+      // Full document navigation uses the browser's beforeunload protection.
+      window.location.assign(target.href);
+      return "document";
+    }
+    if (!confirmed && !canLeave(target.href, () => { if (sequence === navigationSequence) navigate(href, navigationOptions, true, sequence); })) return "client";
+    const relative = `${target.pathname}${target.search}${target.hash}`;
+    if (navigationOptions.replace) window.history.replaceState({}, "", relative);
+    else if (relative !== relativeBrowserUrl(window.location)) window.history.pushState({}, "", relative);
+    acceptedRoute = relative;
+    onRouteChange(relative);
+    return "client";
+  }
+  const notify = () => {
+    const next = relativeBrowserUrl(window.location);
+    const sequence = ++navigationSequence;
+    if (!canLeave(next, () => { if (sequence === navigationSequence) navigate(next, { replace: true }, true, sequence); })) {
+      // A popstate URL has already changed. Keep the mounted editor and restore
+      // its URL when the user cancels leaving; a later Back can be tried again.
+      window.history.pushState({}, "", acceptedRoute);
+      return;
+    }
+    acceptedRoute = next;
+    onRouteChange(next);
+  };
 
   return {
     current() {
       return relativeBrowserUrl(window.location);
     },
-    navigate(href, navigationOptions = {}) {
-      const target = new URL(href, window.location.href);
-      if (
-        target.origin !== window.location.origin ||
-        !isClientRoute(target.pathname, clientPaths)
-      ) {
-        window.location.assign(target.href);
-        return "document";
-      }
-
-      const relative = `${target.pathname}${target.search}${target.hash}`;
-      if (navigationOptions.replace) {
-        window.history.replaceState({}, "", relative);
-      } else if (relative !== relativeBrowserUrl(window.location)) {
-        window.history.pushState({}, "", relative);
-      }
-      onRouteChange(relative);
-      return "client";
-    },
+    navigate,
     start() {
       if (started) {
         return;

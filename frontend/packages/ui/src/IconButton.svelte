@@ -10,6 +10,7 @@
     label: string;
     size?: "sm" | "md";
     selected?: boolean;
+    showLabel?: boolean;
   };
 
   let {
@@ -17,6 +18,7 @@
     label,
     size = "md",
     selected = false,
+    showLabel = false,
     class: className = "",
     ...rest
   }: Props = $props();
@@ -24,12 +26,13 @@
 
 <button
   {...rest}
-  class={classNames("ui-icon-button", `ui-icon-button--${size}`, selected && "is-selected", className)}
+  class={classNames("ui-icon-button", `ui-icon-button--${size}`, showLabel && "has-label", selected && "is-selected", className)}
   aria-label={label}
   aria-pressed={rest["aria-pressed"] ?? (selected ? "true" : undefined)}
   title={rest.title ?? label}
 >
   <Icon name={icon} size={size === "sm" ? 16 : 18} />
+  {#if showLabel}<span>{label}</span>{/if}
 </button>
 
 <style>
@@ -53,6 +56,8 @@
     width: 2.1rem;
     height: 2.1rem;
   }
+
+  .ui-icon-button.has-label { width:auto; display:inline-flex; align-items:center; justify-content:center; gap:.45rem; padding:0 .65rem; font:inherit; font-size:.85rem; }
 
   .ui-icon-button:hover,
   .ui-icon-button.is-selected {

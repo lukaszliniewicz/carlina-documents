@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { processDocument, reextractDocumentMetadata, saveCompletedImageCrops, updateDocumentMetadata } from "./api";
+import { processDocument, reextractDocumentMetadata, saveCompletedImageCrops, updateDocumentMetadata, updateDocumentContent } from "./api";
 
 describe("processDocument", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -72,5 +72,14 @@ it("sends a revision and crop coordinates without page images, URLs or captions"
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ expected_updated_at: "revision-1", pages: [{ page_index: 0, source_page_index: 2, images: [{ img_idx: 0, bbox: [10, 20, 800, 900] }] }] })
     });
+  } finally { vi.unstubAllGlobals(); }
+});
+
+it("sends the extraction revision and retains conflict details", async () => {
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Changed elsewhere", code: "revision_conflict" }), { status:409, headers:{ "Content-Type":"application/json" } }));
+  vi.stubGlobal("fetch",fetch);
+  try {
+    await expect(updateDocumentContent("document-1","<p>Correction</p>","revision-1")).rejects.toMatchObject({ status:409, payload:{ code:"revision_conflict" } });
+    expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ output_html:"<p>Correction</p>",expected_updated_at:"revision-1" });
   } finally { vi.unstubAllGlobals(); }
 });

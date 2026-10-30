@@ -22,7 +22,7 @@ beforeEach(() => {
   vi.mocked(loadImageReviewPages).mockResolvedValue([structuredClone(page)]);
   vi.mocked(saveCompletedImageCrops).mockResolvedValue({ success: true });
 });
-afterEach(() => { document.body.replaceChildren(); });
+afterEach(() => { document.body.replaceChildren(); vi.restoreAllMocks(); });
 
 async function openEditor(completed = true) {
   const target = document.createElement("div");
@@ -112,5 +112,34 @@ it("blocks inverted boxes before saving and preserves the pending-review workflo
   saveButton(target).click();
   await vi.waitFor(() => expect(saveImageReviewPages).toHaveBeenCalledOnce());
   expect(saveCompletedImageCrops).not.toHaveBeenCalled();
+  await unmount(component);
+});
+
+it('moves and resizes with arrow keys while respecting page boundaries',async () => {
+  const {target,component} = await openEditor();
+  const move = target.querySelector<HTMLButtonElement>('[aria-label="Select image 1"]')!;
+  const resize = target.querySelector<HTMLButtonElement>('[aria-label="Resize image 1"]')!;
+  move.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',shiftKey:true,bubbles:true})); await tick();
+  expect(coordinate(target,'Left').value).toBe('210');
+  expect(coordinate(target,'Right').value).toBe('810');
+  resize.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true})); await tick();
+  expect(coordinate(target,'Bottom').value).toBe('701');
+  for (let i=0;i<30;i++) move.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',shiftKey:true,bubbles:true}));
+  await tick();
+  expect(coordinate(target,'Right').value).toBe('1000');
+  await unmount(component);
+});
+
+it('protects unsaved image corrections on both Cancel and dialog dismissal',async () => {
+  const {target,component} = await openEditor(false);
+  await setCoordinate(target,'Top',50);
+  [...target.querySelectorAll('button')].find(b=>b.textContent?.trim()==='Cancel')!.click(); await tick();
+  await vi.waitFor(()=>expect([...document.querySelectorAll('button')].some(b=>b.textContent?.trim()==='Keep editing')).toBe(true));
+  [...document.querySelectorAll('button')].find(b=>b.textContent?.trim()==='Keep editing')!.click();await tick();
+  target.querySelector<HTMLButtonElement>('[aria-label="Close"]')!.click(); await tick();
+  await vi.waitFor(()=>expect([...document.querySelectorAll('button')].some(b=>b.textContent?.trim()==='Keep editing')).toBe(true));
+  [...document.querySelectorAll('button')].find(b=>b.textContent?.trim()==='Keep editing')!.click();await tick();
+  expect(coordinate(target,'Top').value).toBe('50');
+  expect(window.dispatchEvent(new Event('carlina:before-navigate',{cancelable:true}))).toBe(false);
   await unmount(component);
 });

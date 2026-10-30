@@ -6,7 +6,7 @@
     "run",
     "build"
   ],
-  "built_at": "2026-10-28T22:00:58Z",
+  "built_at": "2026-10-30T04:25:26Z",
   "frontend_api_range": "^1.0",
   "lockfile_hash": "4d9f71c349b8583611052cc777786eb1ee0048cf5cc42e31d761a753525f7b46",
   "lockfile_paths": [
@@ -17,7 +17,7 @@
     "static/dist/workspace.css"
   ],
   "schema_version": 3,
-  "source_hash": "80e453c5790847abddf7d4a83210bd837946786592e6090e56693df9a7cd213a",
+  "source_hash": "09d582dcfbb2d172fcc3eecf44cebcd51f42771514627c91bbf8a124da4e2a23",
   "source_paths": [
     "frontend/src",
     "frontend/package.json",

@@ -12,7 +12,7 @@
   export let saving = false;
   export let reextracting = false;
 
-  const dispatch = createEventDispatcher<{ save: ReturnType<typeof metadataPayloadFromForm>; reextract: void }>();
+  const dispatch = createEventDispatcher<{ save: ReturnType<typeof metadataPayloadFromForm>; reextract: void; dirty: boolean }>();
   let form: EditableMetadataForm = metadataFormFromDocument(null);
   let initialForm: EditableMetadataForm = form;
   let lastDocument: ProcessedDocument | null = null;
@@ -27,6 +27,7 @@
   $: metadata = canonicalDocumentMetadata(document);
   $: metadataStale = document?.settings?.metadata_stale === true;
   $: changed = JSON.stringify(form) !== JSON.stringify(initialForm);
+  $: dispatch("dirty", changed);
   $: headingStructure = metadata.heading_structure;
 
   function setField<K extends keyof EditableMetadataForm>(field: K, value: EditableMetadataForm[K]) {

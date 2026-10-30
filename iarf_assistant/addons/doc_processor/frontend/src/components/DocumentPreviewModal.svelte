@@ -1,14 +1,16 @@
 <script lang="ts">
-  import { Icon, withEpubReviewAnchors } from "@carlina/ui";
+  import { Icon, confirmDiscardChanges, withEpubReviewAnchors } from "@carlina/ui";
   import { createEventDispatcher, onDestroy, tick } from "svelte";
   import { getDocument, getSourceFileUrl, reextractDocumentMetadata, updateDocumentContent, updateDocumentMetadata } from "../lib/api";
-  import { applyContentPatches, changedContentPatches, editableSemanticBlocks, editorHtmlFromDocument, headingNavigationTargets, previewHtmlWithListMarkers, scrollHeadingInPreview, structuralChangeSummary, validateContentPatches, type EditableSemanticBlock, type HeadingNavigationTarget } from "../lib/semanticHtml";
+  import { applyContentPatches, editableSemanticBlocks, editorHtmlFromDocument, headingNavigationTargets, previewHtmlWithListMarkers, scrollHeadingInPreview, structuralChangeSummary, validateContentPatches, type EditableSemanticBlock, type HeadingNavigationTarget, type SemanticContentPatch } from "../lib/semanticHtml";
   import type { CanonicalDocumentMetadata, ProcessedDocument } from "../lib/types";
   import PageFurnitureCleanup from "./PageFurnitureCleanup.svelte";
   import PageBoundaryRepair from "./PageBoundaryRepair.svelte";
   import BaseModal from "./BaseModal.svelte";
   import MetadataPanel from "./MetadataPanel.svelte";
   import ExtractionIssues from "./ExtractionIssues.svelte";
+  import SemanticTextEditor from "./SemanticTextEditor.svelte";
+  import PdfSourceViewer from "./PdfSourceViewer.svelte";
 
   export let open = false;
   export let documentId: string | null = null;
@@ -26,6 +28,12 @@
   let editing = false;
   let originalHtml = "";
   let blocks: EditableSemanticBlock[] = [];
+  let originalBlocks = new Map<string, EditableSemanticBlock>();
+  let patches = new Map<string, SemanticContentPatch>();
+  const editorPageSize = 30;
+  let editorPage = 0;
+  let metadataDirty = false;
+  let saveConflict = false;
   let showToc = true;
   let compareWithPdf = false;
   let controlsOpen = false;
@@ -41,9 +49,13 @@
   }
   $: if (!open) {
     loadAbortController?.abort();
+    if (lastDocumentId) loadGeneration += 1;
     lastDocumentId = null;
     editing = false;
     blocks = [];
+    patches = new Map();
+    metadataDirty = false;
+    saving = false;
     compareWithPdf = false;
     controlsOpen = false;
     saveConfirmationOpen = false;
@@ -66,7 +78,10 @@
   $: if (!isPdfSource && compareWithPdf) compareWithPdf = false;
   $: tocItems = headingNavigationTargets(originalHtml)
     .filter((heading) => ["h1", "h2", "h3", "h4"].includes(heading.tag));
-  $: contentPatches = editing ? changedContentPatches(originalHtml, blocks) : [];
+  $: contentPatches = editing ? Array.from(patches.values()) : [];
+  $: visibleBlocks = blocks.slice(editorPage * editorPageSize, (editorPage + 1) * editorPageSize);
+  $: busy = saving || metadataSaving || metadataReextracting;
+  $: dirty = contentPatches.length > 0 || metadataDirty;
 
   onDestroy(() => loadAbortController?.abort());
 
@@ -77,13 +92,19 @@
     const controller = new AbortController();
     loadAbortController = controller;
     loading = true;
+    saving = false;
+    saveConfirmationOpen = false;
     error = "";
     editing = false;
     compareWithPdf = false;
     activeTab = "html";
     controlsOpen = false;
     blocks = [];
+    patches = new Map();
+    metadataDirty = false;
+    saveConflict = false;
     documentPayload = null;
+    originalHtml = "";
     try {
       const nextDocument = await getDocument(id, controller.signal);
       if (controller.signal.aborted || generation !== loadGeneration || id !== documentId) return;
@@ -119,29 +140,60 @@
     if (await refreshAfterCleanup()) activeTab = "html";
   }
 
-  function startEditing() {
+  async function startEditing() {
+    if (!await confirmDiscardChanges({ dirty: metadataDirty, busy })) return;
     editing = true;
+    controlsOpen = true;
     activeTab = "html";
+    metadataDirty = false;
     blocks = editableSemanticBlocks(originalHtml);
+    originalBlocks = new Map(blocks.map(block => [block.id, block]));
+    patches = new Map();
+    editorPage = 0;
+    saveConflict = false;
   }
 
-  function selectTab(tab: "html" | "md" | "metadata") {
+  async function selectTab(tab: "html" | "md" | "metadata") {
+    if (tab === activeTab) return;
+    if (activeTab === "metadata" && tab !== "metadata" && !await confirmDiscardChanges({ dirty: metadataDirty, busy })) return;
+    metadataDirty = false;
     activeTab = tab;
     if (tab === "metadata") {
       compareWithPdf = false;
     }
   }
-  function cancelEditing() {
+  async function cancelEditing() {
+    if (!await confirmDiscardChanges({ dirty: contentPatches.length > 0, busy })) return;
     editing = false;
     blocks = [];
+    patches = new Map();
     saveConfirmationOpen = false;
   }
   function updateBlock(index: number, html: string) {
-    blocks[index] = { ...blocks[index], html };
+    const block = blocks[index];
+    const original = originalBlocks.get(block.id)!;
+    const next = new Map(patches);
+    if (html === original.html) next.delete(block.id);
+    else next.set(block.id, { kind: "content", path: original.path, tag: original.tag, originalHtml: original.html, html });
+    patches = next;
+    blocks[index] = { ...block, html };
     blocks = [...blocks];
   }
+  async function reloadDocument() {
+    if (documentId && await confirmDiscardChanges({ dirty, busy })) void load(documentId);
+  }
+  async function showIssues() {
+    if (!await confirmDiscardChanges({ dirty: metadataDirty, busy })) return;
+    metadataDirty = false;
+    if (activeTab === "issues") void returnFromIssues(); else activeTab = "issues";
+    controlsOpen = false;
+  }
   async function save() {
-    if (!documentId) return;
+    if (!documentId || saving || saveConflict) return;
+    const targetId = documentId;
+    const generation = loadGeneration;
+    const expectedRevision = documentPayload?.updated_at;
+    if (!expectedRevision) { error = "Reload the document before saving corrections."; saveConflict = true; return; }
     saving = true;
     error = "";
     try {
@@ -153,16 +205,23 @@
       }
       // The no-change path is originalHtml byte-for-byte.
       const editedHtml = applyContentPatches(originalHtml, contentPatches);
-      documentPayload = await updateDocumentContent(documentId, editedHtml);
+      const nextDocument = await updateDocumentContent(targetId, editedHtml, expectedRevision);
+      if (!open || targetId !== documentId || generation !== loadGeneration) return;
+      documentPayload = nextDocument;
       originalHtml = documentPayload.output_html || editedHtml;
       editing = false;
       blocks = [];
+      patches = new Map();
       saveConfirmationOpen = false;
       dispatch("saved");
     } catch (err) {
-      error = err instanceof Error ? err.message : "Failed to save edits.";
+      if (open && targetId === documentId && generation === loadGeneration) {
+        saveConfirmationOpen = false;
+        error = err instanceof Error ? err.message : "Failed to save edits.";
+        saveConflict = err instanceof Error && "status" in err && [409, 428].includes(Number(err.status));
+      }
     } finally {
-      saving = false;
+      if (targetId === documentId && generation === loadGeneration) saving = false;
     }
   }
   async function saveMetadata(metadata: CanonicalDocumentMetadata) {
@@ -213,15 +272,19 @@
   }
 </script>
 
-<BaseModal {open} title={documentPayload?.filename || "Extracted Output"} size="full" on:close={() => dispatch("close")}>
+<BaseModal {open} {dirty} {busy} title={documentPayload?.filename || "Extracted Output"} size="full" on:close={() => dispatch("close")}>
   <svelte:fragment slot="header-actions">
-  <button class="button ghost" type="button" disabled={loading || editing || documentPayload?.status !== "completed"} aria-pressed={activeTab === "issues"} on:click={() => { if (activeTab === "issues") void returnFromIssues(); else activeTab = "issues"; controlsOpen = false; }}>Review issues</button>
+  <button class="button" type="button" disabled={loading || editing || busy} on:click={startEditing}><Icon name="edit" size={16} /> Correct text</button>
+  {#if isPdfSource}<button class="button" type="button" disabled={loading || editing || activeTab === "metadata" || busy} aria-pressed={compareWithPdf} on:click={() => compareWithPdf = !compareWithPdf}><Icon name="workspaces" size={16} /> Compare PDF</button>{/if}
+  {#if documentId}<button class="button" type="button" disabled={loading || editing || dirty || busy} on:click={() => documentId && dispatch("export", documentId)}><Icon name="download" size={16} /> Export</button>{/if}
+  <button class="button ghost" type="button" disabled={loading || editing || busy || documentPayload?.status !== "completed"} aria-pressed={activeTab === "issues"} on:click={showIssues}>Review issues</button>
   <button
     class="dp-icon-btn dp-preview-controls-toggle"
     class:active={controlsOpen}
     type="button"
     aria-expanded={controlsOpen}
     aria-controls="dp-preview-controls"
+    disabled={editing || busy}
     aria-label={controlsOpen ? "Hide preview controls" : "Show preview controls"}
     title={controlsOpen ? "Hide preview controls" : "Show preview controls"}
     on:click={() => (controlsOpen = !controlsOpen)}
@@ -230,15 +293,15 @@
   </button>
   </svelte:fragment>
   <div class="dp-preview-modal">
-    {#if error}<div class="dp-notice error" role="alert">{error}</div>{/if}
+    {#if error}<div class="dp-notice error" role="alert">{error} {#if saveConflict}<button class="button" type="button" disabled={busy} on:click={reloadDocument}>Reload document</button><span>Your corrections are still in the editor. Copy anything you want to keep before reloading.</span>{/if}</div>{/if}
     {#if controlsOpen}
       <section id="dp-preview-controls" class="dp-preview-controls" aria-label="Preview controls">
         <div class="dp-editor-toolbar dp-preview-action-row">
           {#if editing}
-            <button class="dp-icon-btn success" type="button" disabled={saving} aria-label="Save edits" title="Save edits" on:click={() => (saveConfirmationOpen = true)}>
-              <Icon name={saving ? "refresh" : "check"} size={16} class={saving ? "dp-spin" : ""} />
+            <button class="button success" type="button" disabled={saving || saveConflict || !contentPatches.length} aria-label="Save edits" title="Save edits" on:click={() => (saveConfirmationOpen = true)}>
+              <Icon name={saving ? "refresh" : "check"} size={16} class={saving ? "dp-spin" : ""} /> Save corrections
             </button>
-            <button class="dp-icon-btn" type="button" disabled={saving} aria-label="Cancel editing" title="Cancel editing" on:click={cancelEditing}><Icon name="close" size={16} /></button>
+            <button class="button" type="button" disabled={saving} aria-label="Cancel editing" title="Cancel editing" on:click={cancelEditing}><Icon name="close" size={16} /> Cancel editing</button>
           {:else if activeTab !== "metadata"}
             <button class="dp-icon-btn" type="button" disabled={loading} aria-label="Edit extracted text" title="Edit extracted text safely" on:click={startEditing}><Icon name="edit" size={16} /></button>
           {/if}
@@ -253,7 +316,7 @@
             <PageBoundaryRepair {documentId} compact disabled={loading || editing || saving} on:saved={refreshAfterCleanup} />
           {/if}
         </div>
-        {#if editing}<p class="dp-muted" id="dp-semantic-edit-help">Only text-node corrections are allowed. Inline elements and attributes, lists, figures, templates, IDs, links, endnotes, element tags, and ordering are protected.</p>{/if}
+        {#if editing}<p class="dp-muted" id="dp-semantic-edit-help">Correct the text below. Formatting, links, notes, tables, images and their order stay intact. Formatted passages have separate text fields so you can edit their words without changing the markup.</p>{/if}
         <div class="dp-tabs" role="tablist" aria-label="Document preview views"><button class:active={activeTab === "html"} type="button" role="tab" aria-selected={activeTab === "html"} on:click={() => selectTab("html")}>Rendered Preview</button><button class:active={activeTab === "md"} type="button" role="tab" aria-selected={activeTab === "md"} disabled={editing} on:click={() => selectTab("md")}>Raw Markdown</button><button class:active={activeTab === "metadata"} type="button" role="tab" aria-selected={activeTab === "metadata"} disabled={editing} on:click={() => selectTab("metadata")}>Metadata</button></div>
       </section>
     {/if}
@@ -264,7 +327,7 @@
       {#if activeTab === "issues" && documentId}
         {#key documentId}<ExtractionIssues {documentId} {pdfUrl} on:preview={returnFromIssues} />{/key}
       {:else if activeTab === "metadata"}
-        <MetadataPanel document={documentPayload} saving={metadataSaving} reextracting={metadataReextracting} on:save={(event) => saveMetadata(event.detail)} on:reextract={reextractMetadata} />
+        <MetadataPanel document={documentPayload} saving={metadataSaving} reextracting={metadataReextracting} on:dirty={(event) => metadataDirty = event.detail} on:save={(event) => saveMetadata(event.detail)} on:reextract={reextractMetadata} />
       {:else}
       <div class="dp-preview-layout" class:has-toc={showToc && activeTab === "html" && !compareWithPdf && !editing} class:compare={compareWithPdf}>
         {#if showToc && activeTab === "html" && !compareWithPdf && !editing}
@@ -274,7 +337,7 @@
         {/if}
         {#if compareWithPdf}
           <section class="dp-compare-pdf-pane" aria-label="Original PDF"><header><strong><Icon name="file" size={16} /> Original PDF</strong>{#if downloadUrl}<a class="dp-icon-btn" href={downloadUrl} download={documentPayload?.filename || "document.pdf"} aria-label="Download original PDF" title="Download original PDF"><Icon name="download" size={16} /></a>{/if}</header>
-            {#if pdfUrl}<iframe class="dp-compare-pdf-frame" src={pdfUrl} title={`PDF source - ${documentPayload?.filename || "document"}`} loading="lazy" allowfullscreen></iframe>{:else}<div class="dp-empty-state"><Icon name="file" size={20} /><span>No source PDF available.</span></div>{/if}
+            {#if documentId && pdfUrl}<PdfSourceViewer {documentId} filename={documentPayload?.filename || "document.pdf"} revision={documentPayload?.updated_at || ""} />{:else}<div class="dp-empty-state"><Icon name="file" size={20} /><span>No source PDF available.</span></div>{/if}
           </section>
         {/if}
         <div class="dp-preview-content-pane" class:compare={compareWithPdf}>
@@ -282,9 +345,15 @@
           {#if !editing}
             <div bind:this={previewPane} class:active={activeTab === "html"} class="dp-preview-pane html">{@html previewHtml}</div>
           {:else}
-            <div class:active={activeTab === "html"} class="dp-preview-pane html editing-blocks" aria-describedby="dp-semantic-edit-help"><div class="dp-blocks-list">
+            <nav class="dp-editor-pages" aria-label="Text correction pages">
+              <button class="button" type="button" disabled={editorPage === 0 || saving} on:click={() => editorPage -= 1}>Previous blocks</button>
+              <label>Text block <input aria-label="Go to text block" type="number" min="1" max={blocks.length || 1} value={editorPage * editorPageSize + 1} disabled={saving || !blocks.length} on:change={(event) => { const n = Number(event.currentTarget.value); if (Number.isInteger(n) && n >= 1 && n <= blocks.length) editorPage = Math.floor((n - 1) / editorPageSize); }} /></label>
+              <span role="status">{blocks.length ? editorPage * editorPageSize + 1 : 0}–{Math.min((editorPage + 1) * editorPageSize, blocks.length)} of {blocks.length}</span>
+              <button class="button" type="button" disabled={(editorPage + 1) * editorPageSize >= blocks.length || saving} on:click={() => editorPage += 1}>Next blocks</button>
+            </nav>
+            <div class:active={activeTab === "html"} class="dp-preview-pane html editing-blocks" aria-describedby="dp-semantic-edit-help"><div class="dp-blocks-list" inert={saving}>
               {#if !blocks.length}<p class="dp-muted">No independently editable text blocks were found. The semantic preview remains read-only.</p>{/if}
-              {#each blocks as block, index (block.id)}<label class="dp-block-item" data-tag={block.tag}><span class="dp-block-tag-badge">{block.tag}</span><textarea aria-label={`Edit ${block.tag} content`} value={block.html} on:input={(event) => updateBlock(index, event.currentTarget.value)}></textarea></label>{/each}
+              {#each visibleBlocks as block, index (block.id)}<div class="dp-block-item" data-tag={block.tag}><span class="dp-block-tag-badge">{block.tag}</span><SemanticTextEditor html={block.html} label={`Edit ${block.tag} content`} on:change={(event) => updateBlock(editorPage * editorPageSize + index, event.detail)} /></div>{/each}
             </div></div>
           {/if}
           <div class:active={activeTab === "md"} class="dp-preview-pane md"><pre>{markdown}</pre></div>

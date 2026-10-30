@@ -940,8 +940,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  margin-bottom: 0.7rem;
-  min-height: 11.1rem;
+  box-sizing: border-box;
+  height: calc(var(--dp-crop-row-height, 224px) - 8px);
+  min-height: calc(var(--dp-crop-row-height, 224px) - 8px);
+  max-height: calc(var(--dp-crop-row-height, 224px) - 8px);
+  margin-bottom: 8px;
   padding: 0.5rem;
 }
 
@@ -982,6 +985,9 @@
   display: block;
   padding: 0;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dp-crop-page-thumb:disabled {
@@ -998,6 +1004,9 @@
   border: 1px solid var(--border-color, #d7d1c7);
   display: block;
   width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  object-fit: contain;
 }
 
 .dp-crop-flags {
@@ -1134,16 +1143,44 @@
   z-index: 2;
 }
 
-.dp-image-box span {
-  background: currentColor;
-  border-radius: 999px;
-  bottom: -0.4rem;
-  cursor: nwse-resize;
-  height: 0.8rem;
+.dp-image-box-move {
   position: absolute;
-  right: -0.4rem;
-  width: 0.8rem;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: move;
+  touch-action: none;
 }
+
+.dp-image-resize {
+  background: var(--color-surface, #fff);
+  border: 1px solid currentColor;
+  bottom: -0.75rem;
+  cursor: nwse-resize;
+  height: 1.5rem;
+  position: absolute;
+  right: -0.75rem;
+  width: 1.5rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+}
+
+.dp-image-box button:focus-visible { outline: 2px solid #1f6ca1; outline-offset: 2px; }
+
+.dp-editor-pages { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; padding:.5rem; flex-shrink:0; border-bottom:1px solid var(--color-rule,#ccc); }
+.dp-editor-pages label { display:flex; align-items:center; gap:.4rem; }
+.dp-editor-pages input { width:5.5rem; }
+.dp-source-setup > summary { cursor:pointer; display:list-item; }
+.dp-source-setup > summary strong { font-size:1.2rem; }
+.dp-source-setup > summary small { display:block; margin-top:.3rem; color:var(--color-ink-muted,#667); }
+.dp-crop-toolbar input[type="number"] { max-width:7rem; }
+.dp-modal-title-row { flex-wrap:wrap; }
+.dp-modal-header-actions { flex-wrap:wrap; }
 
 .dp-image-details {
   border: 1px solid var(--border-color, #d7d1c7);

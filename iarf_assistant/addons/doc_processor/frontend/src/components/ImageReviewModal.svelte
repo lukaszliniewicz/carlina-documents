@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Icon, confirmDiscardChanges } from "@carlina/ui";
   import { createEventDispatcher, onDestroy } from "svelte";
   import { loadCompletedImageCrops, loadImageReviewPages, saveCompletedImageCrops, saveImageReviewPages } from "../lib/api";
   import type { ImageReviewItem, ImageReviewPage } from "../lib/types";
@@ -25,6 +26,9 @@
   let overlay: HTMLDivElement;
   let loadGeneration = 0;
   let loadAbortController: AbortController | null = null;
+  let dirtyPages = new Set<number>();
+  let dragFrame: number | null = null;
+  let pendingPoint: { x: number; y: number } | null = null;
   let drag:
     | {
         mode: "move" | "resize";
@@ -33,6 +37,8 @@
         startY: number;
         initial: [number, number, number, number];
         rect: DOMRect;
+        pointerId: number;
+        target: HTMLElement;
       }
     | null = null;
 
@@ -43,7 +49,9 @@
 
   $: if (!open) {
     loadAbortController?.abort();
+    if (lastDocumentId) loadGeneration += 1;
     lastDocumentId = null;
+    saving = false;
   }
 
   $: currentPage = pages[pageIndex] || null;
@@ -54,7 +62,7 @@
     image.bbox[0] < image.bbox[2] && image.bbox[1] < image.bbox[3]
   )));
 
-  onDestroy(() => loadAbortController?.abort());
+  onDestroy(() => { loadAbortController?.abort(); if (dragFrame !== null) cancelAnimationFrame(dragFrame); });
 
   async function initialize(id: string) {
     const generation = ++loadGeneration;
@@ -65,6 +73,7 @@
     error = "";
     pages = [];
     originalPages = [];
+    dirtyPages = new Set();
     expectedUpdatedAt = "";
     pageCount = 0;
     sourcePageInvalid = false;
@@ -92,28 +101,36 @@
   }
 
   function selectPage(index: number) {
-    drag = null;
+    finishDrag();
     pageIndex = index;
     imageIndex = pages[index]?.images.findIndex((image) => image.keep !== false) ?? 0;
     if (imageIndex < 0) imageIndex = 0;
+  }
+
+  function replacePage(index: number, page: ImageReviewPage) {
+    const nextPages = [...pages];
+    nextPages[index] = page;
+    pages = nextPages;
+    const changed = new Set(dirtyPages);
+    if (JSON.stringify(page) === JSON.stringify(originalPages[index])) changed.delete(index);
+    else changed.add(index);
+    dirtyPages = changed;
   }
 
   function updateSelected(patch: Partial<ImageReviewItem>) {
     if (!currentPage || !selectedImage) {
       return;
     }
-    const nextPages = [...pages];
     const page = { ...currentPage, images: [...currentPage.images] };
     page.images[imageIndex] = { ...selectedImage, ...patch };
-    nextPages[pageIndex] = page;
-    pages = nextPages;
+    replacePage(pageIndex, page);
   }
 
   function selectSourcePage(raw: string) {
     if (!currentPage || !documentId || currentPage.source_kind !== "saved_image") return;
     sourcePageInvalid = false;
     if (!raw.trim()) {
-      pages = pages.map((page, index) => index === pageIndex ? structuredClone(originalPages[index]) : page);
+      replacePage(pageIndex, structuredClone(originalPages[pageIndex]));
       error = "";
       return;
     }
@@ -124,19 +141,18 @@
       return;
     }
     error = "";
-    pages = pages.map((page, index) => index === pageIndex ? {
-      ...page,
+    replacePage(pageIndex, {
+      ...currentPage,
       source_page_index: sourcePageIndex,
       image_url: `/addons/doc_processor/api/documents/${documentId}/pdf-pages/${sourcePageIndex}/thumbnail?width=1800`,
-      images: page.images.map((image) => ({ ...image, bbox: [0, 0, 1000, 1000] }))
-    } : page);
+      images: currentPage.images.map((image) => ({ ...image, bbox: [0, 0, 1000, 1000] }))
+    });
   }
 
   function addBox() {
     if (!currentPage) {
       return;
     }
-    const nextPages = [...pages];
     const page = { ...currentPage, images: [...currentPage.images] };
     const nextIndex = page.images.length;
     page.images.push({
@@ -145,8 +161,7 @@
       caption: "",
       keep: true
     });
-    nextPages[pageIndex] = page;
-    pages = nextPages;
+    replacePage(pageIndex, page);
     imageIndex = nextIndex;
   }
 
@@ -165,7 +180,7 @@
     ].join(";");
   }
 
-  function beginDrag(event: MouseEvent, itemIndex: number, mode: "move" | "resize") {
+  function beginDrag(event: PointerEvent, itemIndex: number, mode: "move" | "resize") {
     if (!overlay || !currentPage) {
       return;
     }
@@ -178,17 +193,28 @@
       startX: event.clientX,
       startY: event.clientY,
       initial: [...currentPage.images[itemIndex].bbox] as [number, number, number, number],
-      rect: overlay.getBoundingClientRect()
+      rect: overlay.getBoundingClientRect(),
+      pointerId: event.pointerId,
+      target: event.currentTarget as HTMLElement
     };
+    drag.target.setPointerCapture?.(event.pointerId);
   }
 
-  function handleMouseMove(event: MouseEvent) {
+  function handlePointerMove(event: PointerEvent) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    event.preventDefault();
+    pendingPoint = { x: event.clientX, y: event.clientY };
+    if (dragFrame === null) dragFrame = requestAnimationFrame(() => { dragFrame = null; applyPoint(); });
+  }
+
+  function applyPoint() {
     if (!drag || !currentPage || !drag.rect.width || !drag.rect.height) {
       return;
     }
-    event.preventDefault();
-    const dx = ((event.clientX - drag.startX) / drag.rect.width) * 1000;
-    const dy = ((event.clientY - drag.startY) / drag.rect.height) * 1000;
+    if (!pendingPoint) return;
+    const dx = ((pendingPoint.x - drag.startX) / drag.rect.width) * 1000;
+    const dy = ((pendingPoint.y - drag.startY) / drag.rect.height) * 1000;
+    pendingPoint = null;
     const [yMin, xMin, yMax, xMax] = drag.initial;
     let next: [number, number, number, number];
 
@@ -207,22 +233,49 @@
       ];
     }
 
-    const nextPages = [...pages];
     const page = { ...currentPage, images: [...currentPage.images] };
     page.images[drag.itemIndex] = { ...page.images[drag.itemIndex], bbox: next };
-    nextPages[pageIndex] = page;
-    pages = nextPages;
+    replacePage(pageIndex, page);
   }
 
   function finishDrag() {
+    applyPoint();
+    if (dragFrame !== null) cancelAnimationFrame(dragFrame);
+    dragFrame = null;
+    pendingPoint = null;
+    if (drag?.target.hasPointerCapture?.(drag.pointerId)) drag.target.releasePointerCapture(drag.pointerId);
     drag = null;
   }
+
+  function adjustWithKeyboard(event: KeyboardEvent, index: number, mode: "move" | "resize") {
+    const page = pages[pageIndex];
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) || !page) return;
+    event.preventDefault();
+    imageIndex = index;
+    const step = event.shiftKey ? 10 : 1;
+    const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+    const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+    const [top,left,bottom,right] = page.images[index].bbox;
+    let bbox: ImageReviewItem["bbox"];
+    if (mode === "resize") bbox = [top,left,clamp(bottom + dy,top + 10,1000),clamp(right + dx,left + 10,1000)];
+    else {
+      const nextLeft = clamp(left + dx,0,1000 - (right-left));
+      const nextTop = clamp(top + dy,0,1000 - (bottom-top));
+      bbox = [nextTop,nextLeft,nextTop + bottom-top,nextLeft + right-left];
+    }
+    replacePage(pageIndex, { ...page, images: page.images.map((image,i) => i === index ? { ...image,bbox } : image) });
+  }
+
+  async function close() { if (await confirmDiscardChanges({ dirty: dirtyPages.size > 0, busy: saving })) dispatch("close"); }
+  async function reload() { if (documentId && await confirmDiscardChanges({ dirty: dirtyPages.size > 0, busy: saving })) void initialize(documentId); }
 
   async function submit() {
     if (!documentId) {
       return;
     }
     saving = true;
+    const id = documentId;
+    const generation = loadGeneration;
     error = "";
     try {
       if (completed) {
@@ -230,23 +283,23 @@
       } else {
         await saveImageReviewPages(documentId, pages);
       }
-      dispatch("saved");
+      if (open && documentId === id && generation === loadGeneration) { dirtyPages = new Set(); dispatch("saved"); }
     } catch (err) {
-      error = err instanceof Error ? err.message : "Failed to save image review.";
+      if (open && documentId === id && generation === loadGeneration) error = err instanceof Error ? err.message : "Failed to save image review.";
     } finally {
-      saving = false;
+      if (documentId === id && generation === loadGeneration) saving = false;
     }
   }
 </script>
 
-<svelte:window on:mousemove={handleMouseMove} on:mouseup={finishDrag} />
+<svelte:window on:pointermove={handlePointerMove} on:pointerup={finishDrag} on:pointercancel={finishDrag} />
 
-<BaseModal {open} title={completed ? "Adjust Image Crops" : "Correct Image Bounding Boxes"} size="full" on:close={() => { if (!saving) dispatch("close"); }}>
+<BaseModal {open} dirty={dirtyPages.size > 0} busy={saving} title={completed ? "Adjust Image Crops" : "Correct Image Bounding Boxes"} size="full" on:close={() => dispatch("close")}>
   <div class="dp-image-review" inert={saving}>
     {#if error}
       <div class="dp-notice error">
         {error}
-        {#if completed}<button class="button" type="button" disabled={loading || saving} on:click={() => { if (documentId) initialize(documentId); }}>Reload image crops</button>{/if}
+        {#if completed}<button class="button" type="button" disabled={loading || saving} on:click={reload}>Reload image crops</button>{/if}
       </div>
     {/if}
 
@@ -284,7 +337,7 @@
 
       {#if !completed}
         <button class="button" type="button" disabled={!currentPage} on:click={addBox}>
-          <i class="fa-solid fa-plus"></i> Add Box
+          <Icon name="plus" size={16} /> Add Box
         </button>
       {/if}
 
@@ -309,6 +362,7 @@
             <label>Bottom <input type="number" min="0" max="1000" value={selectedImage.bbox[2]} on:input={(event) => updateSelected({ bbox: [selectedImage.bbox[0], selectedImage.bbox[1], Number(event.currentTarget.value), selectedImage.bbox[3]] })} /></label>
             <label>Right <input type="number" min="0" max="1000" value={selectedImage.bbox[3]} on:input={(event) => updateSelected({ bbox: [selectedImage.bbox[0], selectedImage.bbox[1], selectedImage.bbox[2], Number(event.currentTarget.value)] })} /></label>
           </div>
+          <small id="image-edit-help">Coordinates run from 0 to 1000 across the full page. Drag a box or use arrow keys to move it; use its corner handle to resize. Hold Shift for larger steps.</small>
           {#if !validBoxes}<small>Each box needs a positive width and height, with coordinates from 0 to 1000.</small>{/if}
           {#if !completed}<button class="button danger" type="button" on:click={removeBox}>Remove Image</button>{/if}
         </div>
@@ -322,43 +376,37 @@
           <div bind:this={overlay} class="dp-image-overlay">
             {#each currentPage.images as item, index}
               {#if item.keep !== false}
-                <button
-                  type="button"
-                  aria-label={`Select image ${item.img_idx + 1}`}
-                  title={`Image ${item.img_idx + 1}`}
+                <div
                   class:selected={index === imageIndex}
                   class="dp-image-box"
                   style={boxStyle(item)}
-                  on:mousedown={(event) => beginDrag(event, index, "move")}
-                  on:click={() => (imageIndex = index)}
                 >
-                  <span
-                    role="button"
-                    tabindex="0"
+                  <button type="button" class="dp-image-box-move" aria-label={`Select image ${item.img_idx + 1}`} aria-describedby="image-edit-help" title="Move image: drag or use arrow keys" on:pointerdown={(event) => beginDrag(event,index,"move")} on:click={() => imageIndex = index} on:keydown={(event) => adjustWithKeyboard(event,index,"move")}></button>
+                  <button
+                    type="button"
+                    class="dp-image-resize"
                     aria-label={`Resize image ${item.img_idx + 1}`}
-                    title="Resize"
-                    on:mousedown={(event) => beginDrag(event, index, "resize")}
-                    on:keydown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                      }
-                    }}
-                  ></span>
-                </button>
+                    title="Resize image: drag or use arrow keys"
+                    aria-describedby="image-edit-help"
+                    on:pointerdown={(event) => beginDrag(event, index, "resize")}
+                    on:click={() => imageIndex = index}
+                    on:keydown={(event) => adjustWithKeyboard(event,index,"resize")}
+                  ><Icon name="crop" size={12} /></button>
+                </div>
               {/if}
             {/each}
           </div>
         </div>
       {:else}
-        <div class="dp-empty-state"><i class="fa-regular fa-image"></i><span>No page selected.</span></div>
+        <div class="dp-empty-state"><Icon name="image" size={20} /><span>No page selected.</span></div>
       {/if}
     </section>
   </div>
 
   <div slot="footer" class="dp-modal-footer">
-    <button class="button ghost" type="button" disabled={saving} on:click={() => dispatch("close")}>Cancel</button>
+    <button class="button ghost" type="button" disabled={saving} on:click={close}>Cancel</button>
     <button class="button success" type="button" disabled={saving || loading || !pages.length || !validBoxes || sourcePageInvalid || (completed && !expectedUpdatedAt)} on:click={submit}>
-      {#if saving}<i class="fa-solid fa-spinner fa-spin"></i>{/if}
+      {#if saving}<Icon name="refresh" size={16} class="dp-spin" />{/if}
       {completed ? "Save image crops" : "Save and Continue"}
     </button>
   </div>

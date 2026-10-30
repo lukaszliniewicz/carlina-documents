@@ -1,5 +1,28 @@
 # Extraction cleanup and efficient passive workers
 
+## Reviewing and correcting a document
+
+Open a completed document and choose **Correct text** to proofread its extraction.
+The editor shows 30 blocks at a time; use Previous/Next or the text-block number to
+move through a book. Corrections stay in the editor when changing pages. Words in
+links or formatted passages have separate fields, so proofreading does not require
+editing HTML. Lists, tables, figures, note links, identifiers and element order
+remain protected. Structural repairs remain separate actions.
+
+**Compare PDF** displays the source beside the extraction, with page navigation,
+zoom and the original-file download. Pages are rendered by Carlina one at a time;
+the browser does not need an embedded PDF viewer. Crop review has a page-number
+jump and optional percentage coordinates. Image-crop coordinates use a 0–1000
+scale; boxes can also be moved or resized with arrow keys, using Shift for larger
+steps.
+
+Closing a changed review asks before discarding corrections. Page reloads and
+navigation also warn about unsaved work, and in-progress saves block dialog
+dismissal. Save conflicts keep the local correction available rather than
+overwriting a newer document. Copy any corrections you need before explicitly
+reloading the current version. This is protection for the current editing
+session, not permanent draft storage or document version history.
+
 ## Extraction issue ledger
 
 New passive, issue-aware PDF batches carry a bounded `issues` array per page alongside

@@ -2,7 +2,7 @@
   import { EmptyState, Icon, SearchField } from "@carlina/ui";
   import { createEventDispatcher } from "svelte";
   import type { ProcessedDocument } from "../lib/types";
-  import { isActiveDocumentStatus } from "../lib/utils";
+  import { isActiveDocumentStatus, needsDocumentAttention } from "../lib/utils";
   import DocumentCard from "./DocumentCard.svelte";
 
   export let documents: ProcessedDocument[] = [];
@@ -26,7 +26,7 @@
   function matchesStatus(document: ProcessedDocument, filter: string): boolean {
     if (filter === "active") return isActiveDocumentStatus(document.status);
     if (filter === "ready") return ["completed", "completed_with_errors"].includes(document.status);
-    if (filter === "review") return ["error", "needs_cropping", "reviewing_images", "paused"].includes(document.status);
+    if (filter === "review") return needsDocumentAttention(document.status);
     return true;
   }
 

@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from "svelte";
   import { installNotePopovers } from "../lib/note-popovers.js";
   import { preparePreviewDocument } from "../lib/preview-document.js";
-  import { Dialog, EpubCoverCrop, EpubEditionControls, EpubImageFormat, EpubReviewPanel, IconButton, prepareDownload, requireEpubEdition, requireEpubPreflight, resetEpubCoverReview, withEpubReviewAnchors } from "@carlina/ui";
+  import { Dialog, EpubCoverCrop, EpubEditionControls, EpubImageFormat, EpubReviewPanel, IconButton, guardUnsavedChanges, prepareDownload, requireEpubEdition, requireEpubPreflight, resetEpubCoverReview, withEpubReviewAnchors } from "@carlina/ui";
   import { createApiClient, createIdempotencyKey, isAbortError } from "../lib/api.js";
   import { createAbortController } from "../lib/request-state.js";
   import { createPollingController, pollUntil } from "../lib/polling.js";
@@ -1759,7 +1759,7 @@
   });
 </script>
 
-<main class="block-workspace" data-testid="block-workspace" use:installNotePopovers>
+<main class="block-workspace" data-testid="block-workspace" use:installNotePopovers use:guardUnsavedChanges={{ dirty: Object.keys(drafts).length > 0 || sentenceEditingBlocks.size > 0, busy: savingBlocks.size > 0 }}>
   <div class="workspace-toolbar" role="group" aria-label="Document tools">
     <div class="toolbar-context">
       <span class="engine-badge">{reviewMode === "aligned_sentences" ? "Aligned sentence groups" : "Semantic blocks"}</span>
@@ -1773,6 +1773,7 @@
     <div class="toolbar-actions">
       <IconButton
         icon="eye"
+        showLabel={true}
         label={previewLoading ? "Loading preview…" : "Preview document"}
         disabled={!allBlocksActive || previewLoading}
         title={!allBlocksActive ? "Finish and save every block before previewing." : "Preview document"}
@@ -1792,6 +1793,7 @@
       {#if ownerAccess && !selectionMode && targetSummary.total_blocks > targetSummary.active_targets}
         <IconButton
           icon="play"
+          showLabel={true}
           label={operationActive ? "Translation in progress" : translationBusy ? "Starting translation…" : "Translate remaining blocks"}
           title="Translate remaining blocks using the project's saved model and reasoning preference."
           disabled={loading || selectionActionsDisabled}
@@ -1825,6 +1827,7 @@
       <div class="toolbar-export" data-testid="block-export-actions" class:export-running={exportBusy}>
         <IconButton
           icon="download"
+          showLabel={true}
           label={exportBusy ? "View export progress" : "Export document"}
           disabled={!ownerAccess || (!exportStatus && (operationActive || !allBlocksVerified || settingsBusy))}
           title={exportStatus ? "View export details" : !ownerAccess ? "Only the project owner can download exports." : operationActive ? "An operation is already active." : !allBlocksVerified ? "Finish and save every block before downloading." : "Download EPUB, DOCX, PDF, or HTML"}
@@ -1855,7 +1858,7 @@
       {/if}
       <p class="eyebrow">Translation workspace</p>
       <h1>{workspaceProject.name || "Translation Project"}</h1>
-      <p class="workspace-description">Review the source beside its active translation, maintain reader annotations and terminology, and keep every correction auditable.</p>
+      <p class="workspace-description">Read the source and translation side by side, correct passages, and keep notes and terminology consistent.</p>
       <p class="direction"><strong>{workspaceProject.source_lang || "Source"}</strong> <span aria-hidden="true">→</span> <strong>{workspaceProject.target_lang || "Target"}</strong></p>
     </div>
   </header>

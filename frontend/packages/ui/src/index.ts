@@ -11,6 +11,7 @@ export interface OverlayController<Result = unknown> {
 }
 
 export { classNames, prepareDownload } from "./utilities.ts";
+export { confirmDiscardChanges, guardUnsavedChanges } from "./unsaved-changes.ts";
 
 export { default as Badge } from "./Badge.svelte";
 export { default as Button } from "./Button.svelte";

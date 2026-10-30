@@ -2828,7 +2828,25 @@ def update_document_content(document_id):
         id=document_id, user_id=current_user.id
     ).first_or_404()
     data = request.get_json(silent=True) or {}
-    if "output_html" not in data:
+
+    raw_revision = data.get("expected_updated_at") if isinstance(data, dict) else None
+    if raw_revision is None:
+        raw_revision = request.headers.get("If-Match")
+    if raw_revision is not None and (
+        not isinstance(raw_revision, str) or len(raw_revision) > 128
+    ):
+        return jsonify({"error": "The document revision token is invalid."}), 400
+
+    expected_revision = _requested_document_revision(data)
+    if not expected_revision:
+        return jsonify(
+            {
+                "error": "Reload the document before saving corrections.",
+                "code": "revision_required",
+            }
+        ), 428
+
+    if not isinstance(data, dict) or "output_html" not in data:
         return jsonify({"error": "Missing output_html."}), 400
     if not isinstance(data.get("output_html"), str):
         return jsonify({"error": "output_html must be a string."}), 400
@@ -2848,19 +2866,50 @@ def update_document_content(document_id):
                 "error": "The edited document has invalid semantic references and was not saved."
             }
         ), 400
-    document.settings = semantic_settings(document.settings, semantic)
-    document.output_html = semantic.html
-    document.output_markdown = html_to_markdown_on_the_fly(semantic.html)
-    document.status = "completed"
-    document.error_message = None
-    document.settings["metadata_stale"] = True
-    flag_modified(document, "settings")
-    from .knowledge_adapter import sync_processed_document_source
 
-    sync_processed_document_source(document)
-    db.session.commit()
+    try:
+        document, conflict = _claim_metadata_mutation(
+            document,
+            data,
+            expected_revision=expected_revision,
+            include_document=False,
+        )
+    except Exception:
+        db.session.rollback()
+        raise
+    if conflict is not None:
+        db.session.rollback()
+        latest_document = ProcessedDocument.query.filter_by(
+            id=document_id, user_id=current_user.id
+        ).first_or_404()
+        return jsonify(
+            {
+                "error": "The document changed while you were editing. Your corrections have not been saved. Reload the current document before saving.",
+                "code": "revision_conflict",
+                "document": _build_document_payload(
+                    latest_document, include_output=True
+                ),
+            }
+        ), 409
 
-    payload = _build_document_payload(document, include_output=True)
+    try:
+        document.settings = semantic_settings(document.settings, semantic)
+        document.output_html = semantic.html
+        document.output_markdown = html_to_markdown_on_the_fly(semantic.html)
+        document.status = "completed"
+        document.error_message = None
+        document.settings["metadata_stale"] = True
+        flag_modified(document, "settings")
+        from .knowledge_adapter import sync_processed_document_source
+
+        sync_processed_document_source(document)
+        db.session.flush()
+        payload = _build_document_payload(document, include_output=True)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
     return jsonify(payload)
 
 

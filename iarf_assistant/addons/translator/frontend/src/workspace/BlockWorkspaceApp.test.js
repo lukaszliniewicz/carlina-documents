@@ -835,6 +835,23 @@ describe("BlockWorkspaceApp presentation", () => {
 });
 
 describe("BlockWorkspaceApp conflict handling", () => {
+  it("guards navigation while a translation has unsaved changes and releases the guard after saving", async () => {
+    vi.stubGlobal("fetch",vi.fn((url,options={})=>{
+      if (String(url).includes('/block-workspace')) return Promise.resolve(jsonResponse(workspace(block(candidate,1))));
+      if (options.method==='PUT') return Promise.resolve(jsonResponse({success:true,block:block({...candidate,parts:[{kind:'text',text:'Saved correction'}]},2)}));
+      throw new Error(`Unexpected request: ${url}`);
+    }));
+    const view=render(BlockWorkspaceApp,{props:{project:{id:'project-1',engine_contract:'document-block-v1'},bootstrapData:{projectId:'project-1'}}});
+    await waitFor(()=>expect(view.container.querySelector('[contenteditable="true"]')).toBeTruthy());
+    vi.spyOn(window,'confirm').mockReturnValue(false);
+    const editor=view.container.querySelector('[contenteditable="true"]');editor.textContent='Saved correction';await fireEvent.input(editor);
+    expect(window.dispatchEvent(new Event('carlina:before-navigate',{cancelable:true}))).toBe(false);
+    expect(window.dispatchEvent(new Event('beforeunload',{cancelable:true}))).toBe(false);
+    expect(editor.textContent).toBe('Saved correction');
+    await fireEvent.click(view.getByRole('button',{name:'Save translation',exact:true}));
+    await waitFor(()=>expect(view.queryByRole('button',{name:'Save translation',exact:true})).toBeNull());
+    await waitFor(()=>expect(window.dispatchEvent(new Event('carlina:before-navigate',{cancelable:true}))).toBe(true));
+  });
   it("uses latest_block, preserves the local draft, and blocks saving until explicit reload", async () => {
     const latestCandidate = { ...candidate, parts: [{ kind: "text", text: "server latest" }] };
     const latestBlock = block(latestCandidate, 2);

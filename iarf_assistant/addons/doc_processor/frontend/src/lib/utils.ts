@@ -1,5 +1,9 @@
 import type { DocumentProject, ModelOption, ProcessedDocument } from "./types";
 
+export function needsDocumentAttention(status: string): boolean {
+  return ["error", "needs_cropping", "reviewing_images", "paused", "suspended", "completed_with_errors"].includes(status);
+}
+
 export function normalizeModels(rawModels: unknown): ModelOption[] {
   if (!Array.isArray(rawModels)) {
     return [];

@@ -68,7 +68,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
       typeof payload === "object" && payload && "error" in payload
         ? String((payload as { error?: unknown }).error || "Request failed.")
         : String(payload || "Request failed.");
-    throw new Error(message);
+    throw Object.assign(new Error(message), { status: response.status, payload });
   }
 
   return payload as T;
@@ -190,12 +190,16 @@ export function getSourceFileUrl(documentId: string, disposition: "inline" | "at
   return `/addons/doc_processor/api/documents/${documentId}/source-file?disposition=${disposition}`;
 }
 
-export async function updateDocumentContent(documentId: string, outputHtml: string): Promise<ProcessedDocument> {
+export async function updateDocumentContent(documentId: string, outputHtml: string, expectedUpdatedAt: string): Promise<ProcessedDocument> {
   return requestJson<ProcessedDocument>(`/addons/doc_processor/api/documents/${documentId}/content`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ output_html: outputHtml })
+    body: JSON.stringify({ output_html: outputHtml, expected_updated_at: expectedUpdatedAt })
   });
+}
+
+export function getPdfPageImageUrl(documentId: string, pageIndex: number, revision = ""): string {
+  return `/addons/doc_processor/api/documents/${encodeURIComponent(documentId)}/pdf-pages/${pageIndex}/thumbnail?width=1800&revision=${encodeURIComponent(revision)}`;
 }
 
 export async function updateDocumentMetadata(
