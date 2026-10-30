@@ -88,21 +88,21 @@ when the passage needs it.
 
 ## Download
 
-**Version 0.2.0a3 is an early installer preview.** Choose a download below, or use
+**Version 0.2.0a4 is an early installer preview.** Choose a download below, or use
 the source checkout instructions further down.
 
 | System | Download |
 |---|---|
-| Linux x86-64 | [AppImage](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/Carlina_Documents-0.2.0a3-x86_64.AppImage) |
-| Linux x86-64, terminal setup | [Shell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/install-carlina-documents-linux-64.sh) |
-| Windows 11 x86-64 | [Setup EXE](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/Carlina_Documents-0.2.0a3-Setup-x86_64.exe) |
+| Linux x86-64 | [AppImage](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a4/Carlina_Documents-0.2.0a4-x86_64.AppImage) |
+| Linux x86-64, terminal setup | [Shell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a4/install-carlina-documents-linux-64.sh) |
+| Windows 11 x86-64 | [Setup EXE](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a4/Carlina_Documents-0.2.0a4-Setup-x86_64.exe) |
 
 See the [installation instructions](docs/documents-application.md#packaged-downloads)
 before running a download. Initial setup needs internet access. The Windows
 installer is unsigned. All downloads, checksums and source files are on the
 [Releases page](https://github.com/lukaszliniewicz/carlina-documents/releases).
 On Windows, double-click the EXE and follow the setup window; Python is included.
-The [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a3/install-carlina-documents-win-64.ps1)
+The [PowerShell installer](https://github.com/lukaszliniewicz/carlina-documents/releases/download/v0.2.0a4/install-carlina-documents-win-64.ps1)
 remains available for terminal setup.
 The AppImage setup needs systemd 254 or newer, cgroup v2 and an X11 or XWayland
 desktop session.

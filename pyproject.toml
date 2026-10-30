@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "carlina"
-version = "0.2.0a3"
+version = "0.2.0a4"
 description = "Shared Carlina runtime and native document extraction and translation"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"

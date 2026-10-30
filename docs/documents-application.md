@@ -15,7 +15,7 @@ to run a checkout.
 
 ### Packaged downloads
 
-Download the AppImage for Linux or `Carlina_Documents-0.2.0a3-Setup-x86_64.exe`
+Download the AppImage for Linux or `Carlina_Documents-0.2.0a4-Setup-x86_64.exe`
 for Windows. Double-click the Windows EXE and follow the setup window; it includes
 Python, so you do not need to install Python separately. The other runtime files in a
 release are downloaded by these installers. Initial setup needs internet access.
@@ -26,10 +26,10 @@ On Linux, make the AppImage executable and run it. If FUSE is unavailable, use
 the runtime's extract-and-run option:
 
 ```sh
-chmod +x Carlina_Documents-0.2.0a3-x86_64.AppImage
-./Carlina_Documents-0.2.0a3-x86_64.AppImage
+chmod +x Carlina_Documents-0.2.0a4-x86_64.AppImage
+./Carlina_Documents-0.2.0a4-x86_64.AppImage
 # Fallback when mounting with FUSE is unavailable:
-./Carlina_Documents-0.2.0a3-x86_64.AppImage --appimage-extract-and-run
+./Carlina_Documents-0.2.0a4-x86_64.AppImage --appimage-extract-and-run
 ```
 
 The shell installer is an alternative:
