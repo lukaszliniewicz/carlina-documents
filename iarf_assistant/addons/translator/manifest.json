@@ -1,7 +1,7 @@
 {
   "id": "translator",
   "name": "AI Translator Workspace",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "package_format_version": 1,
   "addon_api": {
     "requires": ">=1,<2"
