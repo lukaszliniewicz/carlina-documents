@@ -58,15 +58,16 @@ REQUIRED_CORE_ARTIFACT_MEMBERS = (
     "iarf_assistant/templates/public_layout.html",
 )
 CORE_FRONTEND_MANIFEST_MEMBER = "iarf_assistant/static/frontend/manifest.json"
-# Publishing-v2 adds four modules, two migrations, two UI components and five tests.
-MAX_WHEEL_FILES = 1_264
-MAX_SDIST_FILES = 2_248
+# The dev23 bilingual export and separately versioned add-on metadata produce
+# 1,276 wheel members and 2,285 source members. Keep a narrowly measured bound.
+MAX_WHEEL_FILES = 1_280
+MAX_SDIST_FILES = 2_290
 MAX_FILES = {"wheel": MAX_WHEEL_FILES, "sdist": MAX_SDIST_FILES}
-# dev22's JPEG encoder, selector and contracts measure 26,409,040 / 43,543,823
-# bytes. Keep member/expanded-size limits and a narrow measured byte envelope.
+# Reviewed dev23 candidate measures 26,782,308 wheel / 44,690,788 sdist
+# bytes before this ratchet-only source edit. Keep expansion budgets unchanged.
 MAX_ARCHIVE_BYTES = {
-    "wheel": 26_410_000,
-    "sdist": 43_550_000,
+    "wheel": 26_800_000,
+    "sdist": 44_710_000,
 }
 MAX_EXPANDED_BYTES = {
     "wheel": 80 * 1024 * 1024,
