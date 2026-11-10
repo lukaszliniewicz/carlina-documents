@@ -657,6 +657,77 @@ class TranslatorRouteWorkerBoundaryTests(unittest.TestCase):
         )
         review_snapshot.assert_called_once_with(project, requirement="none")
 
+    def test_bilingual_export_route_request_and_worker_fingerprint_agree(self):
+        """Exercise both independent route payloads and the actual worker verifier."""
+        from iarf_assistant.addons.translator import worker
+
+        app = self._app()
+        project = SimpleNamespace(
+            id="project-1",
+            user_id=7,
+            name="Test book",
+            target_lang="en",
+            engine_contract="document-block-v1",
+            source_content_hash="a" * 64,
+            settings={"semantic_export_reference": {"version": 1}},
+        )
+        record = SimpleNamespace(id="plan-1", plan_hash="b" * 64)
+        provider = SimpleNamespace(
+            provider_reference=lambda: {
+                "version": 1,
+                "capability": "document.semantic_export",
+                "provider_addon_id": "doc_processor",
+                "provider_capability_id": "semantic_export",
+            }
+        )
+        operation = self._operation()
+        operation.kind = "document_block_export"
+        with app.test_request_context(
+            "/addons/translator/api/projects/project-1/export?format=docx",
+            method="POST",
+            json={"bilingual_layout": "parallel"},
+        ):
+            g.project = project
+            g.is_guest = False
+            with (
+                patch.object(routes, "current_user", SimpleNamespace(id=7)),
+                patch.object(routes, "is_document_block_engine", return_value=True),
+                patch.object(
+                    routes,
+                    "load_block_source_plan",
+                    return_value=SimpleNamespace(record=record),
+                ),
+                patch.object(routes, "_semantic_export_provider", return_value=provider),
+                patch(
+                    "iarf_assistant.addons.translator.numbering_sync.numbering_revision",
+                    return_value=0,
+                ),
+                patch.object(
+                    routes, "_publish_operation", return_value=(operation, None)
+                ) as publish,
+                patch(
+                    "iarf_assistant.addons.translator.review_coverage.snapshot_export_review",
+                    return_value={"requirement": "none", "sha256": "c" * 64},
+                ),
+            ):
+                response, status = routes.export_project.__wrapped__("project-1")
+
+        self.assertEqual(status, 202)
+        self.assertEqual(response.get_json()["format"], "docx")
+        admitted = publish.call_args.kwargs["request_payload"]
+        delivered = publish.call_args.kwargs["queue_payload"]
+        self.assertEqual(admitted["bilingual_layout"], "parallel")
+        self.assertEqual(delivered["bilingual_layout"], "parallel")
+        operation.source_content_hash = admitted["source_content_hash"]
+        operation.source_plan_id = admitted["source_plan_id"]
+        operation.source_plan_hash = admitted["source_plan_hash"]
+        operation.request_fingerprint = worker.canonical_request_fingerprint(admitted)
+        self.assertEqual(worker._export_metadata_for_operation(delivered, operation), {})
+        with self.assertRaisesRegex(ValueError, "metadata changed"):
+            worker._export_metadata_for_operation(
+                {**delivered, "bilingual_layout": "none"}, operation
+            )
+
     def test_block_export_explicit_auto_uses_legacy_absent_mode_field(self):
         app = self._app()
         project = SimpleNamespace(

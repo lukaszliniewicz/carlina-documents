@@ -381,6 +381,12 @@ def _export_metadata_for_operation(payload: Mapping[str, object], operation) -> 
     for field in ("review_manifest", "review_requirement"):
         if field in payload:
             request[field] = payload[field]
+    if "bilingual_layout" in payload:
+        from .bilingual_export import validate_bilingual_layout
+
+        request["bilingual_layout"] = validate_bilingual_layout(
+            payload["bilingual_layout"], str(payload.get("format") or "").lower()
+        )
     if canonical_request_fingerprint(request) != operation.request_fingerprint:
         raise ValueError("Semantic export metadata changed before execution.")
     return export_metadata

@@ -791,6 +791,47 @@ def test_block_export_rejects_queue_metadata_drift_even_after_checkpoint_replace
         )
 
 
+@pytest.mark.parametrize(
+    ("export_format", "layout"),
+    [("html", "parallel"), ("docx", "parallel"), ("pdf", "parallel"), ("epub", "alternating")],
+)
+def test_block_export_bilingual_layout_matches_admission_fingerprint(export_format, layout):
+    """The API fingerprints the layout; the queued worker must verify exactly it."""
+    operation = SimpleNamespace(
+        source_content_hash="a" * 64,
+        source_plan_id="plan-1",
+        source_plan_hash="b" * 64,
+    )
+    payload = {
+        "format": export_format,
+        "numbering_revision": 2,
+        "export_metadata": {"title": "Pinned title"},
+        "semantic_export_provider": {"capability": "document.semantic_export"},
+        "bilingual_layout": layout,
+        "review_manifest": {"sha256": "c" * 64},
+        "review_requirement": "bilingual",
+    }
+    operation.request_fingerprint = worker.canonical_request_fingerprint(
+        {
+            **payload,
+            "source_content_hash": operation.source_content_hash,
+            "source_plan_id": operation.source_plan_id,
+            "source_plan_hash": operation.source_plan_hash,
+        }
+    )
+    assert worker._export_metadata_for_operation(payload, operation) == {"title": "Pinned title"}
+
+    for altered in (
+        {key: value for key, value in payload.items() if key != "bilingual_layout"},
+        {**payload, "bilingual_layout": "none"},
+    ):
+        with pytest.raises(ValueError, match="metadata changed"):
+            worker._export_metadata_for_operation(altered, operation)
+
+    with pytest.raises(ValueError, match="bilingual-layout-invalid"):
+        worker._export_metadata_for_operation({**payload, "bilingual_layout": "bogus"}, operation)
+
+
 def test_block_export_review_manifest_is_bound_to_admission_fingerprint():
     operation = SimpleNamespace(source_content_hash="a" * 64, source_plan_id="plan-1", source_plan_hash="b" * 64)
     payload = {"format": "epub", "semantic_export_provider": {}, "review_requirement": "bilingual", "review_manifest": {"sha256": "c" * 64}}
