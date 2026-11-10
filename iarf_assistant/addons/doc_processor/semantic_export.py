@@ -380,6 +380,26 @@ def _standalone_html(
             raise SemanticExportError("semantic-export-html-resource-media")
         encoded = base64.b64encode(resolved[ref]).decode("ascii")
         image["src"] = f"data:{resource.media_type.lower()};base64,{encoded}"
+    if request.metadata.get("bilingual-layout") == "parallel":
+        # The verified semantic request contains no executable or styling tags.
+        # Apply the fixed local presentation only in the downloaded HTML copy.
+        head = soup.head
+        if head is None:
+            head = soup.new_tag("head")
+            root = soup.html
+            if root is not None:
+                root.insert(0, head)
+            else:
+                soup.insert(0, head)
+        stylesheet = soup.new_tag("style")
+        stylesheet.string = (
+            "table.carlina-bilingual-pair{border-collapse:collapse;table-layout:fixed;"
+            "width:100%;margin:1em 0}"
+            "table.carlina-bilingual-pair>tbody>tr>td{width:50%;vertical-align:top;"
+            "padding:.7em;border:0;border-bottom:1px solid #aaa}"
+            ".carlina-bilingual-source-heading{font-weight:600}"
+        )
+        head.append(stylesheet)
     return project_diagrams_html(serialize_semantic_html(soup)).encode("utf-8")
 
 

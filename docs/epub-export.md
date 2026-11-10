@@ -255,6 +255,18 @@ Completed accessibility findings may accompany an ordinary draft, with `ace=fail
 and an explicit review issue. Required mode blocks those findings. Raw reports can
 contain book text and stay outside ordinary application logs and quality receipts.
 
+### Bilingual reading EPUBs
+
+Translator can export an alternating bilingual EPUB from a verified source plan
+and its current translated target. The source and target passages appear one
+after the other, with explicit `lang`/`xml:lang` per passage and the translated
+heading retaining the navigational heading role. This uses standard static
+XHTML/CSS, not scripted language switches, alternate renditions or reader-
+specific layers. It deliberately rejects structural mismatches rather than
+inserting guessed pairings. EPUBCheck and EPUB reader acceptance must still be
+run on representative bilingual books with notes, tables and images before
+publication.
+
 The qualification pin is official EPUBCheck 5.3.0 (EPUB 3.3), JAR SHA-256
 `f7f96617c929371821609b88c8484d6dc9f24fe916499863c46094c5fb778a65`, with
 OpenJDK 25.0.4.1. EPUBCheck 5.4.0 has a

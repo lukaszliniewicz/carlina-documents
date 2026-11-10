@@ -116,6 +116,35 @@ older prose is never retroactively marked reviewed. New target revisions make
 their predecessors' coverage historical. Coverage reads default to 100 blocks
 and counts without anchor-ID lists.
 
+## Bilingual reading editions
+
+Document-block exports accept a separate `bilingual_layout` option: `none`
+(default), `parallel` for HTML/DOCX/PDF, and `alternating` for EPUB. This is
+independent of `review_requirement=bilingual`, which records source comparison
+coverage rather than including both languages in the exported file. The browser
+presents one bilingual-edition checkbox, and `carlina_translator_export` accepts
+the same explicit option. The original source comes from the immutable, verified
+source plan, and the target from the persisted, revision-checked translation.
+No model call or new source fetch occurs during export.
+
+The current edition pairs matching semantic blocks, including headings, prose,
+list items and table cells. It keeps the target's stable IDs, notes, navigational
+links and document structure; source snippets do not duplicate IDs. The exported
+file marks source and target spans with language attributes. Structural drift,
+dangling links and duplicate IDs cause an explicit export failure instead of
+silently losing or misaligning passages. This is structural/block alignment,
+not a claim of sentence-level correspondence in an N:M translation.
+
+EPUB uses alternating original/translation passages for reflowable reading;
+there is no interoperable EPUB text-layer switch supported across readers.
+HTML/PDF/DOCX use two-column tables (with per-cell alignment inside existing
+tables). Generated EPUB preflight hashes for translation-only documents cannot
+be reused for a bilingual edition: bilingual exports must build their own exact
+content and are validated during export. The default monolingual path is
+unchanged. The existing EPUB publication gates, note and table tests, and reader
+checks remain necessary for a release; synthetic format smoke tests alone do
+not certify complex historical books or all reading systems.
+
 Exports default to draft (`review_requirement=none`). A required kind rejects
 incomplete current coverage. Server admission freezes target identities and
 coverage witnesses in the trusted operation checkpoint; its SHA-256 identifies

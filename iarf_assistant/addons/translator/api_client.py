@@ -3299,6 +3299,7 @@ class TranslatorClient:
         idempotency_key: str,
         start_h2_on_new_page: bool = False,
         review_requirement: str = "none",
+        bilingual_layout: str = "none",
         epub_cover: object = None,
         epub_options: object = _EPUB_OPTIONS_UNSET,
         epub_review_hash: object = _EPUB_REVIEW_HASH_UNSET,
@@ -3317,6 +3318,9 @@ class TranslatorClient:
             raise ValueError("Unknown export review requirement.")
         if not isinstance(export_format, str) or export_format not in {"epub", "docx", "html", "pdf"}:
             raise ValueError("Document export format must be epub, docx, html, or pdf.")
+        from .bilingual_export import validate_bilingual_layout
+
+        validate_bilingual_layout(bilingual_layout, export_format)
         if type(start_h2_on_new_page) is not bool or (
             start_h2_on_new_page and export_format not in {"docx", "pdf"}
         ):
@@ -3416,6 +3420,8 @@ class TranslatorClient:
             request_payload["epub_review_hash"] = normalized_epub_review_hash
         if start_h2_on_new_page:
             request_payload["start_h2_on_new_page"] = True
+        if bilingual_layout != "none":
+            request_payload["bilingual_layout"] = bilingual_layout
         if cover_options:
             request_payload["epub_cover"] = cover_options
         if review_requirement != "none":

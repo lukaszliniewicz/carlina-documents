@@ -24,8 +24,8 @@ from bs4 import BeautifulSoup
 from carlina.core.epub_cover import normalize_epub_cover
 from carlina.core.epub_export import (
     EpubExportContractError,
-    normalize_epub_options,
     normalize_epub_image_mode,
+    normalize_epub_options,
     semantic_epub_review_sha256,
 )
 from carlina.core.semantic_export import (
@@ -38,8 +38,14 @@ from carlina.core.semantic_export import (
 )
 from carlina.core.semantic_html import SAFE_LANGUAGE_RE
 
+from .bilingual_export import (
+    BilingualExportError,
+    compose_bilingual_html,
+    validate_bilingual_layout,
+)
 from .block_contract import BlockContractError
 from .block_persistence import rehydrate_source_plan
+from .block_rendering import render_source_identity
 from .export_metadata import ExportMetadataError, apply_export_metadata
 from .export_metadata import normalize_export_metadata as _normalize_export_metadata
 from .export_presentation import present_export
@@ -548,6 +554,7 @@ def build_semantic_export_request(
     source_plan_record: Any,
     *,
     export_format: str,
+    bilingual_layout: str = "none",
     include_source_toc: bool | None = None,
     start_h2_on_new_page: bool = False,
     profile_id: str = SEMANTIC_EXPORT_PROFILE_ID,
@@ -571,6 +578,10 @@ def build_semantic_export_request(
 
     if export_format not in SEMANTIC_EXPORT_FORMATS:
         raise BlockExportError("semantic-export-format")
+    try:
+        validate_bilingual_layout(bilingual_layout, export_format)
+    except BilingualExportError as exc:
+        raise BlockExportError(exc.code) from exc
     try:
         normalize_epub_image_mode(epub_image_mode)
     except EpubExportContractError as exc:
@@ -618,6 +629,40 @@ def build_semantic_export_request(
         source_plan_record,
         renderer if renderer is not None else render_persisted_target_document,
     )
+    source_language = None
+    if bilingual_layout != "none":
+        try:
+            original_html = render_source_identity(plan)
+            # Corrected source-plan exclusions are also excluded by the
+            # verified target renderer. Apply them to this disposable source
+            # presentation so the pairing sees the same included material.
+            from .source_plan_corrections import corrected_exclusion_spans
+
+            for start, end in sorted(corrected_exclusion_spans(plan), reverse=True):
+                if not 0 <= start < end <= len(original_html):
+                    raise BlockContractError("bilingual-source-exclusion")
+                original_html = original_html[:start] + original_html[end:]
+        except BlockContractError as exc:
+            raise BlockExportError("bilingual-source-invalid") from exc
+        snapshot_metadata = getattr(snapshot, "metadata", {})
+        original_languages = (
+            getattr(plan, "source_language", None),
+            getattr(source_plan_record.project, "source_lang", None),
+            snapshot_metadata.get("language") if isinstance(snapshot_metadata, Mapping) else None,
+        )
+        source_language = next(
+            (value for value in original_languages
+             if isinstance(value, str) and SAFE_LANGUAGE_RE.fullmatch(value)
+             and value.casefold() not in {"auto", "und"}),
+            "und",
+        )
+        try:
+            html = compose_bilingual_html(
+                original_html, html, layout=bilingual_layout,
+                source_language=source_language, target_language=target_language,
+            )
+        except BilingualExportError as exc:
+            raise BlockExportError(exc.code) from exc
 
     resources = getattr(snapshot, "resources", ())
     if isinstance(resources, list):
@@ -664,6 +709,9 @@ def build_semantic_export_request(
             resource for resource in resources if resource.ref in remaining_refs
         )
         metadata.pop("cover_image_id", None)
+    if bilingual_layout != "none":
+        metadata["bilingual-layout"] = bilingual_layout
+        metadata["source-language"] = source_language
     if note_arrangement is not None:
         # Keep this source directive separate from editable edition metadata.
         metadata["note_arrangement"] = note_arrangement

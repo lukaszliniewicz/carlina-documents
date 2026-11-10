@@ -31,5 +31,10 @@ a { overflow-wrap: anywhere; }
 nav ol { list-style: none; padding-inline-start: 0; }
 nav ol ol { padding-inline-start: 1em; }
 nav li { margin-block: .4em; }
+.carlina-bilingual-alternating { margin-block: 1em; break-inside: auto; }
+.carlina-bilingual-alternating > .carlina-bilingual-source { margin-block-end: .45em; padding-inline-start: .7em; border-inline-start: 2px solid #b5b5b5; font-size: .94em; }
+.carlina-bilingual-alternating > .carlina-bilingual-target { margin-block-start: .45em; }
+.carlina-bilingual-source-heading { font-weight: bold; }
+.carlina-bilingual-inline .carlina-bilingual-source { font-size: .94em; }
 [hidden] { display: none; }
 """

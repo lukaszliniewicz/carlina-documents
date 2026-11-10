@@ -5177,6 +5177,7 @@ def export_project(project_id):
                     "export_metadata",
                     "start_h2_on_new_page",
                     "review_requirement",
+                    "bilingual_layout",
                     "epub_cover",
                     "epub_options",
                     "epub_review_hash",
@@ -5240,6 +5241,13 @@ def export_project(project_id):
             export_metadata = _effective_export_metadata(
                 g.project, request_export_metadata, use_uploaded_cover=not cover_options
             )
+            from .bilingual_export import validate_bilingual_layout
+
+            bilingual_layout = body.get("bilingual_layout", "none")
+            try:
+                validate_bilingual_layout(bilingual_layout, export_format)
+            except ValueError as exc:
+                raise BlockExportError(getattr(exc, "code", "bilingual-layout-invalid")) from exc
             review_requirement = body.get("review_requirement", "none")
             if review_requirement not in {"none", "structural", "target_reading", "bilingual"}:
                 raise BlockExportError("export-review-requirement")
@@ -5348,6 +5356,8 @@ def export_project(project_id):
                 request_payload["review_manifest"] = review_manifest
             if review_requirement != "none":
                 request_payload["review_requirement"] = review_requirement
+            if bilingual_layout != "none":
+                request_payload["bilingual_layout"] = bilingual_layout
             queue_payload = {
                 "format": export_format,
                 "numbering_revision": overlay_revision,
@@ -5367,6 +5377,8 @@ def export_project(project_id):
                 queue_payload["review_manifest"] = review_manifest
             if review_requirement != "none":
                 queue_payload["review_requirement"] = review_requirement
+            if bilingual_layout != "none":
+                queue_payload["bilingual_layout"] = bilingual_layout
             if start_h2_on_new_page:
                 request_payload["start_h2_on_new_page"] = True
                 queue_payload["start_h2_on_new_page"] = True

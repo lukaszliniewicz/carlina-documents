@@ -255,6 +255,7 @@ def register_project_tools(
         review_requirement: Literal[
             "none", "structural", "target_reading", "bilingual"
         ] = "none",
+        bilingual_layout: Literal["none", "parallel", "alternating"] = "none",
         epub_options: dict[str, Any] | None = None,
         epub_review_hash: str | None = None,
         # Omission reuses the saved mode; the Literal rejects explicit null.
@@ -284,6 +285,8 @@ def register_project_tools(
                     optional_options["start_h2_on_new_page"] = True
                 if review_requirement != "none":
                     optional_options["review_requirement"] = review_requirement
+                if bilingual_layout != "none":
+                    optional_options["bilingual_layout"] = bilingual_layout
                 if epub_options is not None:
                     optional_options["epub_options"] = epub_options
                 if epub_review_hash is not None:

@@ -1422,7 +1422,7 @@
         exportCoverFile = null;
       }
       if (exportCoverPath || "cover_upload_path" in exportDetails) metadata.cover_upload_path = exportCoverPath;
-      const epubReview = exportFormat === "epub" ? await reviewEpub(epubOptions) : null;
+      const epubReview = exportFormat === "epub" && !bilingualEdition ? await reviewEpub(epubOptions) : null;
       const payload = await workspaceClient.exportDocument(exportFormat, { signal: lifecycleController.signal, metadata, startH2OnNewPage, reviewRequirement: exportReviewRequirement, epubCover: coverChoice, epubOptions, epubImageMode: exportFormat === "epub" ? epubImageMode : null, epubReviewHash: epubReview?.review_hash, bilingualLayout: bilingualEdition ? (exportFormat === "epub" ? "alternating" : "parallel") : "none" });
       const startedOperation = payload?.operation || payload?.latest_operation;
       if (startedOperation?.id) operation = startedOperation;
@@ -1457,7 +1457,7 @@
         throw new Error("Export completed without a safe download URL. Refresh the workspace and retry.");
       }
       exportStatus = "Retrieving the prepared document…";
-      preparedExport = await prepareDownload(downloadTarget.url, `${workspaceProject.name || "Translation"}.${exportFormat}`, {
+      preparedExport = await prepareDownload(downloadTarget.url, `${workspaceProject.name || "Translation"}${bilingualEdition ? "-bilingual" : ""}.${exportFormat}`, {
         signal: lifecycleController.signal, fetcher: client.authFetch
       });
       exportDownloadUrl = preparedExport.url;
@@ -1919,7 +1919,7 @@
                   <input type="checkbox" bind:checked={bilingualEdition} />
                   <span class="format-copy"><span>Include original language alongside translation</span><span class="format-description">{exportFormat === "epub" ? "Alternating passages for reflowable e-readers." : "Parallel columns for side-by-side reading."}</span></span>
                 </label>
-                <p class="export-hint">The reading layout is independent of bilingual review coverage.</p>
+                <p class="export-hint">The reading layout is independent of bilingual review coverage. Bilingual EPUB is checked during the export rather than using the translation-only preflight.</p>
               </fieldset>
               <fieldset class="export-options" disabled={exportBusy || epubEditionBusy}>
                 <legend>Review coverage</legend>

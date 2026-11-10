@@ -682,7 +682,9 @@
   },
   "strict_files": [
     "carlina/product_identity.py",
-    "scripts/check_markdown_links.py"
+    "iarf_assistant/addons/translator/bilingual_export.py",
+    "scripts/check_markdown_links.py",
+    "tests/test_translator_bilingual_export.py"
   ],
   "typing_baseline_file": "policy/python-typing-baseline.json"
 }

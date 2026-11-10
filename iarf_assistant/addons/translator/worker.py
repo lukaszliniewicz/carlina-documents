@@ -2550,6 +2550,9 @@ def export_document_blocks(payload: dict, task_queue, job_id: str):
     export_format = str(payload.get("format") or "").lower()
     if export_format not in {"html", "docx", "epub", "pdf"}:
         raise ValueError("Unsupported semantic block export format.")
+    from .bilingual_export import validate_bilingual_layout
+
+    bilingual_layout = validate_bilingual_layout(payload.get("bilingual_layout", "none"), export_format)
     start_h2_on_new_page = payload.get("start_h2_on_new_page", False)
     if type(start_h2_on_new_page) is not bool or (
         start_h2_on_new_page and export_format not in {"docx", "pdf"}
@@ -2598,6 +2601,7 @@ def export_document_blocks(payload: dict, task_queue, job_id: str):
     request_value = build_semantic_export_request(
         source_plan,
         export_format=export_format,
+        **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
         start_h2_on_new_page=start_h2_on_new_page,
         operation_witness={
             "id": operation.id,
@@ -2629,6 +2633,7 @@ def export_document_blocks(payload: dict, task_queue, job_id: str):
         checkpoint={
             "phase": "semantic_export",
             "format": export_format,
+            **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
             "semantic_html_sha256": request_value.semantic_html_sha256,
             **(
                 {"epub_options": request_epub_options}
@@ -2667,6 +2672,8 @@ def export_document_blocks(payload: dict, task_queue, job_id: str):
 
     safe_name = secure_filename(project.name.replace(" ", "_"))
     safe_name = safe_name or "translated_document"
+    if bilingual_layout != "none":
+        safe_name += "_bilingual"
     if os.name == "nt":
         artifact_directory = WindowsArtifactDirectory.prepare(
             Path(app.instance_path), "translator_exports", str(operation.id)
