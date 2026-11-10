@@ -205,6 +205,13 @@ def _source_copy(node: Tag) -> Tag:
             element["class"] = " ".join(
                 [*_classes(element), "carlina-bilingual-source-heading"]
             )
+    # Removing duplicate source images can leave an empty focusable hyperlink.
+    # Keep the functional image/link in the translated target only.
+    for anchor in copied.find_all("a"):
+        if not anchor.get_text(strip=True) and not anchor.find(
+            ["img", "svg", "math", "object", "video"]
+        ):
+            anchor.decompose()
     return copied
 
 
@@ -240,6 +247,16 @@ def _pair(
     if target.name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
         # EPUB chapter segmentation and PDF/DOCX heading semantics depend on
         # the target heading staying in its original position and ancestry.
+        # Unlike other target passages, headings have no target-language pane;
+        # Pandoc's DOCX writer therefore needs explicit language and direction
+        # on the heading itself to preserve RTL paragraph and run properties.
+        heading_lang = str(
+            target.get("lang") or target.get("xml:lang") or target_language
+        )
+        target.attrs.setdefault("lang", heading_lang)
+        target.attrs.setdefault("xml:lang", heading_lang)
+        if heading_lang.split("-")[0].lower() in _RTL_LANGUAGES:
+            target.attrs.setdefault("dir", "rtl")
         source_pane.append(original)
         target.insert_after(source_pane)
         return
@@ -267,7 +284,12 @@ def _pair(
         wrapper.append(source_pane)
         wrapper.append(target_pane)
     else:
-        wrapper = soup.new_tag("table", attrs={"class": "carlina-bilingual-pair"})
+        # This is a two-column reading layout, not a data table. Suppress
+        # HTML table semantics for assistive technologies while retaining
+        # Pandoc/print-compatible column geometry.
+        wrapper = soup.new_tag(
+            "table", attrs={"class": "carlina-bilingual-pair", "role": "presentation"}
+        )
         tbody = soup.new_tag("tbody")
         tr = soup.new_tag("tr")
         for pane in (source_pane, target_pane):

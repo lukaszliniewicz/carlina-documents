@@ -137,13 +137,21 @@ not a claim of sentence-level correspondence in an N:M translation.
 
 EPUB uses alternating original/translation passages for reflowable reading;
 there is no interoperable EPUB text-layer switch supported across readers.
-HTML/PDF/DOCX use two-column tables (with per-cell alignment inside existing
-tables). Bilingual EPUB preflight composes the exact verified bilingual reading
-edition and returns a content/options-bound review hash. A bilingual EPUB cannot
-be queued without that hash, and the worker rejects a stale hash. EPUBCheck and
-optional accessibility checks still run on the exported artifact. The default
-monolingual path is unchanged. The existing EPUB publication gates, note and table tests, and reader
-checks remain necessary for a release; synthetic format smoke tests alone do
+HTML/PDF/DOCX use two-column layouts (with stacked language passages inside
+existing data-table cells). The HTML layout tables carry `role="presentation"`
+to avoid announcing prose as data-table rows. DOCX retains genuine Word tables
+to implement side-by-side geometry; this has a screen-reader navigation tradeoff,
+and a reader-specific accessibility check is required before claiming fully
+accessible DOCX output. EPUB keeps the translated heading as the navigational
+heading, immediately followed by the original heading as a non-heading line,
+so that each chapter retains its correct boundary. Prose pairs instead place
+the original before the translation. Bilingual EPUB preflight composes the exact
+verified bilingual reading edition and returns a content/options-bound review
+hash. A bilingual EPUB cannot be queued without that hash, and the worker
+rejects a stale hash. EPUBCheck and optional accessibility checks still run on
+the exported artifact. The default monolingual path is unchanged. The existing
+EPUB publication gates, note and table tests, and reader checks remain necessary
+for a release; synthetic format smoke tests alone do
 not certify complex historical books or all reading systems.
 
 Exports default to draft (`review_requirement=none`). A required kind rejects

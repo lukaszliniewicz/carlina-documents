@@ -40,7 +40,15 @@ def _soft_wrap_parallel_pdf_tokens(soup: BeautifulSoup) -> None:
     for node in list(soup.find_all(string=True)):
         if not isinstance(node, NavigableString) or isinstance(node, Comment):
             continue
-        if any(parent.name in {"head", "title"} for parent in node.parents):
+        # Only long text in a narrow side-by-side cell risks clipping. Leave
+        # chapter headings, bookmark labels, and all other text byte-for-byte
+        # intact in the print projection.
+        if not any(
+            isinstance(parent, Tag)
+            and parent.name == "table"
+            and "carlina-bilingual-pair" in (parent.get("class") or [])
+            for parent in node.parents
+        ):
             continue
         original = str(node)
         wrapped = _PDF_PARALLEL_LONG_TOKEN.sub(

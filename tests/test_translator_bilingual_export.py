@@ -528,15 +528,19 @@ def test_parallel_pdf_wraps_visible_long_tokens_without_changing_references():
 
     token = "https://example.org/" + "verylongunbrokenpassage" * 10
     soup = BeautifulSoup(
-        f'<main><p><a href="{token}">{token}</a></p><p title="{token}">Other</p></main>',
+        f'<main><h1>{token}</h1><table class="carlina-bilingual-pair" role="presentation">'
+        f'<tr><td><p><a href="{token}">{token}</a></p></td></tr></table>'
+        f'<p title="{token}">Other</p></main>',
         "html.parser",
     )
     before = soup.get_text()
+    heading_before = soup.h1.get_text()
     _soft_wrap_parallel_pdf_tokens(soup)
-    assert "\u200b" in soup.get_text()
+    assert "\u200b" in soup.select_one("table.carlina-bilingual-pair").get_text()
     assert soup.get_text().replace("\u200b", "") == before
+    assert soup.h1.get_text() == heading_before
     assert soup.a["href"] == token
-    assert soup.p.find_next_sibling("p")["title"] == token
+    assert soup.select_one("main > p")["title"] == token
 
 
 def test_pdf_parallel_does_not_clip_long_unbroken_text():
@@ -618,3 +622,361 @@ def test_epub_preflight_hash_is_specific_to_bilingual_edition():
     _verify_epub_review_hash(bilingual, bilingual_hash)
     with pytest.raises(BlockExportError, match="epub-review-stale"):
         _verify_epub_review_hash(bilingual, monolingual_hash)
+
+
+def test_publishing_epub_preserves_cross_chapter_notes_images_and_bidirectional_links():
+    """Real packager, not a mocked emitter: check navigation after XHTML splitting."""
+    import base64
+    import io
+    import posixpath
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from types import SimpleNamespace
+    from urllib.parse import unquote, urlsplit
+    from xml.etree import ElementTree as ET
+    from zipfile import ZipFile
+
+    from PIL import Image
+
+    from carlina.core.epub_export import normalize_epub_options
+    from iarf_assistant.addons.doc_processor.epub_packager import EPUBPackager
+    from iarf_assistant.addons.doc_processor.epub_validation import (
+        validate_epub_structure,
+    )
+
+    binary = io.BytesIO()
+    Image.new("RGB", (8, 8), (80, 110, 140)).save(binary, format="PNG")
+    image = base64.b64encode(binary.getvalue()).decode("ascii")
+    source = (
+        '<html lang="en"><body><main>'
+        '<h1 id="first">ORIGINAL_first_chapter</h1>'
+        '<p>ORIGINAL_opening <a id="ref1" role="doc-noteref" epub:type="noteref" href="#note1">1</a> ORIGINAL_tail.</p>'
+        f'<figure><img src="data:image/png;base64,{image}" alt="ORIGINAL_image"/>'
+        "<figcaption>ORIGINAL_caption</figcaption></figure>"
+        '<table><caption>ORIGINAL_table</caption><thead><tr><th id="column">ORIGINAL_header</th></tr></thead>'
+        '<tbody><tr><td headers="column">ORIGINAL_cell</td></tr></tbody></table>'
+        '<h1 id="second">ORIGINAL_second_chapter</h1>'
+        '<p>ORIGINAL_middle <a id="ref2" role="doc-noteref" epub:type="noteref" href="#note2">2</a> ORIGINAL_end.</p>'
+        '</main><section id="notes" class="footnotes" role="doc-endnotes"><ol>'
+        '<li id="note1" role="doc-footnote"><p>ORIGINAL_note_one '
+        '<a role="doc-backlink" href="#ref1">↩</a></p></li>'
+        '<li id="note2" role="doc-footnote"><p>ORIGINAL_note_two '
+        '<a role="doc-backlink" href="#ref2">↩</a></p></li>'
+        "</ol></section></body></html>"
+    )
+    target = source.replace("ORIGINAL_", "TRANSLATED_").replace(
+        'lang="en"', 'lang="pl"'
+    )
+    bilingual = compose_bilingual_html(
+        source, target, layout="alternating", source_language="en", target_language="pl"
+    )
+    metadata = {
+        "title": "Bilingual notes and figures",
+        "language": "pl",
+        "source-language": "en",
+        "bilingual-layout": "alternating",
+    }
+    with TemporaryDirectory() as directory:
+        path = Path(directory) / "test.epub"
+        document = SimpleNamespace(
+            output_html=bilingual,
+            output_markdown="",
+            file_path=None,
+            user_id=None,
+            metadata_record=None,
+            settings={"document_metadata": metadata},
+        )
+        EPUBPackager(
+            document,
+            str(path),
+            include_source_toc=False,
+            options=normalize_epub_options({"chapter_level": 1}),
+        ).build()
+        valid, diagnostic = validate_epub_structure(str(path))
+        assert valid, diagnostic
+        with ZipFile(path) as archive:
+            xml_documents = {
+                name: BeautifulSoup(archive.read(name), "xml")
+                for name in archive.namelist()
+                if name.startswith("EPUB/") and name.endswith(".xhtml")
+            }
+            package = ET.fromstring(archive.read("EPUB/package.opf"))
+        languages = [
+            item.text
+            for item in package.findall(".//{http://purl.org/dc/elements/1.1/}language")
+        ]
+        assert languages == ["pl", "en"]
+        content = {
+            path: soup for path, soup in xml_documents.items() if "/content-" in path
+        }
+        assert len(content) >= 2
+        text = " ".join(soup.get_text(" ", strip=True) for soup in content.values())
+        for witness in (
+            "ORIGINAL_first_chapter",
+            "TRANSLATED_first_chapter",
+            "ORIGINAL_second_chapter",
+            "TRANSLATED_second_chapter",
+            "ORIGINAL_caption",
+            "TRANSLATED_caption",
+            "ORIGINAL_table",
+            "TRANSLATED_table",
+            "ORIGINAL_note_one",
+            "TRANSLATED_note_one",
+            "ORIGINAL_note_two",
+            "TRANSLATED_note_two",
+        ):
+            assert witness in text, witness
+        assert sum(len(soup.find_all("img")) for soup in content.values()) == 1
+        assert (
+            sum(len(soup.select('[role="doc-noteref"]')) for soup in content.values())
+            == 2
+        )
+        assert (
+            sum(len(soup.select('[role="doc-backlink"]')) for soup in content.values())
+            == 2
+        )
+        identities = {
+            name: {tag.get("id") for tag in soup.find_all(id=True)}
+            for name, soup in xml_documents.items()
+        }
+        for name, soup in xml_documents.items():
+            for link in soup.find_all("a", href=True):
+                url = urlsplit(str(link["href"]))
+                if url.scheme or url.netloc or not url.fragment:
+                    continue
+                other = (
+                    posixpath.normpath(
+                        posixpath.join(posixpath.dirname(name), unquote(url.path))
+                    )
+                    if url.path
+                    else name
+                )
+                assert other in identities, (name, link["href"])
+                assert unquote(url.fragment) in identities[other], (name, link["href"])
+
+
+def test_actual_preflight_reviews_paired_content_and_rejects_monolingual_witness():
+    from carlina.core.epub_export import normalize_epub_options
+    from iarf_assistant.addons.doc_processor.epub_quality import preflight_epub
+    from iarf_assistant.addons.translator.block_export import (
+        semantic_export_review_hash,
+        validate_epub_preflight_result,
+    )
+
+    options = normalize_epub_options({"chapter_level": 1})
+    mono = _verified_export_request(layout="none", fmt="epub")
+    bilingual = _verified_export_request(layout="alternating", fmt="epub")
+    result = preflight_epub(bilingual.semantic_html, bilingual.metadata, options)
+    review_hash = semantic_export_review_hash(bilingual.to_dict())
+    assert review_hash != semantic_export_review_hash(mono.to_dict())
+    result["review_hash"] = review_hash
+    checked = validate_epub_preflight_result(
+        result,
+        semantic_html_sha256=bilingual.semantic_html_sha256,
+        epub_options=options,
+        expected_review_hash=review_hash,
+    )
+    assert checked["review_hash"] == review_hash
+    assert checked["quality"]["input_sha256"] == bilingual.semantic_html_sha256
+    assert checked["outline"]["input_sha256"] == bilingual.semantic_html_sha256
+
+
+def test_parallel_docx_marks_arabic_translation_as_bidi():
+    """Pandoc must preserve paragraph and run direction, not just visible Arabic."""
+    import hashlib
+    import io
+    import subprocess
+    import sys
+    from pathlib import Path
+    from shutil import which
+    from types import SimpleNamespace
+    from xml.etree import ElementTree as ET
+    from zipfile import ZipFile
+
+    from carlina.core.semantic_export import SemanticExportRequest
+    from iarf_assistant.addons.doc_processor.semantic_export import (
+        export_semantic_document,
+    )
+
+    pandoc = which("pandoc") or str(Path(sys.executable).parent / "pandoc")
+    if not Path(pandoc).is_file():
+        pytest.skip("Pandoc is unavailable in this development environment")
+    original = "<main><h1>Original chapter</h1><p>Original prose in English.</p></main>"
+    translated = (
+        "<main><h1>عنوان الفصل</h1>"
+        "<p>هذه جملة عربية لاختبار اتجاه الفقرات عند التصدير إلى مستند وورد.</p></main>"
+    )
+    output = compose_bilingual_html(
+        original,
+        translated,
+        layout="parallel",
+        source_language="en",
+        target_language="ar",
+    )
+    request = SemanticExportRequest(
+        semantic_html=output,
+        semantic_html_sha256=hashlib.sha256(output.encode()).hexdigest(),
+        metadata={
+            "title": "Arabic bilingual edition",
+            "language": "ar",
+            "bilingual-layout": "parallel",
+            "source-language": "en",
+        },
+        resources=(),
+        format="docx",
+        include_source_toc=False,
+        profile_id="semantic-default",
+        profile_version="1",
+    )
+
+    def runner(args, *, runtime_unit, input_text=None, timeout_seconds, check=False):
+        assert runtime_unit == "document_processing"
+        return subprocess.run(
+            [pandoc if args[0] == "pandoc" else args[0], *args[1:]],
+            input=input_text,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=check,
+        )
+
+    artifact = export_semantic_document(
+        request,
+        resolver=SimpleNamespace(resolve=lambda _: None),
+        run_managed_process=runner,
+    )
+    with ZipFile(io.BytesIO(artifact.data)) as archive:
+        root = ET.fromstring(archive.read("word/document.xml"))
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    matches = [
+        p
+        for p in root.findall(f".//{w}p")
+        if "هذه جملة" in "".join(t.text or "" for t in p.findall(f".//{w}t"))
+    ]
+    assert len(matches) == 1
+    paragraph = matches[0]
+    assert paragraph.find(f"{w}pPr/{w}bidi") is not None
+    assert paragraph.find(f".//{w}rtl") is not None
+    assert any(t.get(f"{w}val") == "ar" for t in paragraph.findall(f".//{w}lang"))
+    headings = [
+        p
+        for p in root.findall(f".//{w}p")
+        if "عنوان الفصل" in "".join(t.text or "" for t in p.findall(f".//{w}t"))
+    ]
+    assert len(headings) == 1
+    heading = headings[0]
+    assert heading.find(f"{w}pPr/{w}bidi") is not None
+    assert heading.find(f".//{w}rtl") is not None
+    assert any(t.get(f"{w}val") == "ar" for t in heading.findall(f".//{w}lang"))
+
+
+def test_parallel_html_layout_tables_are_presentational():
+    html = compose_bilingual_html(
+        SOURCE, TARGET, layout="parallel", source_language="en", target_language="pl"
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    pairs = soup.select("table.carlina-bilingual-pair")
+    assert pairs
+    assert all(pair.get("role") == "presentation" for pair in pairs)
+    assert all(len(pair.select(":scope > tbody > tr > td")) == 2 for pair in pairs)
+
+
+def test_source_image_only_link_is_removed_and_target_remains_functional():
+    image = '<img alt="Photo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="/>'
+    source = f'<main><p id="dest">Source</p><p><a href="#dest">{image}</a> caption</p></main>'
+    target = source.replace("Source", "Target").replace("caption", "podpis")
+    html = compose_bilingual_html(
+        source, target, layout="parallel", source_language="en", target_language="pl"
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    assert len(soup.select('a[href="#dest"]')) == 1
+    assert len(soup.find_all("img")) == 1
+    assert not soup.select("a:empty")
+
+
+@pytest.mark.parametrize("layout", ["parallel", "alternating"])
+def test_real_target_renderer_adds_translator_notes_without_bilingual_drift(layout):
+    """Exercise plan, compact target reconstruction, inserted notes, and pairing."""
+    import hashlib
+
+    from iarf_assistant.addons.translator.block_contract import (
+        AttestedDocumentSnapshot,
+        SourceProviderAttestation,
+    )
+    from iarf_assistant.addons.translator.block_planner import plan_document_blocks
+    from iarf_assistant.addons.translator.compact_markup import (
+        compact_source_block,
+        normalize_compact_result,
+    )
+    from iarf_assistant.addons.translator.target_rendering import (
+        render_target_document,
+        validate_target_semantic_document,
+    )
+
+    original = (
+        '<html lang="en"><body><p>Source wording'
+        '<a id="source-ref" role="doc-noteref" epub:type="noteref" href="#source-note">1</a>.</p>'
+        '<aside id="source-note" role="doc-footnote" epub:type="footnote">'
+        '<p>Source endnote body. <a role="doc-backlink" href="#source-ref">↩</a></p>'
+        "</aside></body></html>"
+    )
+    digest = hashlib.sha256(original.encode()).hexdigest()
+    plan = plan_document_blocks(
+        AttestedDocumentSnapshot(
+            id="document-1",
+            document_id="document-1",
+            output_html=original,
+            content_hash=digest,
+            semantic_content_hash=digest,
+            metadata={"language": "en"},
+            provenance={},
+        ),
+        project_id="project-1",
+        source_language="en",
+        source_attestation=SourceProviderAttestation(
+            provider_addon_id="doc-processor",
+            provider_capability_id="document.processing",
+            owner_id="owner-1",
+            resource_id="document-1",
+        ),
+    )
+    candidates = {}
+    for index, block in enumerate(plan.blocks, 1):
+        wire = compact_source_block(block, number=index)
+        candidates[block.id] = normalize_compact_result(
+            plan=plan,
+            plan_id="plan-1",
+            block=block,
+            expected_number=index,
+            value={key: wire[key] for key in ("n", "content", "fields")},
+        )
+    rendered_target = render_target_document(
+        plan,
+        "plan-1",
+        candidates,
+        target_language="pl",
+        notes={
+            plan.blocks[0].id: [
+                {
+                    "anchor_text": "Source wording",
+                    "body": "Translator explanatory note.",
+                }
+            ]
+        },
+    )
+    assert validate_target_semantic_document(rendered_target).valid
+    result = compose_bilingual_html(
+        original,
+        rendered_target,
+        layout=layout,
+        source_language="en",
+        target_language="pl",
+    )
+    soup = BeautifulSoup(result, "html.parser")
+    assert soup.get_text().count("Source endnote body.") == 2
+    assert soup.get_text().count("Translator explanatory note.") == 1
+    assert len(soup.select('[role="doc-noteref"]')) == 2
+    assert len(soup.select('[role="doc-backlink"]')) == 2
+    assert len(soup.select('[role="doc-endnotes"]')) == 1
+    identifiers = [tag["id"] for tag in soup.find_all(id=True)]
+    assert len(identifiers) == len(set(identifiers))
