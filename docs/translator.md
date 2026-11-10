@@ -138,10 +138,11 @@ not a claim of sentence-level correspondence in an N:M translation.
 EPUB uses alternating original/translation passages for reflowable reading;
 there is no interoperable EPUB text-layer switch supported across readers.
 HTML/PDF/DOCX use two-column tables (with per-cell alignment inside existing
-tables). Generated EPUB preflight hashes for translation-only documents cannot
-be reused for a bilingual edition: bilingual exports must build their own exact
-content and are validated during export. The default monolingual path is
-unchanged. The existing EPUB publication gates, note and table tests, and reader
+tables). Bilingual EPUB preflight composes the exact verified bilingual reading
+edition and returns a content/options-bound review hash. A bilingual EPUB cannot
+be queued without that hash, and the worker rejects a stale hash. EPUBCheck and
+optional accessibility checks still run on the exported artifact. The default
+monolingual path is unchanged. The existing EPUB publication gates, note and table tests, and reader
 checks remain necessary for a release; synthetic format smoke tests alone do
 not certify complex historical books or all reading systems.
 

@@ -2147,6 +2147,25 @@ class EPUBPackager:
                 metadata, "title-type", "subtitle", refines="#title-subtitle"
             )
         self._add_dc(metadata, "language", language)
+        # Bilingual reading editions must advertise both substantial text
+        # languages in their OPF, not only in individual XHTML passage spans.
+        # Canonical publication metadata intentionally drops add-on-private
+        # fields, so read this bounded export witness from the request copy.
+        settings = getattr(self.document, "settings", None)
+        raw_metadata = (
+            settings.get("document_metadata") if isinstance(settings, dict) else None
+        )
+        if (
+            isinstance(raw_metadata, dict)
+            and raw_metadata.get("bilingual-layout") == "alternating"
+        ):
+            source_language = raw_metadata.get("source-language")
+            if (
+                isinstance(source_language, str)
+                and _CONTRACT_LANGUAGE_RE.fullmatch(source_language)
+                and source_language.casefold() not in {"und", language.casefold()}
+            ):
+                self._add_dc(metadata, "language", source_language)
 
         contributors = (
             self.metadata.get("contributors")

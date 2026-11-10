@@ -466,8 +466,8 @@ describe("block workspace API boundary", () => {
   it("sends bilingual layout independently of review and validates format compatibility", async () => {
     const fetchJson = vi.fn().mockResolvedValue({ job_id: "export" });
     const client = createBlockWorkspaceClient({ fetchJson }, "project-1");
-    await client.exportDocument("epub", { bilingualLayout: "alternating" });
-    expect(JSON.parse(fetchJson.mock.calls[0][1].body)).toMatchObject({ bilingual_layout: "alternating" });
+    await client.exportDocument("epub", { bilingualLayout: "alternating", epubReviewHash: "f".repeat(64) });
+    expect(JSON.parse(fetchJson.mock.calls[0][1].body)).toMatchObject({ bilingual_layout: "alternating", epub_review_hash: "f".repeat(64) });
     await client.exportDocument("docx", { bilingualLayout: "parallel", reviewRequirement: "bilingual" });
     expect(JSON.parse(fetchJson.mock.calls[1][1].body)).toMatchObject({ bilingual_layout: "parallel", review_requirement: "bilingual" });
     await expect(client.exportDocument("epub", { bilingualLayout: "parallel" })).rejects.toThrow("not supported");
@@ -483,6 +483,22 @@ describe("block workspace API boundary", () => {
     expect(JSON.parse(fetchJson.mock.calls[0][1].body)).toEqual({ export_metadata: {}, epub_options: {}, review_requirement: "bilingual" });
     await expect(client.exportDocument("epub", { reviewRequirement: "approval" })).rejects.toThrow("Invalid export review requirement");
     expect(fetchJson).toHaveBeenCalledOnce();
+  });
+
+  it("requires a bilingual EPUB review and binds the preflight layout to the export", async () => {
+    const fetchJson = vi.fn().mockResolvedValue({ review_hash: "a".repeat(64) });
+    const client = createBlockWorkspaceClient({ fetchJson }, "project-1");
+    await expect(client.exportDocument("epub", { bilingualLayout: "alternating" })).rejects.toThrow("Review the bilingual EPUB");
+    await expect(client.epubPreflight({ bilingualLayout: "parallel" })).rejects.toThrow("Invalid bilingual EPUB review layout");
+    await client.epubPreflight({ bilingualLayout: "alternating", epubImageMode: "jpeg" });
+    await client.exportDocument("epub", {
+      bilingualLayout: "alternating", epubImageMode: "jpeg", epubReviewHash: "a".repeat(64)
+    });
+    expect(fetchJson).toHaveBeenCalledTimes(2);
+    const first = JSON.parse(fetchJson.mock.calls[0][1].body);
+    const second = JSON.parse(fetchJson.mock.calls[1][1].body);
+    expect(first).toMatchObject({ bilingual_layout: "alternating", epub_image_mode: "jpeg" });
+    expect(second).toMatchObject({ bilingual_layout: "alternating", epub_review_hash: "a".repeat(64) });
   });
 
   it("binds JPEG to both preflight and export and rejects invalid image modes", async () => {

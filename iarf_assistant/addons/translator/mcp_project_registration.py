@@ -214,6 +214,7 @@ def register_project_tools(
         epub_options: dict[str, Any],
         epub_image_mode: Literal["auto", "jpeg", "webp"] = "jpeg",
         epub_cover: dict[str, Any] | None = None,
+        bilingual_layout: Literal["none", "alternating"] = "none",
         numbering_revision: Annotated[int | None, Field(strict=True, ge=0)] = None,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.translator")
@@ -226,6 +227,11 @@ def register_project_tools(
                     epub_options=epub_options,
                     epub_image_mode=epub_image_mode,
                     epub_cover=epub_cover,
+                    **(
+                        {"bilingual_layout": bilingual_layout}
+                        if bilingual_layout != "none"
+                        else {}
+                    ),
                     numbering_revision=numbering_revision,
                 )
             )

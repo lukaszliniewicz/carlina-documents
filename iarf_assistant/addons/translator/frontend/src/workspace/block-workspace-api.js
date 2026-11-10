@@ -714,11 +714,12 @@ export function createBlockWorkspaceClient(client, projectId) {
     async numberingSourcePreview({ signal } = {}) {
       return client.fetchText(`/addons/translator/api/projects/${encodedProjectId}/numbering/source-preview`, { signal });
     },
-    async epubPreflight({ signal, options = {}, metadata = {}, epubCover = null, epubImageMode = null } = {}) {
+    async epubPreflight({ signal, options = {}, metadata = {}, epubCover = null, epubImageMode = null, bilingualLayout = "none" } = {}) {
+      if (!["none", "alternating"].includes(bilingualLayout)) throw new Error("Invalid bilingual EPUB review layout.");
       if (epubImageMode !== null && !["auto", "jpeg", "webp"].includes(epubImageMode)) throw new Error("Invalid EPUB image format.");
       return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/epub/preflight`, {
         method: "POST", signal, headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ epub_options: options, export_metadata: metadata, ...(epubCover ? { epub_cover: epubCover } : {}), ...(epubImageMode !== null ? { epub_image_mode: epubImageMode } : {}) })
+        body: JSON.stringify({ epub_options: options, export_metadata: metadata, ...(epubCover ? { epub_cover: epubCover } : {}), ...(epubImageMode !== null ? { epub_image_mode: epubImageMode } : {}), ...(bilingualLayout !== "none" ? { bilingual_layout: bilingualLayout } : {}) })
       });
     },
     async getEpubEdition({ signal } = {}) {
@@ -740,6 +741,7 @@ export function createBlockWorkspaceClient(client, projectId) {
       if (epubImageMode !== null && (format !== "epub" || !["auto", "jpeg", "webp"].includes(epubImageMode))) throw new Error("Invalid EPUB image format.");
       if (!["none", "parallel", "alternating"].includes(bilingualLayout)) throw new Error("Invalid bilingual export layout.");
       if ((format === "epub" && bilingualLayout === "parallel") || (format !== "epub" && bilingualLayout === "alternating")) throw new Error("This bilingual layout is not supported for the selected format.");
+      if (format === "epub" && bilingualLayout === "alternating" && !epubReviewHash) throw new Error("Review the bilingual EPUB before exporting.");
       const query = new URLSearchParams({ format });
       return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/export?${query}`, {
         method: "POST",

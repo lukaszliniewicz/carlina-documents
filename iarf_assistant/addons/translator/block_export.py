@@ -647,8 +647,8 @@ def build_semantic_export_request(
         snapshot_metadata = getattr(snapshot, "metadata", {})
         original_languages = (
             getattr(plan, "source_language", None),
-            getattr(source_plan_record.project, "source_lang", None),
             snapshot_metadata.get("language") if isinstance(snapshot_metadata, Mapping) else None,
+            getattr(source_plan_record.project, "source_lang", None),
         )
         source_language = next(
             (value for value in original_languages

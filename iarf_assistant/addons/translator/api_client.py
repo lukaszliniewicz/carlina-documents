@@ -3188,6 +3188,7 @@ class TranslatorClient:
         epub_options: object,
         epub_cover: object = None,
         epub_image_mode: object = "jpeg",
+        bilingual_layout: str = "none",
         numbering_revision: int | None = None,
     ) -> dict[str, Any]:
         """Review one owner's exact persisted EPUB target without building it."""
@@ -3203,6 +3204,9 @@ class TranslatorClient:
 
         try:
             normalized_options = normalize_epub_options(epub_options)
+            from .bilingual_export import validate_bilingual_layout
+
+            validate_bilingual_layout(bilingual_layout, "epub")
             image_mode = normalize_epub_image_mode(epub_image_mode)
         except EpubExportContractError as exc:
             raise BlockExportError(exc.code) from None
@@ -3248,6 +3252,7 @@ class TranslatorClient:
         request_value = build_semantic_export_request(
             workspace_plan.record,
             export_format="epub",
+            **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
             provider_witness=provider_witness,
             export_metadata=effective_metadata,
             cover_uri=cover_uri,
@@ -3375,6 +3380,8 @@ class TranslatorClient:
                 normalized_epub_review_hash = normalize_epub_review_hash(
                     saved["epub_review_hash"]
                 )
+        if export_format == "epub" and bilingual_layout == "alternating" and normalized_epub_review_hash is None:
+            raise ValueError("Bilingual EPUB export requires a current preflight review hash.")
         from carlina.core.epub_export import normalize_epub_options
 
         normalized_epub_options = None

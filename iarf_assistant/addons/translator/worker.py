@@ -2623,6 +2623,8 @@ def export_document_blocks(payload: dict, task_queue, job_id: str):
     )
     provider_request = request_value.to_dict()
     epub_review_hash = payload.get("epub_review_hash")
+    if bilingual_layout == "alternating" and epub_review_hash is None:
+        raise BlockExportError("epub-review-required")
     _verify_epub_review_hash(provider_request, epub_review_hash)
     _check_cancel(operation, task_queue, job_id)
     request_epub_options = provider_request.get("epub_options")

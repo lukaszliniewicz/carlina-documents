@@ -1386,7 +1386,7 @@
     const coverSignature = selectedEpubCoverSignature();
     const requestedImageMode = epubImageMode;
     if (epubPreflight && coverSignature !== reviewedEpubCover) options = resetEpubCoverReview(options, epubPreflight);
-    const result = requireEpubPreflight(await workspaceClient.epubPreflight({ signal: lifecycleController.signal, options, metadata, epubCover, epubImageMode: requestedImageMode }));
+    const result = requireEpubPreflight(await workspaceClient.epubPreflight({ signal: lifecycleController.signal, options, metadata, epubCover, epubImageMode: requestedImageMode, bilingualLayout: bilingualEdition ? "alternating" : "none" }));
     if (coverSignature !== selectedEpubCoverSignature()) throw new Error("The cover changed during review. Review the selected cover again.");
     if (requestedImageMode !== epubImageMode) throw new Error("The image format changed during review. Review again before exporting.");
     epubOptions = result.options;
@@ -1422,7 +1422,7 @@
         exportCoverFile = null;
       }
       if (exportCoverPath || "cover_upload_path" in exportDetails) metadata.cover_upload_path = exportCoverPath;
-      const epubReview = exportFormat === "epub" && !bilingualEdition ? await reviewEpub(epubOptions) : null;
+      const epubReview = exportFormat === "epub" ? await reviewEpub(epubOptions) : null;
       const payload = await workspaceClient.exportDocument(exportFormat, { signal: lifecycleController.signal, metadata, startH2OnNewPage, reviewRequirement: exportReviewRequirement, epubCover: coverChoice, epubOptions, epubImageMode: exportFormat === "epub" ? epubImageMode : null, epubReviewHash: epubReview?.review_hash, bilingualLayout: bilingualEdition ? (exportFormat === "epub" ? "alternating" : "parallel") : "none" });
       const startedOperation = payload?.operation || payload?.latest_operation;
       if (startedOperation?.id) operation = startedOperation;
@@ -1919,7 +1919,7 @@
                   <input type="checkbox" bind:checked={bilingualEdition} />
                   <span class="format-copy"><span>Include original language alongside translation</span><span class="format-description">{exportFormat === "epub" ? "Alternating passages for reflowable e-readers." : "Parallel columns for side-by-side reading."}</span></span>
                 </label>
-                <p class="export-hint">The reading layout is independent of bilingual review coverage. Bilingual EPUB is checked during the export rather than using the translation-only preflight.</p>
+                <p class="export-hint">The reading layout is independent of bilingual review coverage. EPUB preflight reviews the selected reading layout, including both languages when enabled.</p>
               </fieldset>
               <fieldset class="export-options" disabled={exportBusy || epubEditionBusy}>
                 <legend>Review coverage</legend>

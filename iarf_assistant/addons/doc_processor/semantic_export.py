@@ -396,7 +396,10 @@ def _standalone_html(
             "table.carlina-bilingual-pair{border-collapse:collapse;table-layout:fixed;"
             "width:100%;margin:1em 0}"
             "table.carlina-bilingual-pair>tbody>tr>td{width:50%;vertical-align:top;"
-            "padding:.7em;border:0;border-bottom:1px solid #aaa}"
+            "padding:.7em;border:0;border-bottom:1px solid #aaa;"
+            "overflow-wrap:anywhere;word-break:break-word}"
+            "table.carlina-bilingual-pair pre{white-space:pre-wrap;"
+            "overflow-wrap:anywhere;word-break:break-word}"
             ".carlina-bilingual-source-heading{font-weight:600}"
         )
         head.append(stylesheet)

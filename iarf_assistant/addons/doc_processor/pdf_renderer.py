@@ -43,7 +43,8 @@ table { border-collapse: collapse; margin: 8pt 0; width: 100%; }
 th, td { border: 0.5pt solid black; padding: 4pt; vertical-align: top; }
 th { font-weight: bold; }
 table.carlina-bilingual-pair { table-layout: fixed; margin: 5pt 0 9pt; }
-table.carlina-bilingual-pair > tbody > tr > td { width: 50%; border: none; border-bottom: .35pt solid #777; padding: 4pt 8pt; vertical-align: top; }
+table.carlina-bilingual-pair > tbody > tr > td { width: 50%; border: none; border-bottom: .35pt solid #777; padding: 4pt 8pt; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
+table.carlina-bilingual-pair pre { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
 .carlina-bilingual-source-heading { font-weight: bold; }
 figure { margin: 10pt 0; }
 figcaption, caption { font-size: 10pt; line-height: 12pt; font-style: italic; }

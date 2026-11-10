@@ -144,8 +144,11 @@ def test_preflight_api_and_http_reject_invalid_image_modes_before_provider_looku
         assert response.get_json()["code"] == "epub-image-mode-invalid"
 
 
+@pytest.mark.parametrize("bilingual_layout", ["none", "alternating"])
 @pytest.mark.parametrize("mode", ["auto", "jpeg", "webp", None])
-def test_api_client_preflight_uses_effective_metadata_cover_and_current_revision(mode):
+def test_api_client_preflight_uses_effective_metadata_cover_and_current_revision(
+    mode, bilingual_layout
+):
     options = normalize_epub_options({"direction": "rtl"})
     canonical_cover = "/uploads/7/translator-covers/" + "c" * 64 + ".jpg"
     project = SimpleNamespace(
@@ -194,9 +197,15 @@ def test_api_client_preflight_uses_effective_metadata_cover_and_current_revision
             project.id,
             epub_options=options,
             numbering_revision=4,
+            **(
+                {"bilingual_layout": bilingual_layout}
+                if bilingual_layout != "none"
+                else {}
+            ),
             **({"epub_image_mode": mode} if mode is not None else {}),
         )
 
+    assert build.call_args.kwargs.get("bilingual_layout", "none") == bilingual_layout
     assert result["quality"]["input_sha256"] == INPUT_SHA256
     assert result["review_hash"] == REVIEW_HASH
     assert result["numbering_revision"] == 4
@@ -213,8 +222,11 @@ def test_api_client_preflight_uses_effective_metadata_cover_and_current_revision
     assert project.settings["export_metadata"]["title"] == "Saved"
 
 
+@pytest.mark.parametrize("bilingual_layout", ["none", "alternating"])
 @pytest.mark.parametrize("mode", ["auto", "jpeg", "webp", None])
-def test_route_preflight_is_owner_only_and_binds_cover_target_hash(mode):
+def test_route_preflight_is_owner_only_and_binds_cover_target_hash(
+    mode, bilingual_layout
+):
     app = Flask(__name__)
     options = normalize_epub_options({})
     canonical_cover = "/uploads/7/translator-covers/" + "c" * 64 + ".jpg"
@@ -246,6 +258,11 @@ def test_route_preflight_is_owner_only_and_binds_cover_target_hash(mode):
         json={
             "epub_options": {},
             "export_metadata": {"title": "Proposed"},
+            **(
+                {"bilingual_layout": bilingual_layout}
+                if bilingual_layout != "none"
+                else {}
+            ),
             **({"epub_image_mode": mode} if mode is not None else {}),
         },
     ):
@@ -274,6 +291,7 @@ def test_route_preflight_is_owner_only_and_binds_cover_target_hash(mode):
             response = routes.epub_export_preflight.__wrapped__(project.id)
 
     assert response.status_code == 200
+    assert build.call_args.kwargs.get("bilingual_layout", "none") == bilingual_layout
     assert build.call_args.kwargs["epub_image_mode"] == (mode or "jpeg")
     result = response.get_json()
     assert result["quality"]["input_sha256"] == INPUT_SHA256

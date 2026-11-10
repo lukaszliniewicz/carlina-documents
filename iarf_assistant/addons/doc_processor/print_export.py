@@ -28,6 +28,30 @@ _DATA_IMAGE = re.compile(
     r"data:image/(?:png|jpeg|gif|webp);base64,([A-Za-z0-9+/=\s]+)", re.IGNORECASE
 )
 _MAX_IMAGE_BYTES = 25 * 1024 * 1024
+# MuPDF Story does not honor CSS overflow-wrap within table cells and can
+# silently clip a long, uninterrupted run in a bilingual PDF column. Add
+# invisible opportunities in the *print copy only*, never the verified source.
+_PDF_PARALLEL_LONG_TOKEN = re.compile(r"[A-Za-z0-9_:/?#@!$&'()*+,;=%.-]{36,}")
+_PDF_PARALLEL_WRAP_CHARS = 20
+
+
+def _soft_wrap_parallel_pdf_tokens(soup: BeautifulSoup) -> None:
+    """Prevent silent PDF column clipping without changing source or hrefs."""
+    for node in list(soup.find_all(string=True)):
+        if not isinstance(node, NavigableString) or isinstance(node, Comment):
+            continue
+        if any(parent.name in {"head", "title"} for parent in node.parents):
+            continue
+        original = str(node)
+        wrapped = _PDF_PARALLEL_LONG_TOKEN.sub(
+            lambda match: "\u200b".join(
+                match.group()[start : start + _PDF_PARALLEL_WRAP_CHARS]
+                for start in range(0, len(match.group()), _PDF_PARALLEL_WRAP_CHARS)
+            ),
+            original,
+        )
+        if wrapped != original:
+            node.replace_with(wrapped)
 
 
 def docx_reference_path() -> str:
@@ -230,6 +254,8 @@ def render_pdf_export(
     soup = BeautifulSoup(html, "html.parser")
     validate_semantic_export(soup, export_name="PDF export input")
     normalize_export_note_roles(soup)
+    if metadata.get("bilingual-layout") == "parallel":
+        _soft_wrap_parallel_pdf_tokens(soup)
     # Existing image sources keep the raster-only policy. Generated SVGs are
     # recognized only after the canonical diagram has passed validation.
     for image in soup.find_all("img"):

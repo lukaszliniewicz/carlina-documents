@@ -5000,7 +5000,7 @@ def epub_export_preflight(project_id: str) -> ResponseReturnValue:
     if (
         not isinstance(body, Mapping)
         or not set(body).issubset(
-            {"epub_options", "export_metadata", "epub_cover", "numbering_revision", "epub_image_mode"}
+            {"epub_options", "export_metadata", "epub_cover", "numbering_revision", "epub_image_mode", "bilingual_layout"}
         )
         or "epub_options" not in body
     ):
@@ -5015,6 +5015,9 @@ def epub_export_preflight(project_id: str) -> ResponseReturnValue:
 
     try:
         options = normalize_epub_options(body["epub_options"])
+        from .bilingual_export import validate_bilingual_layout
+
+        bilingual_layout = validate_bilingual_layout(body.get("bilingual_layout", "none"), "epub")
         image_mode = normalize_epub_image_mode(body.get("epub_image_mode", "jpeg"))
         if not options:
             raise BlockExportError("epub-preflight-profile")
@@ -5067,6 +5070,7 @@ def epub_export_preflight(project_id: str) -> ResponseReturnValue:
         export_request = build_semantic_export_request(
             plan.record,
             export_format="epub",
+            **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
             provider_witness=provider_witness,
             export_metadata=export_metadata,
             cover_uri=cover_uri,
@@ -5328,6 +5332,8 @@ def export_project(project_id):
                             ),
                             409,
                         )
+            if bilingual_layout == "alternating" and normalized_epub_review_hash is None:
+                raise BlockExportError("epub-review-required")
             request_payload = {
                 "format": export_format,
                 "numbering_revision": overlay_revision,
@@ -5407,7 +5413,7 @@ def export_project(project_id):
             )
         except CapabilityUseError as exc:
             return jsonify(exc.to_dict()), 409
-        except (BlockContractError, BlockWorkspaceIntegrityError, scholarly_review.ScholarlyReviewError) as exc:
+        except (BlockContractError, BlockExportError, BlockWorkspaceIntegrityError, scholarly_review.ScholarlyReviewError) as exc:
             return (
                 jsonify(
                     {

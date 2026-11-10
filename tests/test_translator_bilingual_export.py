@@ -178,6 +178,17 @@ def test_real_export_boundary_verifies_both_languages_and_builds_file(layout, fm
             )
         assert b"carlina-bilingual" in chapters
         assert b"Hello" in chapters and b"Witaj" in chapters
+        from xml.etree import ElementTree as ET
+
+        with ZipFile(io.BytesIO(artifact.data)) as archive:
+            package = ET.fromstring(archive.read("EPUB/package.opf"))
+        languages = [
+            element.text
+            for element in package.findall(
+                ".//{http://purl.org/dc/elements/1.1/}language"
+            )
+        ]
+        assert languages == ["pl", "en"]
 
 
 def test_export_boundary_rejects_mismatched_layout_before_source_work():
@@ -208,13 +219,13 @@ def test_existing_placeholder_class_does_not_steal_translation():
 def test_source_noteref_is_inert_but_target_noteref_remains_active():
     original = (
         '<html lang="en"><body><main><h1 id="chapter">Chapter</h1>'
-        '<p>Original<a role="doc-noteref" epub:type="noteref" id="sref" href="#fn">[1]</a>.</p>'
+        '<p>Original<a class="footnote-ref" role="doc-noteref" epub:type="noteref" id="sref" href="#fn">[1]</a>.</p>'
         '<section role="doc-endnotes"><p id="fn">The note.</p></section>'
         "</main></body></html>"
     )
     translated = (
         '<html lang="pl"><body><main><h1 id="chapter">Rozdział</h1>'
-        '<p>Przekład<a role="doc-noteref" epub:type="noteref" id="sref" href="#fn">[1]</a>.</p>'
+        '<p>Przekład<a class="footnote-ref" role="doc-noteref" epub:type="noteref" id="sref" href="#fn">[1]</a>.</p>'
         '<section role="doc-endnotes"><p id="fn">Przypis.</p></section>'
         "</main></body></html>"
     )
@@ -227,6 +238,7 @@ def test_source_noteref_is_inert_but_target_noteref_remains_active():
     )
     soup = BeautifulSoup(result, "html.parser")
     assert len(soup.select('[role="doc-noteref"]')) == 1
+    assert len(soup.select(".footnote-ref")) == 1
     assert len(soup.select('[role="doc-endnotes"]')) == 1
     assert len(soup.find_all(id="fn")) == 1
     assert "The note." in soup.get_text() and "Przypis." in soup.get_text()
@@ -399,3 +411,210 @@ def test_docx_parallel_table_contains_both_languages_without_nested_tables():
     assert "Komórka tabeli" in word
     assert "This is" in word
     assert "To jest" in word
+
+
+def test_figure_keeps_single_accessible_figcaption_child():
+    # A caption must stay a direct child of <figure> in XHTML/EPUB.
+    # Exporting it as a nested table moves it out of its semantic position.
+    source = (
+        '<main><figure><img alt="A flower" '
+        'src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="/>'
+        '<figcaption id="caption">Original photo caption</figcaption></figure></main>'
+    )
+    target = source.replace("Original photo caption", "Polski podpis")
+    for layout in ("parallel", "alternating"):
+        result = compose_bilingual_html(
+            source, target, layout=layout, source_language="en", target_language="pl"
+        )
+        soup = BeautifulSoup(result, "html.parser")
+        caption = soup.select_one("figure > figcaption#caption")
+        assert caption is not None
+        assert len(soup.find_all("figcaption")) == 1
+        assert "Original photo caption" in caption.get_text()
+        assert "Polski podpis" in caption.get_text()
+        assert caption.select_one('[lang="en"]') is not None
+        assert caption.select_one('[lang="pl"]') is not None
+
+
+@pytest.mark.parametrize(
+    "source,target",
+    [
+        (
+            "<section><h1>Original heading</h1><p>Original paragraph</p></section>",
+            "<html><body><section><h1>Polski tytuł</h1><p>Polski akapit</p></section></body></html>",
+        ),
+        (
+            "<h1>Original heading</h1><p>Original paragraph</p>",
+            "<html><body><h1>Polski tytuł</h1><p>Polski akapit</p></body></html>",
+        ),
+    ],
+)
+def test_valid_non_main_fragments_pair_against_persisted_html_shell(source, target):
+    html = compose_bilingual_html(
+        source, target, layout="parallel", source_language="en", target_language="pl"
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    assert "Original paragraph" in soup.get_text()
+    assert "Polski akapit" in soup.get_text()
+    assert len(soup.select(".carlina-bilingual-source")) == 2
+
+
+@pytest.mark.parametrize("which", ["source", "target"])
+def test_semantic_safety_failures_remain_coded_errors(which):
+    unsafe = SOURCE.replace("This is", "This is<!-- a hidden comment -->")
+    source = unsafe if which == "source" else SOURCE
+    target = unsafe.replace("Hello", "Witaj") if which == "target" else TARGET
+    with pytest.raises(BilingualExportError, match=f"bilingual-{which}-invalid"):
+        compose_bilingual_html(
+            source,
+            target,
+            layout="parallel",
+            source_language="en",
+            target_language="pl",
+        )
+
+
+def test_inline_shared_images_are_not_duplicated_and_media_drift_is_rejected():
+    image = '<img alt="A flower" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="/>'
+    source = f"<main><p>Original {image} caption.</p></main>"
+    target = f"<main><p>Przekład {image} podpis.</p></main>"
+    html = compose_bilingual_html(
+        source, target, layout="parallel", source_language="en", target_language="pl"
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    assert len(soup.find_all("img")) == 1
+    assert "Original" in soup.get_text() and "Przekład" in soup.get_text()
+    with pytest.raises(BilingualExportError, match="bilingual-media-drift"):
+        compose_bilingual_html(
+            source,
+            target.replace("R0lGODlh", "R0lGODla"),
+            layout="parallel",
+            source_language="en",
+            target_language="pl",
+        )
+
+
+def test_original_backlink_is_inert_but_translated_link_remains_live():
+    source = '<main><p id="ref">Original</p><p>Note: <a role="doc-backlink" class="footnote-back" href="#ref">↩</a></p></main>'
+    target = source.replace("Original", "Tłumaczenie")
+    html = compose_bilingual_html(
+        source, target, layout="alternating", source_language="en", target_language="pl"
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    assert len(soup.select('a[href="#ref"]')) == 1
+    assert len(soup.select('[role="doc-backlink"]')) == 1
+    assert len(soup.select(".footnote-back")) == 1
+    assert len(soup.find_all("span", string="↩")) == 1
+
+
+def test_caption_with_paragraphs_does_not_create_invalid_span_wrappers():
+    source = "<main><table><caption><p>Original long caption</p></caption><tbody><tr><td>One cell</td></tr></tbody></table></main>"
+    target = source.replace("Original long caption", "Długi podpis").replace(
+        "One cell", "Jedna komórka"
+    )
+    html = compose_bilingual_html(
+        source, target, layout="parallel", source_language="en", target_language="pl"
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    assert len(soup.find_all("caption")) == 1
+    assert len(soup.select("caption p")) == 2
+    assert not soup.select("caption span p")
+
+
+def test_parallel_pdf_wraps_visible_long_tokens_without_changing_references():
+    from iarf_assistant.addons.doc_processor.print_export import (
+        _soft_wrap_parallel_pdf_tokens,
+    )
+
+    token = "https://example.org/" + "verylongunbrokenpassage" * 10
+    soup = BeautifulSoup(
+        f'<main><p><a href="{token}">{token}</a></p><p title="{token}">Other</p></main>',
+        "html.parser",
+    )
+    before = soup.get_text()
+    _soft_wrap_parallel_pdf_tokens(soup)
+    assert "\u200b" in soup.get_text()
+    assert soup.get_text().replace("\u200b", "") == before
+    assert soup.a["href"] == token
+    assert soup.p.find_next_sibling("p")["title"] == token
+
+
+def test_pdf_parallel_does_not_clip_long_unbroken_text():
+    import hashlib
+    import subprocess
+    import sys
+    from types import SimpleNamespace
+
+    import pymupdf
+
+    from carlina.core.semantic_export import SemanticExportRequest
+    from iarf_assistant.addons.doc_processor.semantic_export import (
+        export_semantic_document,
+    )
+
+    long_url = "https://example.org/" + "verylongunbrokenpassage" * 10
+    source = f'<main><h1 id="heading">Original</h1><p>Left before {long_url} after.</p></main>'
+    target = (
+        f'<main><h1 id="heading">Próba</h1><p>Right before {long_url} after.</p></main>'
+    )
+    combined = compose_bilingual_html(
+        source, target, layout="parallel", source_language="en", target_language="pl"
+    )
+    request = SemanticExportRequest(
+        semantic_html=combined,
+        semantic_html_sha256=hashlib.sha256(combined.encode()).hexdigest(),
+        metadata={
+            "title": "Próba",
+            "language": "pl",
+            "bilingual-layout": "parallel",
+            "source-language": "en",
+        },
+        resources=(),
+        format="pdf",
+        include_source_toc=False,
+        profile_id="semantic-default",
+        profile_version="1",
+    )
+
+    def runner(args, *, runtime_unit, input_text=None, timeout_seconds, check=False):
+        assert runtime_unit == "document_processing"
+        assert args[0] == "python"
+        return subprocess.run(
+            [sys.executable, *args[1:]],
+            input=input_text,
+            text=True,
+            capture_output=True,
+            timeout=timeout_seconds,
+            check=check,
+        )
+
+    artifact = export_semantic_document(
+        request,
+        resolver=SimpleNamespace(resolve=lambda _: None),
+        run_managed_process=runner,
+    )
+    with pymupdf.open(stream=artifact.data, filetype="pdf") as document:
+        extracted = "".join(page.get_text() for page in document)
+        assert "".join(extracted.split()).count(long_url) == 2
+        assert all(
+            word[2] <= page.rect.width + 0.5
+            for page in document
+            for word in page.get_text("words")
+        )
+
+
+def test_epub_preflight_hash_is_specific_to_bilingual_edition():
+    from iarf_assistant.addons.translator.block_export import (
+        BlockExportError,
+        semantic_export_review_hash,
+    )
+    from iarf_assistant.addons.translator.worker import _verify_epub_review_hash
+
+    monolingual = _verified_export_request(layout="none", fmt="epub").to_dict()
+    bilingual = _verified_export_request(layout="alternating", fmt="epub").to_dict()
+    monolingual_hash = semantic_export_review_hash(monolingual)
+    bilingual_hash = semantic_export_review_hash(bilingual)
+    assert monolingual_hash != bilingual_hash
+    _verify_epub_review_hash(bilingual, bilingual_hash)
+    with pytest.raises(BlockExportError, match="epub-review-stale"):
+        _verify_epub_review_hash(bilingual, monolingual_hash)

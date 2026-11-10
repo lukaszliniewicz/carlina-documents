@@ -12,7 +12,10 @@ from copy import deepcopy
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString
 
-from carlina.core.semantic_export import validate_semantic_export_html
+from carlina.core.semantic_export import (
+    SemanticExportContractError,
+    validate_semantic_export_html,
+)
 from carlina.core.semantic_html import SAFE_LANGUAGE_RE
 
 
@@ -46,9 +49,49 @@ _LEAF = frozenset(
         "address",
     }
 )
-_INLINE_ONLY = frozenset({"caption", "dt"})
-_INSIDE_WRAPPER = frozenset({"li", "td", "th", "dd", "dt", "caption"})
+_INLINE_ONLY = frozenset({"caption", "dt", "figcaption"})
+_INSIDE_WRAPPER = frozenset({"li", "td", "th", "dd", "dt", "caption", "figcaption"})
 _RTL_LANGUAGES = frozenset({"ar", "fa", "he", "ps", "ur", "yi"})
+# Caption/term panes can only be inline when their authored descendants are phrasing.
+_BLOCK_DESCENDANTS = frozenset(
+    {
+        "address",
+        "article",
+        "aside",
+        "blockquote",
+        "caption",
+        "dd",
+        "div",
+        "dl",
+        "dt",
+        "figcaption",
+        "figure",
+        "footer",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "header",
+        "hr",
+        "li",
+        "main",
+        "nav",
+        "ol",
+        "p",
+        "pre",
+        "section",
+        "table",
+        "tbody",
+        "td",
+        "tfoot",
+        "th",
+        "thead",
+        "tr",
+        "ul",
+    }
+)
 
 
 def validate_bilingual_layout(value: object, export_format: str) -> str:
@@ -64,12 +107,19 @@ def validate_bilingual_layout(value: object, export_format: str) -> str:
 
 
 def _root(soup: BeautifulSoup) -> Tag:
-    # Source snapshots may be a semantic <main> fragment, whereas targets may
-    # already contain an HTML root. Prefer the same visible subtree in both.
-    root = soup.find("main") or soup.find("body") or soup.find(True)
-    if not isinstance(root, Tag):
+    # A snapshot may be a <main> fragment, a <section> fragment, or multiple
+    # sibling blocks. The persisted renderer wraps non-document fragments in
+    # <html><body> but must not affect their actual authored structure.
+    root = soup.find("main") or soup.find("body")
+    if isinstance(root, Tag):
+        return root
+    if soup.find(True) is None:
         raise BilingualExportError("bilingual-document-root")
-    return root
+    body = soup.new_tag("body")
+    for child in list(soup.contents):
+        body.append(child.extract())
+    soup.append(body)
+    return body
 
 
 def _tag_children(node: Tag) -> list[Tag]:
@@ -103,6 +153,24 @@ def _source_copy(node: Tag) -> Tag:
             or "noteref" in str(element.get("epub:type") or "").split()
             or "footnote-ref" in _classes(element)
         )
+        was_backlink = element.name == "a" and (
+            "doc-backlink" in str(element.get("role") or "").split()
+            or "backlink" in str(element.get("epub:type") or "").split()
+            or bool(
+                {
+                    "footnote-back",
+                    "footnote-backlink",
+                    "footnote-backref",
+                    "endnote-backref",
+                }
+                & set(_classes(element))
+            )
+        )
+        if element.name == "img":
+            # Shared image resources are verified equal below and remain in
+            # the target exactly once, including their translated alt text.
+            element.decompose()
+            continue
         for attr in (
             "id",
             "name",
@@ -115,9 +183,23 @@ def _source_copy(node: Tag) -> Tag:
             "data-footnote-scope",
         ):
             element.attrs.pop(attr, None)
-        if was_noteref:
+        if was_noteref or was_backlink:
             element.name = "span"
             element.attrs.pop("href", None)
+            # Both semantic and DOCX note recognizers inspect legacy classes,
+            # even after the role/href are removed from a visual source copy.
+            note_classes = {
+                "footnote-ref",
+                "footnote-back",
+                "footnote-backlink",
+                "footnote-backref",
+                "endnote-backref",
+            }
+            classes = [name for name in _classes(element) if name not in note_classes]
+            if classes:
+                element["class"] = classes
+            else:
+                element.attrs.pop("class", None)
         if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             element.name = "p"
             element["class"] = " ".join(
@@ -147,7 +229,11 @@ def _pair(
 ) -> None:
     if source.name != target.name:
         raise BilingualExportError("bilingual-structure-drift")
-    inline = target.name in _INLINE_ONLY
+    inline = target.name in _INLINE_ONLY and not any(
+        node.name in _BLOCK_DESCENDANTS
+        for container in (source, target)
+        for node in container.find_all(True)
+    )
     original = _source_copy(source)
     source_pane = _pane(soup, source_language, "source", inline=inline)
     target_pane = _pane(soup, target_language, "target", inline=inline)
@@ -217,8 +303,14 @@ def compose_bilingual_html(
         source_language
     ) or not SAFE_LANGUAGE_RE.fullmatch(target_language):
         raise BilingualExportError("bilingual-language-invalid")
-    validate_semantic_export_html(original_html)
-    validate_semantic_export_html(translated_html)
+    try:
+        validate_semantic_export_html(original_html)
+    except SemanticExportContractError as exc:
+        raise BilingualExportError("bilingual-source-invalid") from exc
+    try:
+        validate_semantic_export_html(translated_html)
+    except SemanticExportContractError as exc:
+        raise BilingualExportError("bilingual-target-invalid") from exc
     source_soup = BeautifulSoup(original_html, "html.parser")
     target_soup = BeautifulSoup(translated_html, "html.parser")
     # When both documents have a body, pair its entire authored content,
@@ -230,6 +322,12 @@ def compose_bilingual_html(
         source_root, target_root = _root(source_soup), _root(target_soup)
     if source_root.name != target_root.name:
         raise BilingualExportError("bilingual-document-root")
+    # The target's owned resource manifest is authoritative. Any difference
+    # in source/target images must be rejected, never silently dropped.
+    if [image.get("src") for image in source_root.find_all("img")] != [
+        image.get("src") for image in target_root.find_all("img")
+    ]:
+        raise BilingualExportError("bilingual-media-drift")
 
     pairs = 0
 
@@ -310,7 +408,10 @@ def compose_bilingual_html(
         if isinstance(href, str) and href.startswith("#") and href[1:] not in ids:
             raise BilingualExportError("bilingual-missing-reference")
     output = target_soup.decode(formatter="html")
-    validate_semantic_export_html(output)
+    try:
+        validate_semantic_export_html(output)
+    except SemanticExportContractError as exc:
+        raise BilingualExportError("bilingual-html-invalid") from exc
     return output
 
 
