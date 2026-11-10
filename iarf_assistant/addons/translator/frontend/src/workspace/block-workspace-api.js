@@ -730,7 +730,7 @@ export function createBlockWorkspaceClient(client, projectId) {
     async clearEpubEdition({ signal, expectedVersion } = {}) {
       return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/epub/edition`, { method: "DELETE", signal, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expected_version: expectedVersion }) });
     },
-    async exportDocument(format, { signal, metadata = {}, startH2OnNewPage = false, reviewRequirement = "none", epubCover = null, epubOptions = null, epubImageMode = null, epubReviewHash = null } = {}) {
+    async exportDocument(format, { signal, metadata = {}, startH2OnNewPage = false, reviewRequirement = "none", epubCover = null, epubOptions = null, epubImageMode = null, epubReviewHash = null, bilingualLayout = "none" } = {}) {
       if (!BLOCK_EXPORT_FORMATS.includes(format)) {
         throw new Error("Block exports support only EPUB, DOCX, PDF, and HTML.");
       }
@@ -738,6 +738,8 @@ export function createBlockWorkspaceClient(client, projectId) {
         throw new Error("Invalid export review requirement.");
       }
       if (epubImageMode !== null && (format !== "epub" || !["auto", "jpeg", "webp"].includes(epubImageMode))) throw new Error("Invalid EPUB image format.");
+      if (!["none", "parallel", "alternating"].includes(bilingualLayout)) throw new Error("Invalid bilingual export layout.");
+      if ((format === "epub" && bilingualLayout === "parallel") || (format !== "epub" && bilingualLayout === "alternating")) throw new Error("This bilingual layout is not supported for the selected format.");
       const query = new URLSearchParams({ format });
       return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/export?${query}`, {
         method: "POST",
@@ -747,7 +749,7 @@ export function createBlockWorkspaceClient(client, projectId) {
           "Content-Type": "application/json",
           "Idempotency-Key": createIdempotencyKey(`translator.block.export.${format}`)
         },
-        body: JSON.stringify({ export_metadata: metadata, ...(format === "epub" ? { epub_options: epubOptions || {}, ...(epubImageMode !== null ? { epub_image_mode: epubImageMode } : {}), ...(epubReviewHash ? { epub_review_hash: epubReviewHash } : {}) } : {}), ...(format === "epub" && epubCover ? { epub_cover: epubCover } : {}), ...(reviewRequirement !== "none" ? { review_requirement: reviewRequirement } : {}), ...(["docx", "pdf"].includes(format) && startH2OnNewPage ? { start_h2_on_new_page: true } : {}) })
+        body: JSON.stringify({ export_metadata: metadata, ...(format === "epub" ? { epub_options: epubOptions || {}, ...(epubImageMode !== null ? { epub_image_mode: epubImageMode } : {}), ...(epubReviewHash ? { epub_review_hash: epubReviewHash } : {}) } : {}), ...(format === "epub" && epubCover ? { epub_cover: epubCover } : {}), ...(reviewRequirement !== "none" ? { review_requirement: reviewRequirement } : {}), ...(bilingualLayout !== "none" ? { bilingual_layout: bilingualLayout } : {}), ...(["docx", "pdf"].includes(format) && startH2OnNewPage ? { start_h2_on_new_page: true } : {}) })
       });
     },
     async jobStatus(statusUrl, { signal } = {}) {

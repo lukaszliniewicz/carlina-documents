@@ -463,6 +463,19 @@ describe("block workspace API boundary", () => {
     expect(JSON.parse(fetchJson.mock.calls[1][1].body)).toEqual({ export_metadata: {}, epub_options: {} });
   });
 
+  it("sends bilingual layout independently of review and validates format compatibility", async () => {
+    const fetchJson = vi.fn().mockResolvedValue({ job_id: "export" });
+    const client = createBlockWorkspaceClient({ fetchJson }, "project-1");
+    await client.exportDocument("epub", { bilingualLayout: "alternating" });
+    expect(JSON.parse(fetchJson.mock.calls[0][1].body)).toMatchObject({ bilingual_layout: "alternating" });
+    await client.exportDocument("docx", { bilingualLayout: "parallel", reviewRequirement: "bilingual" });
+    expect(JSON.parse(fetchJson.mock.calls[1][1].body)).toMatchObject({ bilingual_layout: "parallel", review_requirement: "bilingual" });
+    await expect(client.exportDocument("epub", { bilingualLayout: "parallel" })).rejects.toThrow("not supported");
+    await expect(client.exportDocument("pdf", { bilingualLayout: "alternating" })).rejects.toThrow("not supported");
+    await expect(client.exportDocument("html", { bilingualLayout: "invalid" })).rejects.toThrow("Invalid bilingual export layout");
+    expect(fetchJson).toHaveBeenCalledTimes(2);
+  });
+
   it("pins an explicit export review requirement and rejects an unknown kind", async () => {
     const fetchJson = vi.fn().mockResolvedValue({ job_id: "export" });
     const client = createBlockWorkspaceClient({ fetchJson }, "project-1");

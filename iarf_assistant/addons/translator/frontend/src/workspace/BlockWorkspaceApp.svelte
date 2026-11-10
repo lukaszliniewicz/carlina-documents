@@ -102,6 +102,7 @@
   let epubEditionBaseline = "";
   let exportCoverSource = null;
   let exportReviewRequirement = "none";
+  let bilingualEdition = false;
   let exportBusy = false;
   let epubOptions = {};
   let epubImageMode = "jpeg";
@@ -1422,7 +1423,7 @@
       }
       if (exportCoverPath || "cover_upload_path" in exportDetails) metadata.cover_upload_path = exportCoverPath;
       const epubReview = exportFormat === "epub" ? await reviewEpub(epubOptions) : null;
-      const payload = await workspaceClient.exportDocument(exportFormat, { signal: lifecycleController.signal, metadata, startH2OnNewPage, reviewRequirement: exportReviewRequirement, epubCover: coverChoice, epubOptions, epubImageMode: exportFormat === "epub" ? epubImageMode : null, epubReviewHash: epubReview?.review_hash });
+      const payload = await workspaceClient.exportDocument(exportFormat, { signal: lifecycleController.signal, metadata, startH2OnNewPage, reviewRequirement: exportReviewRequirement, epubCover: coverChoice, epubOptions, epubImageMode: exportFormat === "epub" ? epubImageMode : null, epubReviewHash: epubReview?.review_hash, bilingualLayout: bilingualEdition ? (exportFormat === "epub" ? "alternating" : "parallel") : "none" });
       const startedOperation = payload?.operation || payload?.latest_operation;
       if (startedOperation?.id) operation = startedOperation;
       if (!payload?.status_url) {
@@ -1911,6 +1912,14 @@
                     </span>
                   </label>
                 {/each}
+              </fieldset>
+              <fieldset class="export-options" disabled={exportBusy || epubEditionBusy}>
+                <legend>Reading edition</legend>
+                <label class="format-option">
+                  <input type="checkbox" bind:checked={bilingualEdition} />
+                  <span class="format-copy"><span>Include original language alongside translation</span><span class="format-description">{exportFormat === "epub" ? "Alternating passages for reflowable e-readers." : "Parallel columns for side-by-side reading."}</span></span>
+                </label>
+                <p class="export-hint">The reading layout is independent of bilingual review coverage.</p>
               </fieldset>
               <fieldset class="export-options" disabled={exportBusy || epubEditionBusy}>
                 <legend>Review coverage</legend>
