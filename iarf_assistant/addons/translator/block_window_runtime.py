@@ -44,6 +44,7 @@ from .models import (
     TranslationWindowAttemptRevision,
 )
 from .models import TranslationSourcePlan as SourcePlanRecord
+from .review_records import record_translation_flags
 from .sentence_alignment import SentenceAlignmentManifest
 from .target_persistence import (
     activate_initial_target_revisions,
@@ -64,6 +65,8 @@ from .window_execution import (
     _verify_dependency_fence,
     _writable_contract_version,
     normalize_window_response,
+    retained_response_flags,
+    writable_packet_response_flags,
 )
 from .window_persistence import (
     VerifiedWindowEvidence,
@@ -397,6 +400,7 @@ def _provider_manifests_for_attempt(
         writable_source_contract_version=_writable_contract_version(packet),
         annotation_profile=profile,
         target_language=_packet_target_language(packet),
+        response_flags=writable_packet_response_flags(packet),
     )
     if not isinstance(normalized, tuple) or len(normalized) != 3:
         raise BlockContractError("window-finalize-v7-manifest")
@@ -725,6 +729,20 @@ def finalize_staged_window_attempt(
                 cancellation_boundary,
                 verified_plan=verified_plan,
             )
+            if writable_packet_response_flags(packet):
+                # Flags describe the translation just activated, so they are
+                # opened in the activation transaction and never for a window
+                # that did not become current.
+                record_translation_flags(
+                    current_plan.project,
+                    source_plan_id=current_plan.id,
+                    blocks=verified_plan.blocks,
+                    attempt_id=current_attempt.id,
+                    flags=retained_response_flags(
+                        rehydrate_window_provider_response(current_attempt),
+                        window=window,
+                    ),
+                )
             timing["write_work_ms"] = (perf_counter() - write_started) * 1000
             timing["outcome"] = "finalized"
             return _receipt(

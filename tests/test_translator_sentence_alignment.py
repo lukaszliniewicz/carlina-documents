@@ -351,6 +351,151 @@ def test_v7_attempt_recovers_provider_groups_and_binds_staged_candidates(
     assert "<sb" not in __import__("json").dumps(workspace["blocks"][0]["target"])
 
 
+def test_response_flags_open_only_when_their_window_activates(app):
+    from test_translator_block_translation import (
+        _config,
+        _profile,
+        _state,
+        _window,
+        _workflow_config,
+    )
+
+    from iarf_assistant.addons.translator import (
+        block_translation,
+        block_window_runtime,
+        models,
+        review_records,
+        scholarly_review,
+        window_contract,
+        window_execution,
+        window_persistence,
+    )
+    from iarf_assistant.extensions import db
+
+    version = window_contract.SINGLE_COPY_WRITABLE_SOURCE_CONTRACT_VERSION
+    project, plan, record, operation = _state()
+    project.settings = {
+        **(project.settings or {}),
+        "translation_unit_mode": "aligned_sentences",
+    }
+    db.session.commit()
+    profile = _profile()
+    config = _config(plan, record, profile)
+    config["writable_source_contract_version"] = version
+    config["annotation_profile"] = "none"
+    config["response_flags_contract"] = "translator-response-flags-v1"
+    window = _window(plan)
+    material = block_translation.build_window_material(
+        plan=plan,
+        source_plan_id=record.id,
+        window=window,
+        frozen_config=config,
+        workflow_config=_workflow_config(),
+        execution_profile=profile,
+        source_plan_record=record,
+        include_continuity=False,
+        token_counter=lambda **_: 10,
+    )
+    doubt = {
+        "kind": "assumption",
+        "body": "Read the opening as a statement, not a heading.",
+        "excerpt": "Pierwsze",
+    }
+    response = {
+        "results": [
+            {
+                "n": 1,
+                "content": "Pierwsze.<sb/> Dalej.<sb/>",
+                "fields": [],
+                "notes": [],
+                "alignment": {"groups": [{"source": [1], "target": [1, 2]}]},
+                "flags": [doubt],
+            },
+            {
+                "n": 2,
+                "content": "Drugie.<sb/>",
+                "fields": [],
+                "notes": [],
+                "alignment": {"groups": [{"source": [1], "target": [1]}]},
+                "flags": [],
+            },
+        ]
+    }
+
+    def normalize(value, *, flags):
+        return window_execution.normalize_window_response(
+            value,
+            plan=plan,
+            plan_id=record.id,
+            window=window,
+            writable_source_contract_version=version,
+            annotation_profile="none",
+            target_language="pl",
+            response_flags=flags,
+        )
+
+    assert len(normalize(response, flags=True)[0]) == 2
+    with pytest.raises(BlockContractError, match="window-response-contract"):
+        normalize(response, flags=False)
+    # A worker that leaves the optional array out still delivers its translation.
+    unflagged = {
+        "results": [
+            {key: value for key, value in row.items() if key != "flags"}
+            for row in response["results"]
+        ]
+    }
+    assert len(normalize(unflagged, flags=True)[0]) == 2
+    malformed = {
+        "results": [
+            {**response["results"][0], "flags": [{**doubt, "kind": "opinion"}]},
+            response["results"][1],
+        ]
+    }
+    with pytest.raises(BlockContractError, match="window-response-flags"):
+        normalize(malformed, flags=True)
+
+    attempt = window_persistence.persist_window_attempt(
+        operation=operation,
+        source_plan=record,
+        window=window,
+        packet=material.packet,
+        settings=material.settings,
+        model_profile=material.model_profile,
+        admission=material.admission,
+    )
+    db.session.commit()
+    window_execution.execute_window_attempt(
+        attempt,
+        operation=operation,
+        source_plan=record,
+        window=window,
+        provider_call=lambda _payload: response,
+    )
+    attempt_id = attempt.id
+    owner = scholarly_review.ReviewActor(role="owner", user_id=project.user_id)
+    # Staging a response is not acceptance: nothing is flagged yet.
+    assert review_records.list_flags(project, actor=owner)["items"] == []
+
+    for _replay in range(2):
+        db.session.expire_all()
+        staged = db.session.get(models.TranslationWindowAttempt, attempt_id)
+        db.session.rollback()
+        block_window_runtime.finalize_staged_window_attempt(
+            staged,
+            operation=operation,
+            source_plan=record,
+            window=window,
+        )
+        db.session.commit()
+
+    listed = review_records.list_flags(project, actor=owner)
+    assert [
+        (item["block_id"], item["kind"], item["origin"], item["body"], item["excerpt"])
+        for item in listed["items"]
+    ] == [(window.block_ids[0], "assumption", "translation", doubt["body"], "Pierwsze")]
+    assert listed["items"][0]["target_version"] == 1
+
+
 def test_provider_manifest_span_set_preserves_reported_boundaries(app):
     from test_translator_block_translation import _candidate, _state
 

@@ -203,6 +203,8 @@ _EXPECTED_TOOL_NAMES = [
     "carlina_translator_flag_create",
     "carlina_translator_flag_update",
     "carlina_translator_flag_list",
+    "carlina_translator_report",
+    "carlina_translator_review_sample",
     "carlina_translator_review_coverage_record",
     "carlina_translator_review_coverage_get",
     "carlina_translator_review_search",

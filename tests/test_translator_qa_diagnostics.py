@@ -1245,9 +1245,122 @@ def test_alignment_coverage_needs_at_least_two_groups():
 
 
 def test_qa_ruleset_and_categories_expose_the_content_lane():
-    assert _qa.QA_RULESET == "translator-qa-rules-v2"
+    assert _qa.QA_RULESET == "translator-qa-rules-v3"
     assert "content" in _qa._CATEGORIES
     assert _qa._CATEGORIES.index("content") == 1
+    assert _qa._CATEGORIES[-1] == "style"
+
+
+_qa_patterns = import_module(f"{_TRANSLATOR_ROOT}.qa_patterns")
+
+
+def _style(target, *, language="fr", source="Source.", patterns=()):
+    rules = _qa._StyleRules(
+        language,
+        tuple(
+            (_qa_patterns.compile_qa_pattern(pattern, ignore_case=False), pattern, message)
+            for pattern, message in patterns
+        ),
+        "fingerprint",
+    )
+    return _qa._style_findings(
+        **_qa_block_context(), source_text=source, target_text=target, rules=rules
+    )
+
+
+def test_style_reports_french_spacing_but_not_times_urls_or_correct_spaces():
+    findings = _style(
+        "Pourquoi? Il dit : « oui ». Voir http://x.fr à 10:30 ; fin\u202f!"
+    )
+
+    assert [(item["code"], item["evidence"]) for item in findings] == [
+        ("typography-french-spacing", {"mark": "?", "space": "none"}),
+        ("typography-french-spacing", {"mark": ":", "space": "ordinary"}),
+        ("typography-french-spacing", {"mark": ";", "space": "ordinary"}),
+        ("typography-french-spacing", {"mark": "«", "space": "missing"}),
+        ("typography-french-spacing", {"mark": "»", "space": "missing"}),
+    ]
+    assert {item["category"] for item in findings} == {"style"}
+    assert {item["severity"] for item in findings} == {"advisory"}
+    assert _style("Il dit\u00a0: «\u202foui\u202f».") == []
+
+
+def test_style_reports_straight_quotes_only_where_the_source_has_none():
+    quoted = _style('He said "yes" twice.', language="en", source="Il a dit « oui ».")
+    assert [(item["code"], item["evidence"]["count"]) for item in quoted] == [
+        ("typography-straight-quotes", 2)
+    ]
+    assert _style('He said "yes".', language="en", source='Il a dit "oui".') == []
+    assert _style('彼は"はい"と言った。', language="ja", source="He said yes.") == []
+
+
+def test_style_reports_owner_patterns_with_their_messages():
+    findings = _style(
+        "The Lord and the Lord's house.",
+        language="en",
+        patterns=((r"\bLord\b", "House style: lower-case lord"),),
+    )
+
+    assert [
+        (item["code"], item["message"], item["evidence"]["match"]) for item in findings
+    ] == [
+        ("owner-pattern", "House style: lower-case lord", "Lord"),
+        ("owner-pattern", "House style: lower-case lord", "Lord"),
+    ]
+
+
+def test_qa_patterns_are_validated_deduplicated_and_dropped_when_empty():
+    normalize = _qa_patterns.normalize_qa_patterns
+    assert normalize([]) is None
+    assert normalize(
+        [
+            {"pattern": "colour", "message": "  Use   US spelling ", "ignore_case": True},
+            {"pattern": "colour", "message": "Duplicate", "ignore_case": True},
+        ]
+    ) == [{"pattern": "colour", "message": "Use US spelling", "ignore_case": True}]
+    for value, code in (
+        ([{"pattern": "(", "message": "x"}], "qa-pattern-syntax"),
+        ([{"pattern": "a*", "message": "x"}], "qa-pattern-empty-match"),
+        ([{"pattern": "a", "message": " "}], "qa-pattern"),
+        ([{"pattern": "a", "message": "x", "flags": "i"}], "qa-pattern"),
+        ([{"pattern": "a", "message": "x"}] * 31, "qa-patterns"),
+        ("colour", "qa-patterns"),
+    ):
+        with pytest.raises(_block_contract.BlockContractError) as raised:
+            normalize(value)
+        assert raised.value.code == code
+
+
+def test_qa_applies_project_patterns_in_the_style_category(app):
+    project = _project()
+    plan, record = _plan(project)
+    block = next(block for block in plan.blocks if "Eingabe" in block.projection)
+    persist_manual_candidate(
+        project,
+        block.id,
+        _candidate(plan, record, block, "See [Eingabe, 1845] for the colour plates."),
+        0,
+        author_user_id=project.user_id,
+    )
+    project.settings = {
+        **(project.settings or {}),
+        "qa_patterns": [
+            {"pattern": "colour", "message": "Use US spelling", "ignore_case": False}
+        ],
+    }
+    db.session.commit()
+
+    result = qa_diagnostics(project, categories=("style",), include_spelling=False)
+
+    assert [(item["code"], item["message"]) for item in result["items"]] == [
+        ("owner-pattern", "Use US spelling")
+    ]
+    assert result["summary"]["by_category"]["style"] == 1
+    project.settings = {**project.settings, "qa_patterns": [{"pattern": "a*"}]}
+    db.session.commit()
+    with pytest.raises(_qa.QaDiagnosticsError) as raised:
+        qa_diagnostics(project, categories=("style",), include_spelling=False)
+    assert raised.value.code == "qa-patterns-invalid"
 
 
 def test_number_mismatch_compares_parts_not_whole_dotted_numerals():

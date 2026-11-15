@@ -18,7 +18,7 @@ November 2026 and packets can carry an older frozen contract.
 | Style sheet and standing decisions | Research dossier, pinned when the run starts. |
 | Glossary | Project glossary: human-locked rows are binding; rows you propose are advice to later packets. |
 | State across blocks | Packet context: preceding excerpt, exact and sentence precedents, linked notes, glossary selection. |
-| Flags, assumptions, source defects | **No field for them in the translation response.** See section 4. |
+| Flags, assumptions, source defects | Translator flags, raised in the window result (`flags`) or with the flag tools. See section 4. |
 | Completeness, numbers, names, meaning | Numbers, bracket and quotation pairing and (with aligned sentences) short sentence groups are checked by QA; names and meaning are not. See section 5. |
 | Two review readings | Review tools plus coverage records (`target_reading`, `bilingual`). |
 
@@ -35,7 +35,9 @@ review tools (outline, search, fetch) before calling start:
    how each class of problem is treated.
 3. Harvest recurring terms and names and settle their equivalents.
 4. Save 1 and 2 as a research dossier and pass its revision when starting, so that every
-   window receives it. Conversation memory does not survive compaction or a change of worker,
+   window receives it. Put the standing decisions in `standing_decisions`, one short line
+   each (at most 40): every window receives that list in its own slot with an instruction to
+   apply it, rather than as one more item in the research evidence. Conversation memory does not survive compaction or a change of worker,
    and a dossier that is saved but not pinned reaches no packet.
 5. Save 3 as glossary entries before the run, with `sense` to separate concepts, the source
    forms you observed, and in `notes` what a later window needs to use the term correctly:
@@ -105,7 +107,10 @@ before they steer a whole book.
 
 A reader note is addressed to the reader of the book, capped in number and tied to an anchor in
 the target: it is not a place for a translator's doubt. Doubts go into Translator flags, one per
-doubt, anchored to its block, with `carlina_translator_flag_create`:
+doubt, anchored to its block. When the packet's schema has a `flags` array in each result, raise
+them there while translating (at most two per block, `excerpt` empty when there is nothing to
+quote); they open when the window is accepted. Otherwise, or for a doubt that arises later, use
+`carlina_translator_flag_create`. The kinds:
 
 - `assumption`: a reading the text does not settle, with the alternative rejected and why;
 - `source_defect`: a misprint, gap or garbled passage in the source;
@@ -132,8 +137,9 @@ Do not resolve a doubt silently because it was inconvenient to record.
 - **Know what the QA diagnostics cover.** They are deterministic checks of structure,
   citation keys, repeated punctuation, unpaired brackets and quotation marks, abnormal
   length ratio, glossary terms missing or diverging, spelling, joined and split tokens, runs
-  of source-language words, and (ruleset `translator-qa-rules-v2` and later) numbers present
-  on one side only. In aligned-sentence projects they also report a sentence group much
+  of source-language words, (ruleset `translator-qa-rules-v2` and later) numbers present
+  on one side only, and (v3) target-language typography and the owner's house-style
+  patterns in the `style` category. In aligned-sentence projects they also report a sentence group much
   shorter than the rest of its block; `summary.alignment_coverage` says whether that check
   ran, and when it is `unavailable` you compare sentence coverage yourself. They do not
   compare names with the source, do not see an omission inside a sentence group of normal
@@ -152,7 +158,10 @@ Do not resolve a doubt silently because it was inconvenient to record.
 - **Record coverage honestly, by kind.** The target-alone reading of `revision.md` is
   `target_reading` (fetch with `view="target_only"`, which withholds the source); the
   comparison with the source is `bilingual`. A sample covers the anchors sampled. Neither
-  diagnostics nor a heading check amounts to bilingual review of the book.
+  diagnostics nor a heading check amounts to bilingual review of the book. When the book is
+  too long to read whole, draw the sample with `carlina_translator_review_sample` (it weights
+  blocks with findings, flags, headings and numbers, and is reproducible from its seed), read
+  those blocks, and record coverage for the ones actually read with its `coverage_comment`.
 - **Edit only at an idle boundary,** through the version-fenced review tools, and apply the
   restraint rules of `revision.md`: `target_update` requires the defect class and a line on
   what was wrong, and both stay with the revision. If no class fits, the change is a
@@ -162,7 +171,9 @@ Do not resolve a doubt silently because it was inconvenient to record.
   mark it `verified`, or tell the user which renderings remain unconfirmed. Mention
   `coined` renderings too: a reader may need a note for them.
 - **Report with the scope stated:** which coverage kinds, over which blocks, how many findings
-  were dismissed, and which flags remain open.
+  were dismissed, and which flags remain open. `carlina_translator_report` assembles these
+  (with untranslated blocks, unverified and coined renderings, and glossary terms rendered
+  inconsistently); report from it, and add what you checked by hand that it cannot see.
 
 ## 6. Multi-volume and shared work
 

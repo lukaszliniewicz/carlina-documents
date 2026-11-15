@@ -456,10 +456,15 @@ class TranslatorClient:
         translation_max_block_chars: int = DEFAULT_TRANSLATION_MAX_BLOCK_CHARS,
         export_metadata: Mapping[str, Any] | None = None,
         translation_brief: Mapping[str, Any] | None = None,
+        qa_patterns: Sequence[Mapping[str, Any]] | None = None,
     ) -> dict[str, Any]:
         from .block_workflow_config import normalize_translation_brief
+        from .qa_patterns import normalize_qa_patterns
 
         normalized_brief = normalize_translation_brief(translation_brief)
+        normalized_patterns = normalize_qa_patterns(
+            None if qa_patterns is None else [dict(item) for item in qa_patterns]
+        )
         normalized_export_metadata = normalize_export_metadata(
             {} if export_metadata is None else export_metadata
         )
@@ -598,6 +603,7 @@ class TranslatorClient:
             "translation_context_mode": effective_translation_context_mode,
             "translation_unit_mode": effective_translation_unit_mode,
             **({"translation_brief": normalized_brief} if normalized_brief else {}),
+            **({"qa_patterns": normalized_patterns} if normalized_patterns else {}),
             **(
                 {TRANSLATION_MAX_BLOCK_CHARS_SETTING: max_block_chars}
                 if effective_translation_unit_mode == "aligned_sentences"
@@ -1180,6 +1186,34 @@ class TranslatorClient:
             block_ids=block_ids,
             offset=offset,
             limit=limit,
+        )
+
+    def translator_report(self, project_id: str) -> dict[str, Any]:
+        """Assemble the hand-back report: gaps, open flags, glossary, coverage, QA."""
+
+        from .translator_report import translator_report
+
+        project = self._project(project_id)
+        require_document_block_engine(project)
+        return translator_report(
+            project, actor=scholarly_review.ReviewActor("owner", self.user_id)
+        )
+
+    def review_sample(
+        self, project_id: str, *, size: int, seed: int = 0, kind: str = "bilingual"
+    ) -> dict[str, Any]:
+        """Draw a reproducible risk-weighted sample of blocks to review."""
+
+        from .review_sample import review_sample
+
+        project = self._project(project_id)
+        require_document_block_engine(project)
+        return review_sample(
+            project,
+            actor=scholarly_review.ReviewActor("owner", self.user_id),
+            size=size,
+            seed=seed,
+            kind=kind,
         )
 
     def review_coverage_record(

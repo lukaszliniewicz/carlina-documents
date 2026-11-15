@@ -37,6 +37,7 @@ from .models import (
     TranslationTargetBlockActive,
     TranslationTargetEditReason,
 )
+from .response_flags import ResponseFlag
 from .scholarly_review import (
     ReviewActor,
     ScholarlyReviewError,
@@ -491,6 +492,69 @@ def create_flag(
     """Open one block-anchored flag: an assumption, defect or doubt to revisit."""
 
     _require_mutator(project, actor)
+    source_plan, blocks = _source_plan(project)
+    return _open_flag(
+        project,
+        source_plan_id=str(source_plan.id),
+        order=_block_order(blocks),
+        block_id=block_id,
+        kind=kind,
+        body=body,
+        actor=actor,
+        idempotency_key=idempotency_key,
+        excerpt=excerpt,
+        origin=origin,
+    )
+
+
+def record_translation_flags(
+    project: Any,
+    *,
+    source_plan_id: str,
+    blocks: Sequence[Any],
+    attempt_id: str,
+    flags: Sequence[ResponseFlag],
+) -> int:
+    """Open the flags a translating model returned with an activated window.
+
+    The caller owns the activation transaction and has already verified the
+    source plan, so the plan is not decrypted again here. Each flag's key is
+    derived from the attempt and its result position, which makes a replayed
+    activation idempotent. The project owner is the recorded actor; ``origin``
+    says the doubt came from the translation itself.
+    """
+
+    actor = ReviewActor(role="owner", user_id=project.user_id)
+    order = _block_order(blocks)
+    for flag in flags:
+        _open_flag(
+            project,
+            source_plan_id=source_plan_id,
+            order=order,
+            block_id=flag.block_id,
+            kind=flag.kind,
+            body=flag.body,
+            actor=actor,
+            idempotency_key=f"translation:{attempt_id}:{flag.idempotency_suffix}",
+            excerpt=flag.excerpt or None,
+            origin="translation",
+        )
+    return len(flags)
+
+
+def _open_flag(
+    project: Any,
+    *,
+    source_plan_id: str,
+    order: Mapping[str, int],
+    block_id: str,
+    kind: str,
+    body: str,
+    actor: ReviewActor,
+    idempotency_key: str,
+    excerpt: str | None,
+    origin: str,
+) -> dict[str, Any]:
     if kind not in REVIEW_FLAG_KINDS:
         raise _error("review-flag-kind")
     if origin not in FLAG_ORIGINS:
@@ -500,14 +564,12 @@ def create_flag(
         excerpt, "review-flag-excerpt", MAX_FLAG_EXCERPT_CHARS, required=False
     )
     key = _idempotency_key(idempotency_key, "review-flag-idempotency")
-    source_plan, blocks = _source_plan(project)
-    order = _block_order(blocks)
     if block_id not in order:
         raise _error("review-flag-block")
-    flag_id = _write_id("review-flag-open", project.id, source_plan.id, key=key)
+    flag_id = _write_id("review-flag-open", project.id, source_plan_id, key=key)
 
     def replay() -> dict[str, Any] | None:
-        events = _flag_histories(project, str(source_plan.id), [flag_id]).get(flag_id)
+        events = _flag_histories(project, source_plan_id, [flag_id]).get(flag_id)
         if events is None:
             return None
         first = events[0]
@@ -525,13 +587,13 @@ def create_flag(
     existing = replay()
     if existing is not None:
         return existing
-    target_revision_id, target_version = _active_target(str(source_plan.id), block_id)
+    target_revision_id, target_version = _active_target(source_plan_id, block_id)
     values: dict[str, Any] = {
         "id": flag_id,
         "flag_id": flag_id,
         "sequence": 1,
         "project_id": str(project.id),
-        "source_plan_id": str(source_plan.id),
+        "source_plan_id": source_plan_id,
         "block_id": block_id,
         "owner_user_id": project.user_id,
         "action": "open",
@@ -553,7 +615,7 @@ def create_flag(
         if existing is None:
             raise _error("review-flag-persist-failed")
         return existing
-    events = _flag_histories(project, str(source_plan.id), [flag_id])[flag_id]
+    events = _flag_histories(project, source_plan_id, [flag_id])[flag_id]
     return _flag_projection(events, order)
 
 
@@ -917,5 +979,6 @@ __all__ = [
     "persist_edit_reason",
     "qa_dispositions",
     "record_qa_disposition",
+    "record_translation_flags",
     "transition_flag",
 ]

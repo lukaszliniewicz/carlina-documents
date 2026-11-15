@@ -1125,6 +1125,7 @@ describe("BlockWorkspaceApp semantic actions", () => {
           },
           payload: {
             document_brief: "A difficult study translation.",
+            standing_decisions: ["Address the reader formally throughout."],
             style_guidance: ["Prefer conventional scholarly transliterations."],
             entities: [],
             terminology: [{
@@ -1170,6 +1171,8 @@ describe("BlockWorkspaceApp semantic actions", () => {
     await fireEvent.click(await view.findByRole("button", { name: "View conclusions" }));
     await waitFor(() => expect(view.container.textContent).toContain("A difficult study translation."));
     expect(view.container.textContent).toContain("Ein Sof");
+    expect(view.container.textContent).toContain("Standing decisions");
+    expect(view.container.textContent).toContain("Address the reader formally throughout.");
     expect(view.container.textContent).toContain("parallel external research");
     expect(view.container.textContent).toContain("terminology, allusions");
     expect(view.container.textContent).toContain("Corroborated against cited editions.");
@@ -1545,6 +1548,7 @@ describe("BlockWorkspaceApp semantic actions", () => {
       "enable_pre_analysis",
       "enable_research",
       "enable_translator_notes",
+      "qa_patterns",
       "research_tool_selections",
       "researcher_model",
       "translation_batch_input_tokens",
@@ -1555,6 +1559,7 @@ describe("BlockWorkspaceApp semantic actions", () => {
       "translator_model"
     ]);
     expect(settingsPut.translation_brief).toBeNull();
+    expect(settingsPut.qa_patterns).toBeNull();
     expect(settingsPut.research_tool_selections).toEqual([selection]);
     expect(settingsPut.translation_batch_input_tokens).toBe(128000);
     expect(settingsPut.translation_batch_max_blocks).toBe(18);

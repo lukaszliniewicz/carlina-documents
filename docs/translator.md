@@ -7,7 +7,7 @@ platform limits of published builds.
 
 ## MCP adapter ownership
 
-Translator registers all 39 product tools through the shared `McpToolRuntime`
+Translator registers all 49 product tools through the shared `McpToolRuntime`
 port. Four modules own project/export, review/numbering/notes, glossary and context
 tools, with unchanged discovery schemas and defaults. The gateway injects client,
 serialization and source-page rendering callbacks. Translator's `mcp_execution`
@@ -865,6 +865,19 @@ content in a typed, length-bounded evidence slot; only an explicit owner action
 may promote a conclusion into glossary policy or select a dossier revision for a
 later operation.
 
+The payload keys are `document_brief`, `standing_decisions`, `style_guidance`,
+`entities`, `terminology`, `references`, `allusions`, `unresolved_questions` and
+`annotation_proposals`. `standing_decisions` is the run's style sheet in short
+lines (form of address, spelling variant, name forms, quotation handling): at
+most 40, each up to 400 characters after whitespace is collapsed, 8,000 in all.
+An empty list is dropped, so dossiers without decisions keep their digests. When
+a pinned revision has decisions, the baseline moves them out of the research
+evidence slot into their own required `document_style_brief` slot
+(`translation-standing-decisions-v1`, resolver
+`phase5-external-dossier-decisions-v1`), which reduction never drops, and the
+system message tells the model to apply them in every block unless the source
+plainly contradicts one. They stay external, unverified reference data.
+
 An external executor may organize its own agents and tools, then submit bounded
 conclusions through the owner-scoped HTTP or Translator MCP dossier contract.
 Carlina does not pretend that passive translation windows are native research
@@ -1468,7 +1481,52 @@ evidence for review and none a verdict:
   the integrity code and the dialog says the comparison did not run) or
   `disabled` (the `length` category was not requested).
 
+Ruleset `translator-qa-rules-v3` adds the advisory `style` category:
+
+- `typography-straight-quotes` once per block with straight double quotation
+  marks in the target when the source block has none, for target languages whose
+  running text uses typographic quotes (most European languages; not CJK);
+- `typography-french-spacing` in French targets for `; : ! ?` without a no-break
+  space before them (none, or an ordinary space) and for guillemets without
+  no-break spaces inside, skipping times such as `10:30` and `://` in URLs; and
+- `owner-pattern` for each match of the owner's house-style patterns
+  (`qa_patterns` in project settings: at most 30 `{pattern, message,
+  ignore_case}` items, a pattern of up to 200 characters in `regex` syntax that
+  must not match the empty string, a message of up to 200). Patterns are
+  validated when saved through settings or MCP creation, evaluated with a 50 ms
+  time limit per block, and report at most three matches per pattern per block.
+  The workspace settings dialog edits them under House style checks.
+
+Style findings are capped at twelve per block. The pattern list's fingerprint
+and the target language are part of the per-block cache key. Bumping the ruleset
+changes finding identities, so dismissals recorded under v2 lapse; none had been
+released.
+
 None of the checks compares negation, modality or meaning.
+
+## Translator's report and review sample
+
+`carlina_translator_report` (read-only) assembles what a run hands back:
+untranslated blocks, open flags by kind with block references, unverified and
+coined glossary renderings with the counts by verification, review coverage by
+kind (complete, partial, missing blocks), the QA summary with
+`dismissed_total`, and a consistency section that groups open terminology
+findings by glossary concept with the divergent blocks, worst first. Names and
+terms outside the glossary are not compared. Every list is capped at 100 items
+(20 block references per term) and says when it was cut short.
+
+`carlina_translator_review_sample` draws a reproducible, risk-weighted sample of
+translated blocks not yet completely covered for `bilingual` or
+`target_reading`. Each block weighs 1 plus 3, 2 and 0.5 per open integrity,
+warning and advisory QA finding (spelling excluded), 2 per open flag, and 1
+each for a heading, digits in the source and more than 1,200 source characters.
+Selection is weighted sampling without replacement (Efraimidis and Spirakis)
+with each block's key derived from a SHA-256 of the seed, block and target
+version, so the same seed over the same targets yields the same sample and an
+edited block is re-drawn. The response carries a `sample_id` and a
+`coverage_comment` naming it; the sample itself is not stored. The reviewer
+records coverage only for blocks actually read, quoting that comment, so
+coverage states which sample it came from.
 
 A finding can be dismissed as a `false_positive` or as `intended`, with a
 reason of up to 500 characters, through `carlina_translator_qa_disposition_set`
@@ -1501,6 +1559,24 @@ Bilingual `review_fetch` shows a block's open flags; the target-only view omits
 them, since they can quote the source. The workspace lists flags in a dialog,
 shows a count on each flagged block, and lets owners and reviewers add, resolve,
 dismiss and reopen them. Flags never enter exported text.
+
+The translating model can raise flags itself. Operations frozen from now on carry
+`response_flags_contract = "translator-response-flags-v1"`, which the packet
+builder copies into the writable payload as `response_flags`. That one switch
+works with every compact writable contract (block and aligned-sentence modes,
+any annotation profile): the schema and strict-text grammar give each result a
+`flags` array of at most two `{kind, body, excerpt}` items (body up to 600
+characters, excerpt up to 200 or empty), and the instruction asks for flags only
+for doubts a reviewer must settle, never inside `content` or notes. The array is
+required in the schema, which strict providers need, but a result that omits it
+simply has no flags; a malformed array rejects the result at the model-output
+boundary like any other contract error. Normalization validates and then drops them; they are not part
+of a target candidate. On activation, inside the same transaction that makes the
+window current, `finalize_staged_window_attempt` re-reads the retained response
+and opens each flag with origin `translation`, the project owner as actor and a
+key derived from the attempt and result position, so a replayed activation is
+idempotent and a window that never activates leaves no flags. Operations frozen
+before this contract keep their exact historical packets and response shape.
 
 Source now also provides
 `carlina_translator_target_update`: it accepts one block candidate, the expected

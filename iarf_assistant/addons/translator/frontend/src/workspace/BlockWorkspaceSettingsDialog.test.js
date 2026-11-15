@@ -84,6 +84,23 @@ describe("BlockWorkspaceSettingsDialog", () => {
     expect(onFieldChange).toHaveBeenLastCalledWith("translation_brief", { ...brief, target_variety: "pt-BR" });
   });
 
+  it("adds, edits and removes house style checks as one list", async () => {
+    const onFieldChange = vi.fn();
+    const existing = { pattern: "\\bthe Lord\\b", message: "House style: lower-case lord", ignore_case: false };
+    const view = render(BlockWorkspaceSettingsDialog, { props: {
+      open: true, models: readyModels, settingsForm: form({ qa_patterns: [existing] }), onFieldChange
+    } });
+    expect(view.getByText("1 check")).toBeTruthy();
+    await fireEvent.click(view.getByLabelText("Ignore case"));
+    expect(onFieldChange).toHaveBeenLastCalledWith("qa_patterns", [{ ...existing, ignore_case: true }]);
+    await fireEvent.click(view.getByRole("button", { name: "Add a check" }));
+    expect(onFieldChange).toHaveBeenLastCalledWith("qa_patterns", [
+      existing, { pattern: "", message: "", ignore_case: false }
+    ]);
+    await fireEvent.click(view.getByRole("button", { name: "Remove check 1" }));
+    expect(onFieldChange).toHaveBeenLastCalledWith("qa_patterns", []);
+  });
+
   it("preserves unavailable exact selections so owners can see and uncheck them", async () => {
     const onFieldChange = vi.fn();
     const view = render(BlockWorkspaceSettingsDialog, {
@@ -295,11 +312,12 @@ describe("BlockWorkspaceSettingsDialog", () => {
     });
 
     const sections = [...view.container.querySelectorAll("details.settings-section")];
-    expect(sections).toHaveLength(4);
-    expect(sections.map((section) => section.open)).toEqual([true, false, false, false]);
+    expect(sections).toHaveLength(5);
+    expect(sections.map((section) => section.open)).toEqual([true, false, false, false, false]);
     expect(sections.map((section) => section.querySelector("summary").textContent)).toEqual([
       expect.stringMatching(/Translation.*Translator ready/s),
       expect.stringMatching(/Translation brief.*Not set/s),
+      expect.stringMatching(/House style checks.*Typography only/s),
       expect.stringMatching(/Preliminary analysis.*Analyzer ready.*On/s),
       expect.stringMatching(/Research.*Researcher ready.*Off/s)
     ]);

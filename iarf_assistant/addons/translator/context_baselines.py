@@ -50,7 +50,11 @@ from .research_persistence import (
     ResearchVerificationContext,
     rehydrate_completed_research_conclusion,
 )
-from .window_contract import ContextSlot
+from .window_contract import (
+    STANDING_DECISIONS_CONTRACT_VERSION,
+    STANDING_DECISIONS_RESOLVER,
+    ContextSlot,
+)
 
 _ARTIFACT_SLOT = {
     "document_brief": "document_metadata",
@@ -1093,6 +1097,55 @@ def rehydrate_context_baseline(
         raise BlockContractError("baseline-corrupt") from exc
 
 
+def _standing_decisions_slot(
+    decisions: object,
+    *,
+    baseline: TranslationContextBaseline,
+    reference: Mapping[str, object],
+    revision: TranslationResearchDossierRevision,
+) -> ContextSlot:
+    """Carry a dossier's standing decisions in a slot reduction cannot drop.
+
+    The rest of the dossier is research evidence and may be large; the
+    decisions are capped at submission and are what every window must apply,
+    so they are a required style-brief slot. They remain external, unverified
+    reference data, never trusted instructions.
+    """
+
+    if (
+        not isinstance(decisions, list)
+        or not decisions
+        or not all(isinstance(item, str) and item for item in decisions)
+    ):
+        raise BlockContractError("baseline-dossier-decisions")
+    content = canonical_json(
+        {
+            "contract_version": STANDING_DECISIONS_CONTRACT_VERSION,
+            "conclusion_provenance": "external_unverified",
+            "decisions": decisions,
+        }
+    )
+    return ContextSlot(
+        "document_style_brief",
+        content,
+        {
+            "resolver": STANDING_DECISIONS_RESOLVER,
+            "baseline_id": baseline.id,
+            "baseline_hash": baseline.record_hash,
+            "reference_hash": _reference_hash(reference),
+            "dossier_id": reference["dossier_id"],
+            "dossier_revision_id": reference["dossier_revision_id"],
+            "dossier_record_hash": reference["dossier_record_hash"],
+            "conclusion_provenance": "external_unverified",
+        },
+        f"external-dossier-decisions:{revision.id}",
+        str(revision.revision_number),
+        sha256_text(content),
+        {},
+        required=True,
+    )
+
+
 def context_slots_from_baseline(
     baseline: TranslationContextBaseline,
     source_plan: TranslationSourcePlanRecord | None = None,
@@ -1224,15 +1277,26 @@ def context_slots_from_baseline(
                 != _reference_hash(reference)
             ):
                 raise BlockContractError("baseline-dossier-reference")
+            dossier_payload = dict(cast(Mapping[str, Any], dossier["payload"]))
+            decisions = dossier_payload.pop("standing_decisions", None)
             content = canonical_json(
                 {
                     "contract_version": "translation-external-research-dossier-v1",
                     "conclusion_provenance": "external_unverified",
                     "evidence_verification_state": "unverified",
                     "scope": dossier["scope"],
-                    "payload": dossier["payload"],
+                    "payload": dossier_payload,
                 }
             )
+            if decisions is not None:
+                slots.append(
+                    _standing_decisions_slot(
+                        decisions,
+                        baseline=baseline,
+                        reference=reference,
+                        revision=revision,
+                    )
+                )
             slots.append(
                 ContextSlot(
                     "research_evidence",

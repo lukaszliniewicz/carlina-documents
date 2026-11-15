@@ -69,6 +69,7 @@ from .research_input_contract import (
     SUPPORTED_RESEARCH_INPUT_PLANNER_CONTRACTS,
 )
 from .research_persistence import _research_budget, _tool_declarations
+from .response_flags import RESPONSE_FLAGS_CONTRACT_VERSION
 from .translation_units import (
     TRANSLATION_UNIT_MODE_ALIGNED_SENTENCES,
     normalize_translation_unit_mode,
@@ -156,6 +157,7 @@ _CONFIG_OPTIONAL_KEYS = frozenset(
         "annotation_profile",
         "translation_unit_mode",
         "translation_brief",
+        "response_flags_contract",
     }
 )
 _RESEARCH_DOSSIER_KEYS = frozenset(
@@ -1130,6 +1132,15 @@ def _validate_config(config: object) -> dict[str, Any]:
         brief = config["translation_brief"]
         if brief is None or normalize_translation_brief(brief) != brief:
             raise _error("workflow-config-translation-brief")
+    if "response_flags_contract" in config and (
+        config["response_flags_contract"] != RESPONSE_FLAGS_CONTRACT_VERSION
+        or writable_contract
+        in {
+            LEGACY_WRITABLE_SOURCE_CONTRACT_VERSION,
+            PARTS_WRITABLE_SOURCE_CONTRACT_VERSION,
+        }
+    ):
+        raise _error("workflow-config-response-flags")
     translation = config.get("translation")
     if not isinstance(translation, Mapping) or set(translation) != {
         "model",
@@ -1574,6 +1585,9 @@ def freeze_block_workflow_config(
     translation_brief = normalize_translation_brief(settings.get("translation_brief"))
     if translation_brief is not None:
         config["translation_brief"] = translation_brief
+    # New operations let each window result carry reviewer flags; operations
+    # frozen before this contract keep their exact historical response shape.
+    config["response_flags_contract"] = RESPONSE_FLAGS_CONTRACT_VERSION
     # Disabled phases are represented by a flag plus absent material, never by
     # null placeholders in the canonical encrypted payload.
     if not pre_analysis:
@@ -1786,14 +1800,14 @@ def safe_block_workflow_config_projection(
 
 __all__ = [
     "ANALYSIS_REASONING_SLOT",
-    "MAX_TRANSLATION_BRIEF_TEXT_CHARS",
-    "TRANSLATION_BRIEF_KEYS",
-    "normalize_translation_brief",
     "DOCUMENT_STRUCTURE_CONTEXT_VERSION",
+    "MAX_TRANSLATION_BRIEF_TEXT_CHARS",
     "RESEARCH_REASONING_SLOT",
+    "TRANSLATION_BRIEF_KEYS",
     "TRANSLATION_REASONING_SLOT",
     "WORKFLOW_CONFIG_VERSION",
     "freeze_block_workflow_config",
+    "normalize_translation_brief",
     "persist_block_workflow_config",
     "rehydrate_block_workflow_config",
     "rehydrate_historical_block_workflow_config",

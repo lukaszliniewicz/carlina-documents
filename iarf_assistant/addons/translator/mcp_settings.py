@@ -192,6 +192,22 @@ class TranslationBrief(BaseModel):
     )
 
 
+class QaPattern(BaseModel):
+    """One owner house-style check that QA reports as an advisory finding."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    pattern: str = Field(
+        min_length=1,
+        max_length=200,
+        description="Regular expression (Python regex syntax) matched against target text.",
+    )
+    message: str = Field(
+        min_length=1, max_length=200, description="What QA tells the reviewer on a match."
+    )
+    ignore_case: bool = False
+
+
 class TranslatorSettings(BaseModel):
     """Creation options; omitted values retain the product's defaults."""
 
@@ -208,6 +224,14 @@ class TranslatorSettings(BaseModel):
             "Register, target variety, overt or covert translation and form of address "
             "become project policy for every window; purpose and readers are passed as "
             "reference data."
+        ),
+    )
+    qa_patterns: list[QaPattern] | None = Field(
+        None,
+        max_length=30,
+        description=(
+            "House-style checks: each match in the target is an advisory QA finding "
+            "in the style category. A pattern must not match the empty string."
         ),
     )
     enable_pre_analysis: bool | None = Field(

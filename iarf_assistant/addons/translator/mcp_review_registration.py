@@ -189,8 +189,9 @@ def register_review_tools(
             "repeated punctuation, numbers present on one side only, unpaired brackets and "
             "quotation marks, script-aware source/target length anomalies including sentence "
             "groups much shorter than the rest of their block, glossary divergence including "
-            "accepted contextual target variants, split/joined tokens, source-language leakage and spelling "
-            "suspicions when an Enchant dictionary is available. include_spelling=false disables spelling "
+            "accepted contextual target variants, split/joined tokens, source-language leakage, spelling "
+            "suspicions when an Enchant dictionary is available, and (category style) target-language "
+            "typography and the owner's house-style patterns. include_spelling=false disables spelling "
             "advisories only. Filter by category/severity or block IDs, paginate with cursor, and inspect "
             "summary.truncated/omitted_* when a safety cap was reached. Findings dismissed through "
             "carlina_translator_qa_disposition_set are hidden by default (dispositions=open) and "
@@ -361,6 +362,53 @@ def register_review_tools(
                     block_ids=block_ids,
                     offset=offset,
                     limit=limit,
+                ),
+            )
+        except BaseException as exc:
+            raise runtime.failure(exc) from exc
+
+    @server.tool(
+        name="carlina_translator_report",
+        description=(
+            "Assemble the translator's hand-back report for a document-block project: "
+            "untranslated blocks, open flags by kind, unverified and coined glossary "
+            "renderings, review coverage by kind, the QA picture including dismissed "
+            "findings, and glossary terms rendered inconsistently across blocks. Read-only; "
+            "each list is capped and says when it was cut short."
+        ),
+    )
+    async def translator_report(project_id: str) -> dict[str, Any]:
+        principal = runtime.authorize("mcp.translator")
+        try:
+            return await runtime.run(
+                lambda: client(runtime.app, principal.owner_user_id).translator_report(
+                    project_id
+                ),
+            )
+        except BaseException as exc:
+            raise runtime.failure(exc) from exc
+
+    @server.tool(
+        name="carlina_translator_review_sample",
+        description=(
+            "Draw a reproducible risk-weighted sample of translated blocks not yet "
+            "completely covered for kind=bilingual or target_reading. Blocks weigh more "
+            "for open QA findings, open flags, headings, numbers and length; the same seed "
+            "over the same targets gives the same sample. Review the returned blocks, then "
+            "record coverage for those actually read with the returned coverage_comment."
+        ),
+    )
+    async def translator_review_sample(
+        project_id: str,
+        size: int,
+        seed: int = 0,
+        kind: Literal["bilingual", "target_reading"] = "bilingual",
+    ) -> dict[str, Any]:
+        principal = runtime.authorize("mcp.translator")
+        try:
+            return await runtime.run(
+                lambda: client(runtime.app, principal.owner_user_id).review_sample(
+                    project_id, size=size, seed=seed, kind=kind
                 ),
             )
         except BaseException as exc:

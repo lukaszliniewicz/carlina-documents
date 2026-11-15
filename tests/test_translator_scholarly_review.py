@@ -495,6 +495,53 @@ def test_dossier_glossary_operational_error_is_rethrown_unchanged(app, monkeypat
     db.session.rollback()
 
 
+def test_dossier_standing_decisions_are_capped_and_absent_when_empty(app):
+    project, _record, _blocks, owner = _project_and_plan()
+    actor = ReviewActor("owner", owner.id)
+    stored = submit_research_dossier(
+        project,
+        client_submission_id="decisions",
+        payload={
+            "standing_decisions": ["  Address the reader\n formally. ", "Keep Sephardi name forms."]
+        },
+        provenance={},
+        scope={"kind": "document", "block_ids": []},
+        actor=actor,
+    )
+    assert stored["payload"]["standing_decisions"] == [
+        "Address the reader formally.",
+        "Keep Sephardi name forms.",
+    ]
+    empty = submit_research_dossier(
+        project,
+        client_submission_id="no-decisions",
+        payload={"document_brief": "Brief.", "standing_decisions": []},
+        provenance={},
+        scope={"kind": "document", "block_ids": []},
+        actor=actor,
+    )
+    assert "standing_decisions" not in empty["payload"]
+
+    for decisions, code in (
+        (["x"] * (review_service.MAX_STANDING_DECISIONS + 1), "dossier-standing-decisions"),
+        (["x" * (review_service.MAX_STANDING_DECISION_CHARS + 1)], "dossier-standing-decision"),
+        (["x" * 400] * 21, "dossier-standing-decisions"),
+        (["   "], "dossier-standing-decision"),
+        ([{"text": "Address formally."}], "dossier-standing-decision"),
+        ("Address formally.", "dossier-standing-decisions"),
+    ):
+        with pytest.raises(ScholarlyReviewError) as excinfo:
+            submit_research_dossier(
+                project,
+                client_submission_id=f"bad-decisions-{code}-{len(decisions)}",
+                payload={"standing_decisions": decisions},
+                provenance={},
+                scope={"kind": "document", "block_ids": []},
+                actor=actor,
+            )
+        assert excinfo.value.code == code
+
+
 @pytest.mark.parametrize(
     "unsafe_url",
     [

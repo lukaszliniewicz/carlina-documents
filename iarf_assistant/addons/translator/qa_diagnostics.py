@@ -22,18 +22,25 @@ from typing import Any, NamedTuple
 import regex
 
 from . import document_review
+from .block_contract import BlockContractError
 from .block_workspace_api import (
     BlockWorkspaceIntegrityError,
     _rehydrate_workspace_objects,
     load_block_source_plan,
 )
 from .models import TranslationTargetBlockActive
+from .qa_patterns import (
+    QA_PATTERN_TIMEOUT_SECONDS,
+    compile_qa_pattern,
+    normalize_qa_patterns,
+    qa_patterns_fingerprint,
+)
 from .review_records import qa_dispositions, record_qa_disposition
 from .scholarly_review import ScholarlyReviewError
 from .working_glossary import snapshot_current_glossary_entries
 
 QA_CONTRACT = "translator-qa-diagnostics-v1"
-QA_RULESET = "translator-qa-rules-v2"
+QA_RULESET = "translator-qa-rules-v3"
 MAX_QA_LIMIT = 200
 MAX_QA_FINDINGS_BY_SEVERITY = {
     "integrity": 6_000,
@@ -78,8 +85,139 @@ _CATEGORIES = (
     "language",
     "tokens",
     "spelling",
+    "style",
 )
 _SEVERITIES = ("integrity", "warning", "advisory")
+# Languages whose running text uses typographic, not straight, double quotes.
+_TYPOGRAPHIC_QUOTE_LANGUAGES = frozenset(
+    {
+        "bg", "ca", "cs", "da", "de", "el", "en", "es", "et", "fi", "fr", "hr",
+        "hu", "it", "lt", "lv", "nb", "nl", "nn", "no", "pl", "pt", "ro", "ru",
+        "sk", "sl", "sr", "sv", "uk",
+    }
+)
+_FRENCH_HIGH_PUNCTUATION_RE = regex.compile(r"(?<=[\p{L}\p{N}»”’)\]])( ?)([;:!?])")
+_FRENCH_GUILLEMET_RE = regex.compile(r"«(?![\u00a0\u202f])|(?<![\u00a0\u202f])»")
+_MAX_STYLE_FINDINGS_PER_BLOCK = 12
+_MAX_PATTERN_MATCHES_PER_BLOCK = 3
+
+
+class _StyleRules(NamedTuple):
+    """Target-locale typography plus compiled owner patterns for one scan."""
+
+    language: str
+    patterns: tuple[tuple[Any, str, str], ...]
+    fingerprint: str
+
+
+def _style_rules(project: Any) -> _StyleRules:
+    raw_language = str(getattr(project, "target_lang", "") or "")
+    language = raw_language.split("-", 1)[0].split("_", 1)[0].lower()
+    settings = getattr(project, "settings", None)
+    stored = settings.get("qa_patterns") if isinstance(settings, Mapping) else None
+    try:
+        patterns = normalize_qa_patterns(stored) or []
+    except BlockContractError as exc:
+        raise _error("qa-patterns-invalid") from exc
+    compiled = tuple(
+        (
+            compile_qa_pattern(
+                str(item["pattern"]), ignore_case=bool(item["ignore_case"])
+            ),
+            str(item["pattern"]),
+            str(item["message"]),
+        )
+        for item in patterns
+    )
+    return _StyleRules(language, compiled, qa_patterns_fingerprint(patterns))
+
+
+def _style_findings(
+    *,
+    workspace: Any,
+    pages: Mapping[str, list[int]],
+    block: Any,
+    target_version: int | None,
+    source_text: str,
+    target_text: str,
+    rules: _StyleRules,
+) -> list[dict[str, Any]]:
+    """Advisory target-locale typography and owner house-style matches."""
+
+    findings: list[dict[str, Any]] = []
+
+    def add(code: str, message: str, span: tuple[int, int], evidence: dict[str, Any]) -> None:
+        if len(findings) >= _MAX_STYLE_FINDINGS_PER_BLOCK:
+            return
+        findings.append(
+            _finding(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                code=code,
+                category="style",
+                severity="advisory",
+                message=message,
+                source_text=source_text,
+                target_text=target_text,
+                target_span=span,
+                evidence=evidence,
+            )
+        )
+
+    if (
+        rules.language in _TYPOGRAPHIC_QUOTE_LANGUAGES
+        and '"' in target_text
+        and '"' not in source_text
+    ):
+        position = target_text.index('"')
+        add(
+            "typography-straight-quotes",
+            "Straight double quotation marks where the target language uses typographic ones.",
+            (position, position + 1),
+            {"language": rules.language, "count": target_text.count('"')},
+        )
+    if rules.language == "fr":
+        for match in _FRENCH_HIGH_PUNCTUATION_RE.finditer(target_text):
+            mark = match.group(2)
+            after = target_text[match.end() : match.end() + 2]
+            before = target_text[match.start() - 1 : match.start()]
+            if mark == ":" and (
+                after.startswith("//")
+                or (not match.group(1) and before.isdigit() and after[:1].isdigit())
+            ):
+                continue
+            add(
+                "typography-french-spacing",
+                "French high punctuation takes a no-break space before it.",
+                (match.start(), match.end()),
+                {"mark": mark, "space": "ordinary" if match.group(1) else "none"},
+            )
+        for match in _FRENCH_GUILLEMET_RE.finditer(target_text):
+            add(
+                "typography-french-spacing",
+                "French guillemets take no-break spaces inside them.",
+                (match.start(), match.end()),
+                {"mark": match.group(0), "space": "missing"},
+            )
+    for compiled, pattern, message in rules.patterns:
+        try:
+            matches = list(
+                compiled.finditer(target_text, timeout=QA_PATTERN_TIMEOUT_SECONDS)
+            )
+        except TimeoutError:
+            continue
+        for match in matches[:_MAX_PATTERN_MATCHES_PER_BLOCK]:
+            if match.end() == match.start():
+                continue
+            add(
+                "owner-pattern",
+                message,
+                (match.start(), match.end()),
+                {"pattern": pattern, "match": match.group(0)[:120]},
+            )
+    return findings
 _WORD_RE = regex.compile(r"\p{L}(?:[\p{L}\p{M}'’\-]*\p{L})?")
 _INDEX_TOKEN_RE = regex.compile(
     r"[\p{L}\p{N}](?:[\p{L}\p{N}\p{M}'’\-]*[\p{L}\p{N}])?"
@@ -1468,6 +1606,7 @@ def _diagnose_block(
     target_dictionary: _EnchantDictionary,
     source_dictionary: _EnchantDictionary,
     include_spelling: bool,
+    style_rules: _StyleRules | None = None,
 ) -> list[dict[str, Any]]:
     source_text = document_review._source_text(block)
     target_text = document_review._editor_text(target_projection.get("editor"))
@@ -1547,6 +1686,18 @@ def _diagnose_block(
                 source_text=source_text,
                 target_text=target_text,
                 alignment=target_projection.get("alignment"),
+            )
+        )
+    if "style" in enabled_categories and style_rules is not None:
+        findings.extend(
+            _style_findings(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                source_text=source_text,
+                target_text=target_text,
+                rules=style_rules,
             )
         )
     if "terminology" in enabled_categories:
@@ -1938,6 +2089,7 @@ def qa_diagnostics(
     target_dictionary = _EnchantDictionary(getattr(project, "target_lang", ""))
     source_dictionary = _EnchantDictionary(getattr(project, "source_lang", ""))
     glossary_key = _glossary_fingerprint(entries) if needs_glossary else ""
+    style_rules = _style_rules(project) if "style" in enabled_categories else None
     detector_profile = (
         tuple(sorted(enabled_categories)),
         include_spelling,
@@ -1946,6 +2098,7 @@ def qa_diagnostics(
         _detector_signature(target_dictionary, getattr(project, "target_lang", "")),
         _detector_signature(source_dictionary, getattr(project, "source_lang", "")),
         glossary_key,
+        (style_rules.language, style_rules.fingerprint) if style_rules else None,
     )
 
     findings_by_severity: dict[str, list[dict[str, Any]]] = {
@@ -1984,6 +2137,7 @@ def qa_diagnostics(
                 target_dictionary=target_dictionary,
                 source_dictionary=source_dictionary,
                 include_spelling=include_spelling,
+                style_rules=style_rules,
             )
             _qa_block_cache_put(cache_key, block_findings)
         for finding in block_findings:

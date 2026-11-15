@@ -41,6 +41,7 @@ from .models import (
     TranslationWindowAttempt,
 )
 from .note_relations import reuse_note_relations
+from .response_flags import RESPONSE_FLAGS_CONTRACT_VERSION
 from .source_indexes import reuse_source_indexes, source_index
 from .target_contract import literal_reference_slots, structural_fingerprint
 from .target_persistence import rehydrate_target_revision, verify_active_pair
@@ -525,6 +526,17 @@ def build_required_slots(
             "annotation_profile": annotation_profile,
             "blocks": writable_blocks,
         }
+    response_flags = frozen_config.get("response_flags_contract")
+    if response_flags is not None:
+        if response_flags != RESPONSE_FLAGS_CONTRACT_VERSION or (
+            writable_contract_version
+            in {
+                LEGACY_WRITABLE_SOURCE_CONTRACT_VERSION,
+                PARTS_WRITABLE_SOURCE_CONTRACT_VERSION,
+            }
+        ):
+            raise BlockContractError("block-translation-response-flags")
+        writable_payload["response_flags"] = response_flags
     if writable_contract_version not in {
         COMPACT_WRITABLE_SOURCE_CONTRACT_VERSION,
         WRITABLE_SOURCE_CONTRACT_VERSION,

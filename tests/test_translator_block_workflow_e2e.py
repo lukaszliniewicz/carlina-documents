@@ -251,7 +251,8 @@ class _DeterministicProvider:
             json_start = content.find("\n", marker_start + 1) + 1
             payload = json.loads(content[json_start:])
             assert payload["contract_version"] == "translation-block-writable-source-v4"
-            assert set(payload) == {"contract_version", "blocks"}
+            assert set(payload) - {"response_flags"} == {"contract_version", "blocks"}
+            flags = payload.get("response_flags") == "translator-response-flags-v1"
             # max_blocks=1 below deliberately makes this correspondence exact
             # without exposing durable block identities to the provider.
             assert len(payload["blocks"]) == 1
@@ -271,6 +272,7 @@ class _DeterministicProvider:
                             {**field, "value": f"Przekład: {field['value']}"}
                             for field in writable["fields"]
                         ],
+                        **({"flags": []} if flags else {}),
                     }
                 ]
             }
@@ -544,6 +546,88 @@ def test_pinned_research_dossier_is_passed_verbatim_to_baseline_before_translati
         plan.blocks
     )
     assert result["translated_block_count"] == len(plan.blocks)
+
+
+def test_standing_decisions_reach_every_window_in_a_required_slot(app):
+    user, project, record, operation, plan = _state()
+    submitted = _scholarly_review.submit_research_dossier(
+        project,
+        client_submission_id="workflow-dossier-decisions",
+        payload={
+            "document_brief": "An externally supplied research brief.",
+            "standing_decisions": ["Address the reader formally throughout."],
+        },
+        provenance={"method": "fixture"},
+        scope={"kind": "document", "block_ids": []},
+        actor=_scholarly_review.ReviewActor("owner", user.id),
+    )
+    revision = db.session.get(
+        _models.TranslationResearchDossierRevision, submitted["revision_id"]
+    )
+    assert revision is not None
+    existing = _models.TranslationBlockWorkflowConfig.query.filter_by(
+        operation_id=operation.id
+    ).one()
+    db.session.delete(existing)
+    db.session.flush()
+    profile = _window_execution.resolve_execution_profile(project)
+    material = _workflow_config.freeze_block_workflow_config(
+        operation,
+        record,
+        user=user,
+        settings={
+            "translator_model": "e2e-provider/chat",
+            "enable_pre_analysis": False,
+            "enable_research": False,
+        },
+        window_profile=_translator_window_profile(profile),
+        research_dossier={
+            "revision_id": revision.id,
+            "record_hash": revision.record_hash,
+            "content_digest": revision.content_digest,
+            "conclusion_provenance": revision.conclusion_provenance,
+            "evidence_verification_state": revision.evidence_verification_state,
+        },
+    )
+    _workflow_config.persist_block_workflow_config(operation, record, material)
+    db.session.commit()
+
+    windows: list[Any] = []
+
+    class _Capturing(_DeterministicProvider):
+        def completion(self, **kwargs: Any) -> dict[str, object]:
+            if kwargs["source"] == "translator_block_translation_window":
+                windows.append(kwargs["messages"])
+            return super().completion(**kwargs)
+
+    _workflow_runtime.run_document_block_workflow(
+        project=project,
+        operation=operation,
+        service=_Capturing(plan, record),
+        addon_manager=object(),
+        safe_boundary=_safe_boundary,
+    )
+
+    assert len(windows) == len(plan.blocks)
+    for messages in windows:
+        assert "Standing decisions in the supplied research dossier" in (
+            messages[0]["content"]
+        )
+        evidence = messages[1]["content"].split("<untrusted_read_only_data>", 1)[1]
+        assert "[document_style_brief artifact=external-dossier-decisions:" in evidence
+        # Delivered once, in its own slot, not repeated in the dossier evidence.
+        assert evidence.count("Address the reader formally throughout.") == 1
+    attempts = _models.TranslationWindowAttempt.query.filter_by(
+        operation_id=operation.id
+    ).all()
+    assert attempts
+    for attempt in attempts:
+        decision_slots = [
+            slot
+            for slot in attempt.packet_json["slots"]
+            if slot["artifact_id"].startswith("external-dossier-decisions:")
+        ]
+        assert [slot["required"] for slot in decision_slots] == [True]
 
 
 def test_missing_pinned_research_dossier_fails_before_provider_calls(app):

@@ -40,6 +40,7 @@ from iarf_assistant.addons.translator import (
 from iarf_assistant.addons.translator import (
     block_workflow_config as _block_workflow_config,
     target_validation as _target_validation,
+    window_contract as _window_contract,
 )
 from iarf_assistant.addons.translator.block_contract import (
     AttestedDocumentSnapshot,
@@ -647,6 +648,80 @@ def test_v4_writable_source_leaves_complete_outer_wrappers_to_the_host(app):
     assert payload["contract_version"] == "translation-block-writable-source-v4"
     assert payload["blocks"][0]["content"] == "Whole block."
     assert "host owns and restores them" in material.packet.messages[1]["content"]
+
+
+def test_response_flags_extend_the_frozen_response_shape(app):
+    _project, plan, record, _operation = _state()
+    profile = _profile()
+    config = _config(plan, record, profile)
+    config["writable_source_contract_version"] = "translation-block-writable-source-v4"
+    plain = build_window_material(
+        plan=plan,
+        source_plan_id=record.id,
+        window=_window(plan),
+        frozen_config=config,
+        workflow_config=_workflow_config(),
+        execution_profile=profile,
+        source_plan_record=record,
+        include_continuity=False,
+        token_counter=_counter,
+    )
+    config["response_flags_contract"] = "translator-response-flags-v1"
+    flagged = build_window_material(
+        plan=plan,
+        source_plan_id=record.id,
+        window=_window(plan),
+        frozen_config=config,
+        workflow_config=_workflow_config(),
+        execution_profile=profile,
+        source_plan_record=record,
+        include_continuity=False,
+        token_counter=_counter,
+    )
+
+    def writable(material):
+        slot = next(
+            item for item in material.packet.slots if item.slot_type == "writable_source"
+        )
+        return json.loads(slot.content)
+
+    plain_result = plain.packet.response_format["json_schema"]["schema"]["properties"][
+        "results"
+    ]["items"]
+    flagged_result = flagged.packet.response_format["json_schema"]["schema"][
+        "properties"
+    ]["results"]["items"]
+    assert "response_flags" not in writable(plain)
+    assert writable(flagged)["response_flags"] == "translator-response-flags-v1"
+    assert "flags" not in plain_result["properties"]
+    assert "`flags`" not in plain.packet.messages[1]["content"]
+    assert flagged_result["required"] == ["n", "content", "fields", "flags"]
+    assert flagged_result["properties"]["flags"]["maxItems"] == 2
+    assert "Never put doubts, alternatives or queries in `content`" in (
+        flagged.packet.messages[1]["content"]
+    )
+    grammar = _window_contract._strict_response_grammar(
+        writable(flagged), "translation-block-writable-source-v4"
+    )
+    assert "exactly `n`, `content`, `fields`, and `flags`;" in grammar
+    assert "Each flag has exactly `kind`, `body`, and `excerpt`." in grammar
+    assert "flags" not in _window_contract._strict_response_grammar(
+        writable(plain), "translation-block-writable-source-v4"
+    )
+
+    config["writable_source_contract_version"] = "translation-block-writable-source-v2"
+    with pytest.raises(BlockContractError, match="block-translation-response-flags"):
+        build_window_material(
+            plan=plan,
+            source_plan_id=record.id,
+            window=_window(plan),
+            frozen_config=config,
+            workflow_config=_workflow_config(),
+            execution_profile=profile,
+            source_plan_record=record,
+            include_continuity=False,
+            token_counter=_counter,
+        )
 
 
 def test_v5_writable_source_adds_only_restrained_notes_to_v4_shape(app):

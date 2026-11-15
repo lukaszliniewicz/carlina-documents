@@ -620,13 +620,15 @@ def test_official_client_discovers_catalog_in_both_protocol_eras(gateway, mode):
         _catalog(gateway.endpoint, gateway.token, mode)
     )
     names = {tool.name for tool in tools}
-    assert len(tools) == len(names) == 102
+    assert len(tools) == len(names) == 104
     assert "carlina_translator_context_get" in names
     assert {
         "carlina_translator_qa_disposition_set",
         "carlina_translator_flag_create",
         "carlina_translator_flag_update",
         "carlina_translator_flag_list",
+        "carlina_translator_report",
+        "carlina_translator_review_sample",
     } <= names
     assert "carlina_job_resume" in names
     assert {"carlina_document_issues_list", "carlina_document_issue_get", "carlina_document_issue_report", "carlina_document_issue_update"} <= names
@@ -671,7 +673,8 @@ def test_official_client_discovers_catalog_in_both_protocol_eras(gateway, mode):
         "carlina_translator_review_fetch", "carlina_translator_review_source_pages",
         "carlina_translator_qa_diagnostics", "carlina_translator_qa_disposition_set",
         "carlina_translator_flag_create", "carlina_translator_flag_update",
-        "carlina_translator_flag_list", "carlina_translator_review_search",
+        "carlina_translator_flag_list", "carlina_translator_report",
+        "carlina_translator_review_sample", "carlina_translator_review_search",
         "carlina_translator_review_explain", "carlina_translator_target_update",
         "carlina_translator_review_coverage_record", "carlina_translator_review_coverage_get",
         "carlina_translator_reader_note_create", "carlina_translator_reader_note_revise",

@@ -13,6 +13,7 @@
 
   const EMPTY_PAYLOAD = {
     document_brief: "",
+    standing_decisions: [],
     style_guidance: [],
     entities: [],
     terminology: [],
@@ -185,6 +186,9 @@
                     {#if payload.document_brief}
                       <section><h4>Document brief</h4><p>{payload.document_brief}</p></section>
                     {/if}
+                    {#if list(payload.standing_decisions).length}
+                      <section><h4>Standing decisions</h4><ul>{#each list(payload.standing_decisions) as decision}<li>{decision}</li>{/each}</ul></section>
+                    {/if}
                     {#if list(payload.style_guidance).length}
                       <section><h4>Style guidance</h4><ul>{#each list(payload.style_guidance) as guidance}<li>{guidance}</li>{/each}</ul></section>
                     {/if}
@@ -206,7 +210,7 @@
                     {#if list(payload.references).length}
                       <section><h4>References</h4><dl>{#each list(payload.references) as reference}<div><dt>{#if reference.url}<a href={reference.url} target="_blank" rel="noopener noreferrer">{reference.title}</a>{:else}{reference.title}{/if}</dt><dd>{reference.authors}{#if reference.locator} · {reference.locator}{/if}{#if reference.note}<br />{reference.note}{/if}</dd></div>{/each}</dl></section>
                     {/if}
-                    {#if !payload.document_brief && !list(payload.style_guidance).length && !list(payload.entities).length && !list(payload.terminology).length && !list(payload.allusions).length && !list(payload.unresolved_questions).length && !list(payload.annotation_proposals).length && !list(payload.references).length}
+                    {#if !payload.document_brief && !list(payload.standing_decisions).length && !list(payload.style_guidance).length && !list(payload.entities).length && !list(payload.terminology).length && !list(payload.allusions).length && !list(payload.unresolved_questions).length && !list(payload.annotation_proposals).length && !list(payload.references).length}
                       <p class="empty">This revision records an empty conclusion packet.</p>
                     {/if}
                   </div>
@@ -260,7 +264,7 @@
       <label>
         Structured research packet
         <textarea class="json-editor" bind:value={payloadText} rows="20" spellcheck="false" disabled={busy}></textarea>
-        <small>Use the supplied keys for document brief, style guidance, entities, terminology, references, allusions, unresolved questions, and annotation proposals. Block and reference IDs are checked server-side.</small>
+        <small>Use the supplied keys for document brief, standing decisions, style guidance, entities, terminology, references, allusions, unresolved questions, and annotation proposals. Standing decisions (up to 40 short lines) reach every window of a run that pins this dossier, however tight its budget. Block and reference IDs are checked server-side.</small>
       </label>
 
       <div class="notice">

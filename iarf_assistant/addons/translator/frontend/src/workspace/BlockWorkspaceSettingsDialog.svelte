@@ -52,6 +52,28 @@
     setField("translation_brief", { ...(settingsForm.translation_brief || {}), [field]: value });
   }
 
+  const MAX_QA_PATTERNS = 30;
+
+  function setPatterns(next) {
+    setField("qa_patterns", next);
+  }
+
+  function setPattern(index, field, value) {
+    setPatterns(qaPatterns.map((item, position) => (position === index ? { ...item, [field]: value } : item)));
+  }
+
+  function addPattern() {
+    setPatterns([...qaPatterns, { pattern: "", message: "", ignore_case: false }]);
+  }
+
+  function removePattern(index) {
+    setPatterns(qaPatterns.filter((_item, position) => position !== index));
+  }
+
+  $: qaPatterns = Array.isArray(settingsForm.qa_patterns) ? settingsForm.qa_patterns : [];
+  $: patternSummary = qaPatterns.length
+    ? `${qaPatterns.length} check${qaPatterns.length === 1 ? "" : "s"}`
+    : "Typography only";
   $: brief = settingsForm.translation_brief || {};
   $: briefSummary = [
     brief.target_variety,
@@ -349,6 +371,36 @@
 
       <details class="settings-section">
         <summary>
+          <span class="section-title"><strong>House style checks</strong><small>{patternSummary}</small></span>
+        </summary>
+        <div class="section-body">
+          <small>QA already checks target-language typography. Add what your house style forbids or wants looked at; each match becomes an advisory style finding. Patterns use regular-expression syntax and must not match empty text.</small>
+          {#each qaPatterns as item, index (index)}
+            <fieldset class="pattern-row">
+              <legend class="sr-only">Check {index + 1}</legend>
+              <label>
+                Pattern
+                <input class="pattern-input" value={item.pattern || ""} maxlength="200" spellcheck="false" autocomplete="off" placeholder="e.g. \bthe Lord\b" disabled={interactionDisabled} on:input={(event) => setPattern(index, "pattern", event.currentTarget.value)} />
+              </label>
+              <label>
+                Message
+                <input value={item.message || ""} maxlength="200" placeholder="e.g. House style: lower-case 'lord'" disabled={interactionDisabled} on:input={(event) => setPattern(index, "message", event.currentTarget.value)} />
+              </label>
+              <label class="pattern-case">
+                <input type="checkbox" checked={Boolean(item.ignore_case)} disabled={interactionDisabled} on:change={(event) => setPattern(index, "ignore_case", event.currentTarget.checked)} />
+                Ignore case
+              </label>
+              <button class="btn btn-ghost btn-compact" type="button" aria-label={`Remove check ${index + 1}`} disabled={interactionDisabled} on:click={() => removePattern(index)}>Remove</button>
+            </fieldset>
+          {/each}
+          <div>
+            <button class="btn secondary" type="button" disabled={interactionDisabled || qaPatterns.length >= MAX_QA_PATTERNS} on:click={addPattern}>Add a check</button>
+          </div>
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary>
           <span class="section-title"><strong>Preliminary analysis</strong><small>{selectedModelLabel("analyzer_model")}</small></span>
           <span class:enabled={settingsForm.enable_pre_analysis} class="phase-state">{settingsForm.enable_pre_analysis ? "On" : "Off"}</span>
         </summary>
@@ -464,6 +516,11 @@
   .phase-state { color:var(--color-ink-muted); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; }
   .phase-state.enabled { color:var(--color-lichen,#56604f); }
   .brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }
+  .pattern-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto auto; align-items:end; gap:.6rem; margin:0; padding:0 0 .7rem; border:0; border-bottom:1px solid var(--color-rule); }
+  .pattern-input { font-family:var(--font-mono,ui-monospace,monospace); }
+  .pattern-case { display:flex; align-items:center; gap:.35rem; white-space:nowrap; padding-bottom:.45rem; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  @media (max-width:560px) { .pattern-row { grid-template-columns:1fr; } }
   @media (max-width:560px) { .brief-grid { grid-template-columns:1fr; } }
   .section-body { display:grid; gap:.76rem; padding:.82rem; border-top:1px solid var(--color-rule); }
   .two-col { display:grid; gap:.8rem; grid-template-columns:repeat(2,minmax(0,1fr)); }

@@ -56,6 +56,7 @@ from .operations import (
     TranslationOperationTransitionConflict,
 )
 from .rehydration_cache import TranslationRehydrationCache
+from .response_flags import ResponseFlag, window_response_flags
 from .sentence_alignment import (
     SentenceAlignmentManifest,
     normalize_marked_sentence_alignment,
@@ -79,6 +80,7 @@ from .window_contract import (
     WRITABLE_SOURCE_CONTRACT_VERSION,
     ProviderPacket,
     TranslationWindow,
+    writable_response_flags,
 )
 from .window_persistence import (
     VerifiedWindowEvidence,
@@ -358,6 +360,7 @@ def normalize_window_response(
     writable_source_contract_version: str | None = None,
     annotation_profile: object = None,
     target_language: str | None = None,
+    response_flags: bool = False,
 ) -> (
     tuple[TargetBlockCandidate, ...]
     | tuple[tuple[TargetBlockCandidate, ...], tuple[BlockNoteCandidate, ...]]
@@ -367,34 +370,19 @@ def normalize_window_response(
         tuple[SentenceAlignmentManifest, ...],
     ]
 ):
-    """Normalize either native payload or strict JSON text into Phase-2 DTOs."""
+    """Normalize either native payload or strict JSON text into Phase-2 DTOs.
 
-    if isinstance(value, str):
-        if len(value.encode("utf-8")) > 2 * 1024 * 1024:
-            raise BlockContractError("window-response-size")
-        candidate = value.strip()
-        fenced = _JSON_FENCE.fullmatch(candidate)
-        if fenced is not None:
-            candidate = fenced.group("payload")
-        try:
-            value = json.loads(candidate)
-        except (TypeError, ValueError, RecursionError) as original:
-            repaired = _repair_unescaped_json_string_quotes(candidate)
-            if repaired is None:
-                raise BlockContractError("window-response-json") from original
-            try:
-                value = json.loads(repaired)
-            except (TypeError, ValueError, RecursionError) as repaired_error:
-                raise BlockContractError("window-response-json") from repaired_error
-    if (
-        not isinstance(value, Mapping)
-        or set(value) != {"results"}
-        or not isinstance(value["results"], list)
-    ):
-        raise BlockContractError("window-response-shape")
-    results = value["results"]
+    With ``response_flags`` a compact result may carry a ``flags`` array,
+    which must then be valid. Flags are validated here, at the model-output boundary, and then
+    dropped: they are review records, collected again on activation by
+    :func:`retained_response_flags`, never part of a target candidate.
+    """
+
+    results = _window_results(value)
     if len(results) != len(window.block_ids):
         raise BlockContractError("window-response-cardinality")
+    if response_flags:
+        window_response_flags(results, window.block_ids)
     blocks = {block.id: block for block in plan.blocks}
     sentence_aligned = (
         writable_source_contract_version
@@ -425,6 +413,8 @@ def normalize_window_response(
         compact_keys.add("notes")
     if sentence_aligned:
         compact_keys.update({"notes", "alignment"})
+    if response_flags:
+        compact_keys.add("flags")
         compact_key_sets = {frozenset(compact_keys)}
     else:
         compact_key_sets = {
@@ -433,6 +423,9 @@ def normalize_window_response(
         }
     if notes_enabled:
         compact_key_sets = {frozenset(compact_keys)}
+    if response_flags:
+        # The schema always asks for ``flags``; an omitted array means none.
+        compact_key_sets |= {key_set - {"flags"} for key_set in compact_key_sets}
     compact = all(
         isinstance(item, Mapping) and frozenset(item) in compact_key_sets
         for item in results
@@ -472,7 +465,9 @@ def normalize_window_response(
             if "role" in item and item["role"] != block.role:
                 raise BlockContractError("window-response-contract")
             compact_value = {
-                key: item[key] for key in compact_keys if key != "alignment"
+                key: item[key]
+                for key in compact_keys
+                if key not in {"alignment", "flags"}
             }
             sentence_ends: list[int] = []
             marker_ends.append(sentence_ends)
@@ -565,6 +560,58 @@ def normalize_window_response(
     if notes_enabled:
         return candidates, tuple(notes_list)
     return candidates
+
+
+def _window_results(value: Mapping[str, Any] | str) -> list[Any]:
+    """Parse a native or strict-text window response down to its results."""
+
+    if isinstance(value, str):
+        if len(value.encode("utf-8")) > 2 * 1024 * 1024:
+            raise BlockContractError("window-response-size")
+        candidate = value.strip()
+        fenced = _JSON_FENCE.fullmatch(candidate)
+        if fenced is not None:
+            candidate = fenced.group("payload")
+        try:
+            value = json.loads(candidate)
+        except (TypeError, ValueError, RecursionError) as original:
+            repaired = _repair_unescaped_json_string_quotes(candidate)
+            if repaired is None:
+                raise BlockContractError("window-response-json") from original
+            try:
+                value = json.loads(repaired)
+            except (TypeError, ValueError, RecursionError) as repaired_error:
+                raise BlockContractError("window-response-json") from repaired_error
+    if (
+        not isinstance(value, Mapping)
+        or set(value) != {"results"}
+        or not isinstance(value["results"], list)
+    ):
+        raise BlockContractError("window-response-shape")
+    return cast(list[Any], value["results"])
+
+
+def retained_response_flags(
+    value: Mapping[str, Any] | str, *, window: TranslationWindow
+) -> tuple[ResponseFlag, ...]:
+    """Collect the reviewer flags of a retained, already-normalized response."""
+
+    return window_response_flags(_window_results(value), window.block_ids)
+
+
+def writable_packet_response_flags(packet: ProviderPacket) -> bool:
+    """Return whether a retained packet asked for per-result response flags."""
+
+    writable = [slot for slot in packet.slots if slot.slot_type == "writable_source"]
+    if len(writable) != 1:
+        raise BlockContractError("window-response-contract")
+    try:
+        payload = json.loads(writable[0].content)
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise BlockContractError("window-response-contract") from exc
+    if not isinstance(payload, Mapping):
+        raise BlockContractError("window-response-contract")
+    return writable_response_flags(payload)
 
 
 def _writable_contract_version(packet: ProviderPacket) -> str:
@@ -1175,6 +1222,7 @@ def _stage_window_response(
             window=window,
             writable_source_contract_version=writable_contract_version,
             annotation_profile=annotation_profile,
+            response_flags=writable_packet_response_flags(packet),
             target_language=(
                 _packet_target_language(packet)
                 if writable_contract_version
@@ -1485,4 +1533,6 @@ __all__ = [
     "reconcile_dispatched_window_attempt",
     "resolve_execution_profile",
     "resume_window_attempt",
+    "retained_response_flags",
+    "writable_packet_response_flags",
 ]

@@ -53,6 +53,10 @@ _MAX_CITATIONS = 32
 _MAX_CITATION_ID = 128
 _MAX_ANCHOR_CHARS = 160
 _MAX_BODY_CHARS = 4000
+# Standing decisions travel in every packet of a run, so they stay small.
+MAX_STANDING_DECISIONS = 40
+MAX_STANDING_DECISION_CHARS = 400
+MAX_STANDING_DECISIONS_TOTAL_CHARS = 8000
 _MAX_GRANT_LABEL = 128
 _MAX_SESSION_MINUTES = 30
 _MAX_SESSION_DAYS = 1
@@ -736,6 +740,7 @@ def _normalize_dossier_payload(
         "allusions",
         "unresolved_questions",
         "annotation_proposals",
+        "standing_decisions",
     }
     if set(payload) - keys:
         raise ScholarlyReviewError("dossier-payload-keys")
@@ -752,6 +757,7 @@ def _normalize_dossier_payload(
     if not isinstance(style, list) or len(style) > 256:
         raise ScholarlyReviewError("dossier-style")
     style_out = [_safe_text(item, "dossier-style", 2_000) for item in style]
+    decisions = _standing_decisions(payload.get("standing_decisions", []))
     entities: list[dict[str, Any]] = []
     raw_entities = payload.get("entities", [])
     if not isinstance(raw_entities, list) or len(raw_entities) > 512:
@@ -965,8 +971,28 @@ def _normalize_dossier_payload(
         "unresolved_questions": questions,
         "annotation_proposals": annotations,
     }
+    # Absent when empty, so dossiers without decisions keep their digests.
+    if decisions:
+        result["standing_decisions"] = decisions
     _canonical_bytes(result)
     return result
+
+
+def _standing_decisions(value: Any) -> list[str]:
+    """Validate the short decisions every window of a run must follow."""
+
+    if not isinstance(value, list) or len(value) > MAX_STANDING_DECISIONS:
+        raise ScholarlyReviewError("dossier-standing-decisions")
+    decisions: list[str] = []
+    for item in value:
+        text = _safe_text(item, "dossier-standing-decision", MAX_STANDING_DECISION_CHARS)
+        text = " ".join(str(text).split())
+        if not text:
+            raise ScholarlyReviewError("dossier-standing-decision")
+        decisions.append(text)
+    if sum(len(item) for item in decisions) > MAX_STANDING_DECISIONS_TOTAL_CHARS:
+        raise ScholarlyReviewError("dossier-standing-decisions")
+    return decisions
 
 
 def _normalize_provenance(provenance: Any) -> dict[str, Any]:

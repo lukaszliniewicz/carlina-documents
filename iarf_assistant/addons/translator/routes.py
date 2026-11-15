@@ -110,6 +110,7 @@ from .block_workspace_api import (
 )
 from .document_review import DocumentReviewError
 from .qa_diagnostics import QaDiagnosticsError, qa_diagnostics
+from .qa_patterns import normalize_qa_patterns
 from .project_deletion import (
     cleanup_deleted_project_vectors,
     collect_project_deletion_artifacts,
@@ -1823,6 +1824,21 @@ def manage_project_settings(project_id):
             settings.pop("translation_brief", None)
         else:
             settings["translation_brief"] = brief
+    if "qa_patterns" in data:
+        try:
+            patterns = normalize_qa_patterns(data["qa_patterns"])
+        except BlockContractError as exc:
+            return jsonify(
+                {
+                    "error": "A house-style pattern is invalid.",
+                    "code": "qa-patterns-invalid",
+                    "detail": exc.code,
+                }
+            ), 400
+        if patterns is None:
+            settings.pop("qa_patterns", None)
+        else:
+            settings["qa_patterns"] = patterns
     try:
         settings["translation_context_mode"] = normalize_translation_context_mode(
             settings.get("translation_context_mode", "self_contained")

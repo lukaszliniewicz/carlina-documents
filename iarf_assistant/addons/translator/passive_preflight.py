@@ -13,10 +13,12 @@ from typing import Any
 
 from .block_contract import BlockContractError
 from .compact_markup import MAX_SENTENCE_MARKERS, parse_compact_fragment
+from .response_flags import block_response_flags
 from .sentence_alignment import _manifest_groups
 from .window_contract import (
     LOCATED_SOURCE_WRITABLE_CONTRACT_VERSION,
     SINGLE_COPY_WRITABLE_SOURCE_CONTRACT_VERSION,
+    writable_response_flags,
 )
 
 PREFLIGHT_CONTRACT = "translator-packet-preflight-v1"
@@ -163,6 +165,7 @@ def preflight_completion(request: Mapping[str, Any], response: Mapping[str, Any]
         except (ValueError, TypeError, RecursionError):
             return _response_diagnostic()
     blocks = writable.get("blocks")
+    flags_enabled = writable_response_flags(writable)
     results = value.get("results") if isinstance(value, Mapping) else None
     errors = []
     if not isinstance(results, list) or not isinstance(blocks, list) or len(results) != len(blocks):
@@ -171,6 +174,10 @@ def preflight_completion(request: Mapping[str, Any], response: Mapping[str, Any]
         for index, (source, target) in enumerate(zip(blocks, results, strict=True)):
             try:
                 _block(source, target)
+                if flags_enabled and "flags" in target:
+                    block_response_flags(
+                        target.get("flags"), block_id=str(index + 1), number=index + 1
+                    )
             except (BlockContractError, ValueError, TypeError, KeyError) as exc:
                 code = exc.code if isinstance(exc, BlockContractError) else "window-response-contract"
                 errors.append({"path": f"/content/results/{index}", "code": code, "block_number": index + 1})

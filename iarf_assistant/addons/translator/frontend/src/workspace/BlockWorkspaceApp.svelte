@@ -209,7 +209,8 @@
     translation_batch_input_tokens: DEFAULT_TRANSLATION_BATCH_INPUT_TOKENS,
     translation_batch_max_blocks: DEFAULT_TRANSLATION_BATCH_MAX_BLOCKS,
     custom_prompt: "",
-    translation_brief: {}
+    translation_brief: {},
+    qa_patterns: []
   };
 
   const TRANSLATION_BRIEF_FIELDS = ["register", "target_variety", "translation_type", "form_of_address", "purpose", "readers"];
@@ -221,6 +222,17 @@
       if (value) result[field] = value;
     }
     return Object.keys(result).length ? result : null;
+  }
+
+  function qaPatternsPayload(patterns) {
+    const result = (Array.isArray(patterns) ? patterns : [])
+      .map((item) => ({
+        pattern: String(item?.pattern || ""),
+        message: String(item?.message || "").trim(),
+        ignore_case: Boolean(item?.ignore_case)
+      }))
+      .filter((item) => item.pattern && item.message);
+    return result.length ? result : null;
   }
 
   const exportOptions = [
@@ -1544,7 +1556,8 @@
         translation_batch_input_tokens: Number(settings.translation_batch_input_tokens || DEFAULT_TRANSLATION_BATCH_INPUT_TOKENS),
         translation_batch_max_blocks: Number(settings.translation_batch_max_blocks || DEFAULT_TRANSLATION_BATCH_MAX_BLOCKS),
         custom_prompt: String(settings.custom_prompt || ""),
-        translation_brief: { ...(settings.translation_brief || {}) }
+        translation_brief: { ...(settings.translation_brief || {}) },
+        qa_patterns: (Array.isArray(settings.qa_patterns) ? settings.qa_patterns : []).map((item) => ({ ...item }))
       };
       settingsOpen = true;
     } catch (caught) {
@@ -1587,7 +1600,8 @@
           translation_batch_input_tokens: Number(settingsForm.translation_batch_input_tokens),
           translation_batch_max_blocks: Number(settingsForm.translation_batch_max_blocks),
           custom_prompt: settingsForm.custom_prompt || "",
-          translation_brief: briefPayload(settingsForm.translation_brief)
+          translation_brief: briefPayload(settingsForm.translation_brief),
+          qa_patterns: qaPatternsPayload(settingsForm.qa_patterns)
         })
       });
       settingsOpen = false;

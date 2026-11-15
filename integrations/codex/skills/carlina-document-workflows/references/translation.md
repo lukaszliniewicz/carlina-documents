@@ -33,7 +33,13 @@ research. Save externally prepared conclusions through research dossiers when
 needed; a custom prompt or the agent's conversation memory is not a persisted
 glossary or research record. Retain the `revision_id` returned by
 `carlina_translator_research_dossier_submit`. Saving a dossier alone does not
-include its conclusions in a translation run.
+include its conclusions in a translation run. Payload keys: `document_brief`,
+`standing_decisions`, `style_guidance`, `entities`, `terminology`, `references`,
+`allusions`, `unresolved_questions`, `annotation_proposals`. Put the run's style
+sheet in `standing_decisions` (at most 40 short lines, 8,000 characters in all):
+when the dossier is pinned they reach every window in their own required slot
+and the model is told to apply them in every block, instead of finding them
+somewhere in the research evidence.
 
 This reference covers how to drive Translator. How to translate well is the
 subject of the separate `translation` skill. When it is installed, load it and
@@ -443,6 +449,13 @@ reopen them with `carlina_translator_flag_update`, fenced on the flag's
 a block's open flags. Flags never reach exports. Report open flags with block
 references when handing back a project.
 
+Newer packets also have a `flags` array in every window result (check the
+leased schema). Leave it empty unless a doubt needs settling; at most two per
+block, each with `kind`, `body` and `excerpt` (empty string when nothing is
+quoted). These open as flags with origin `translation` when the window is
+accepted, so do not repeat them with `carlina_translator_flag_create`. A
+malformed flag rejects the whole result like any other contract error.
+
 After actually checking a block or specified source anchors, record the kind of
 coverage with `carlina_translator_review_coverage_record`: `structural`,
 `target_reading` or `bilingual`. Read for `target_reading` with
@@ -455,6 +468,15 @@ what remains. For an export requiring complete review, supply the relevant
 `review_requirement`; `none` is a draft. Export receipts bind the checked target
 revisions and witnesses. Do not claim whole-book bilingual review from QA,
 heading/note review or a sample.
+
+`carlina_translator_review_sample` draws a reproducible risk-weighted sample of
+uncovered translated blocks for one coverage kind; record coverage only for the
+blocks you read, quoting its `coverage_comment`. `carlina_translator_report`
+assembles the hand-back picture (untranslated blocks, open flags, unverified and
+coined glossary renderings, coverage by kind, QA with dismissals, inconsistent
+glossary renderings). Owners can add house-style regex checks as `qa_patterns`
+at creation or in workspace settings; QA reports matches in the `style`
+category alongside target-language typography.
 
 Reconcile completion with the execution and accepted window scope, then verify
 target activation in the reviewed records. `translator_get` does not provide

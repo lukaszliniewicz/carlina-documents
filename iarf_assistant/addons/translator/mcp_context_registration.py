@@ -83,7 +83,11 @@ def register_context_tools(
         name="carlina_translator_research_dossier_submit",
         description=(
             "Submit owner-scoped external research evidence for a verified "
-            "document-block project; it remains unverified until separately handled."
+            "document-block project; it remains unverified until separately handled. "
+            "Payload keys: document_brief, standing_decisions (at most 40 short "
+            "lines every window of a pinned run must follow), style_guidance, "
+            "entities, terminology, references, allusions, unresolved_questions, "
+            "annotation_proposals."
         ),
     )
     async def translator_research_dossier_submit(

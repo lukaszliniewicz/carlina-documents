@@ -331,7 +331,8 @@ The current catalog is deliberately small:
   `carlina_translator_review_explain`, the three
   `carlina_translator_reader_note_*` lifecycle tools,
   `carlina_translator_flag_create`, `carlina_translator_flag_update`,
-  `carlina_translator_flag_list`,
+  `carlina_translator_flag_list`, `carlina_translator_report`,
+  `carlina_translator_review_sample`,
   `carlina_translator_research_dossier_submit`, and
   `carlina_translator_target_update`;
 - durable orchestration: `carlina_job_get`, `carlina_job_list`,

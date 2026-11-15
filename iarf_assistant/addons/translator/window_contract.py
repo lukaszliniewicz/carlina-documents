@@ -33,6 +33,11 @@ from .block_notes import (
     normalize_annotation_profile,
 )
 from .compact_markup import compact_result_schema
+from .response_flags import (
+    RESPONSE_FLAGS_CONTRACT_VERSION,
+    RESPONSE_FLAGS_INSTRUCTION,
+    response_flags_schema,
+)
 from .target_contract import structural_fingerprint
 
 WINDOW_PROMPT_CONTRACT_VERSION = "translation-block-window-prompt-v2"
@@ -64,6 +69,8 @@ _SENTENCE_ALIGNED_WRITABLE_SOURCE_CONTRACT_VERSIONS = frozenset(
     }
 )
 PROVIDER_MESSAGE_MAX_BYTES = 2 * 1024 * 1024
+STANDING_DECISIONS_CONTRACT_VERSION = "translation-standing-decisions-v1"
+STANDING_DECISIONS_RESOLVER = "phase5-external-dossier-decisions-v1"
 CONTEXT_SLOT_TYPES = (
     "control_contract",
     "project_policy",
@@ -158,6 +165,46 @@ def _brief_instruction(brief: object) -> str:
 
 
 def _target_result_schema(
+    writable_source_contract_version: str = WRITABLE_SOURCE_CONTRACT_VERSION,
+    annotation_profile: object = ANNOTATION_PROFILE_NONE,
+    *,
+    response_flags: bool = False,
+) -> dict[str, object]:
+    """Provider-level shape guard, optionally with per-result ``flags``."""
+
+    schema = _base_target_result_schema(
+        writable_source_contract_version, annotation_profile
+    )
+    if not response_flags:
+        return schema
+    if writable_source_contract_version in {
+        LEGACY_WRITABLE_SOURCE_CONTRACT_VERSION,
+        PARTS_WRITABLE_SOURCE_CONTRACT_VERSION,
+    }:
+        raise BlockContractError("window-writable-response-contract")
+    schema_properties = schema.get("properties")
+    results = (
+        schema_properties.get("results")
+        if isinstance(schema_properties, Mapping)
+        else None
+    )
+    result = results.get("items") if isinstance(results, Mapping) else None
+    properties = result.get("properties") if isinstance(result, Mapping) else None
+    required = result.get("required") if isinstance(result, Mapping) else None
+    if not isinstance(properties, dict) or not isinstance(required, list):
+        raise BlockContractError("window-writable-response-contract")
+    properties["flags"] = response_flags_schema()
+    required.append("flags")
+    return schema
+
+
+def writable_response_flags(writable_data: Mapping[str, Any]) -> bool:
+    """Return whether a writable payload enables per-result response flags."""
+
+    return writable_data.get("response_flags") == RESPONSE_FLAGS_CONTRACT_VERSION
+
+
+def _base_target_result_schema(
     writable_source_contract_version: str = WRITABLE_SOURCE_CONTRACT_VERSION,
     annotation_profile: object = ANNOTATION_PROFILE_NONE,
 ) -> dict[str, object]:
@@ -950,12 +997,22 @@ def _writable_payload(slot: ContextSlot) -> tuple[str, Mapping[str, Any]]:
         LOCATED_SOURCE_WRITABLE_CONTRACT_VERSION,
     }:
         raise BlockContractError("window-writable-response-contract")
+    if "response_flags" in value and (
+        value["response_flags"] != RESPONSE_FLAGS_CONTRACT_VERSION
+        or version
+        in {LEGACY_WRITABLE_SOURCE_CONTRACT_VERSION, PARTS_WRITABLE_SOURCE_CONTRACT_VERSION}
+    ):
+        raise BlockContractError("window-writable-response-contract")
     if version in {
         SENTENCE_ALIGNED_WRITABLE_SOURCE_CONTRACT_VERSION,
         SINGLE_COPY_WRITABLE_SOURCE_CONTRACT_VERSION,
         LOCATED_SOURCE_WRITABLE_CONTRACT_VERSION,
     }:
-        if set(value) != {"contract_version", "annotation_profile", "blocks"}:
+        if set(value) - {"response_flags"} != {
+            "contract_version",
+            "annotation_profile",
+            "blocks",
+        }:
             raise BlockContractError("window-writable-response-contract")
         try:
             profile = normalize_annotation_profile(value.get("annotation_profile"))
@@ -1286,9 +1343,12 @@ def _strict_response_grammar(
             if writable_version in _SENTENCE_ALIGNED_WRITABLE_SOURCE_CONTRACT_VERSIONS
             else None
         )
+        flags = writable_response_flags(writable_data)
         response_contract = canonical_json(
             {
-                "json_schema": _target_result_schema(writable_version, profile),
+                "json_schema": _target_result_schema(
+                    writable_version, profile, response_flags=flags
+                ),
                 "exact_values": {
                     "result_count": len(exact_blocks),
                     "blocks": exact_blocks,
@@ -1308,6 +1368,10 @@ def _strict_response_grammar(
                 else "`n`, `content`, and `fields`"
             )
         )
+        flag_clause = ""
+        if flags:
+            result_keys = result_keys.replace(", and `", ", `") + ", and `flags`"
+            flag_clause = " Each flag has exactly `kind`, `body`, and `excerpt`."
         if writable_version in _SENTENCE_ALIGNED_WRITABLE_SOURCE_CONTRACT_VERSIONS:
             alignment_keys = (
                 "`groups`" if writable_version in {
@@ -1318,9 +1382,9 @@ def _strict_response_grammar(
             )
             return (
                 "\n\nSTRICT JSON ONLY: emit one JSON object with exactly `results`. Each "
-                "result has exactly `n`, `content`, `fields`, `notes`, and `alignment`; "
+                f"result has exactly {result_keys}; "
                 f"`alignment` has exactly {alignment_keys}, and each group "
-                "has exactly `source` and `target`. Use the numbered source sentence map "
+                f"has exactly `source` and `target`.{flag_clause} Use the numbered source sentence map "
                 "below only to report each group's source ordinals. Keep block numbers and "
                 "field names exact. No Markdown fence, prose wrapper, "
                 "confidence, or extra keys. The complete response schema and exact local values "
@@ -1329,8 +1393,8 @@ def _strict_response_grammar(
             )
         return (
             "\n\nSTRICT JSON ONLY: emit one JSON object with exactly `results`. Each "
-            f"result has exactly {result_keys}; each field has exactly `name` and `value`. "
-            "Keep the numbered blocks and field names shown below exactly. No Markdown fence, "
+            f"result has exactly {result_keys}; each field has exactly `name` and `value`."
+            f"{flag_clause} Keep the numbered blocks and field names shown below exactly. No Markdown fence, "
             "prose wrapper, lineage IDs, hashes, or extra keys. The complete response schema "
             "and exact local values follow:\n"
             f"{response_contract}"
@@ -1454,6 +1518,16 @@ def render_provider_packet(
                 " Frozen human-locked glossary constraints override advisory terminology "
                 "guidance."
             )
+    if any(
+        slot.slot_type == "document_style_brief"
+        and slot.provenance.get("resolver") == STANDING_DECISIONS_RESOLVER
+        for slot in readonly
+    ):
+        system += (
+            " Standing decisions in the supplied research dossier record choices already "
+            "made for this document, such as form of address, spelling variant, names and "
+            "quotations. Apply them in every block unless the source plainly contradicts one."
+        )
     if any(slot.slot_type == "exact_precedent" for slot in readonly):
         system += (
             " Current translations of exactly repeated source text are strong consistency "
@@ -1487,6 +1561,9 @@ def render_provider_packet(
     instruction = _translation_instruction(
         writable_version, annotation_profile=annotation_profile
     )
+    response_flags = writable_response_flags(writable_data)
+    if response_flags:
+        instruction += RESPONSE_FLAGS_INSTRUCTION
     trusted_instructions = "\n".join(_trusted_instruction(slot) for slot in trusted)
     evidence = "\n\n".join(
         f"[{slot.slot_type} artifact={slot.artifact_id}@{slot.artifact_version}]\n{slot.content}"
@@ -1511,7 +1588,9 @@ def render_provider_packet(
                 "name": "translation_block_window",
                 "strict": True,
                 "schema": _target_result_schema(
-                    str(writable_version), annotation_profile
+                    str(writable_version),
+                    annotation_profile,
+                    response_flags=response_flags,
                 ),
             },
         }
@@ -1584,6 +1663,8 @@ __all__ = [
     "PROVIDER_MESSAGE_MAX_BYTES",
     "SENTENCE_ALIGNED_WRITABLE_SOURCE_CONTRACT_VERSION",
     "SINGLE_COPY_WRITABLE_SOURCE_CONTRACT_VERSION",
+    "STANDING_DECISIONS_CONTRACT_VERSION",
+    "STANDING_DECISIONS_RESOLVER",
     "STUDY_NOTES_WRITABLE_SOURCE_CONTRACT_VERSION",
     "WINDOW_PROMPT_CONTRACT_VERSION",
     "WRITABLE_SOURCE_CONTRACT_VERSION",
@@ -1596,4 +1677,5 @@ __all__ = [
     "reduce_slots",
     "render_admitted_packet",
     "render_provider_packet",
+    "writable_response_flags",
 ]

@@ -6,7 +6,7 @@
     "run",
     "build"
   ],
-  "built_at": "2026-11-15T20:32:12Z",
+  "built_at": "2026-11-15T21:10:15Z",
   "frontend_api_range": "^1.0",
   "lockfile_hash": "4d9f71c349b8583611052cc777786eb1ee0048cf5cc42e31d761a753525f7b46",
   "lockfile_paths": [
@@ -19,7 +19,7 @@
     "static/dist/WorkspaceGate.css"
   ],
   "schema_version": 3,
-  "source_hash": "857b2e41cb611d5de7a1266cc10f7c251be0de91e29cf5af7a5c2ca6d564bdc4",
+  "source_hash": "d87e343f2a39d05c72978d49487a8af5e0cab4a63131d93a74d70647dbe0cd04",
   "source_paths": [
     "frontend/src",
     "frontend/package.json",

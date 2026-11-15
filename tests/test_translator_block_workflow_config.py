@@ -594,6 +594,10 @@ def test_historical_config_without_writable_contract_defaults_to_v1(app):
     )
     historical = deepcopy(material)
     historical.pop("writable_source_contract_version")
+    # Response flags postdate every v1 packet; a v1 config cannot carry them.
+    with pytest.raises(BlockContractError, match="workflow-config-response-flags"):
+        _config._validate_config(historical)
+    historical.pop("response_flags_contract")
     assert _config._validate_config(historical) == historical
 
 
