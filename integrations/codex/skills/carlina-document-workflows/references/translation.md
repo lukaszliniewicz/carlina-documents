@@ -412,7 +412,9 @@ bounded and should be used only when literal search cannot express the pattern.
 
 After actually checking a block or specified source anchors, record the kind of
 coverage with `carlina_translator_review_coverage_record`: `structural`,
-`target_reading` or `bilingual`. Supply current target versions and a stable key;
+`target_reading` or `bilingual`. Read for `target_reading` with
+`carlina_translator_review_fetch(view="target_only")`, which withholds the source.
+Supply current target versions and a stable key;
 agent work uses `reviewer_kind="agent"`. A sample covers only its selected
 anchors, not the book. Coverage is distinct from approval and automatically
 becomes historical after prose changes. Use bounded coverage_get pages to report

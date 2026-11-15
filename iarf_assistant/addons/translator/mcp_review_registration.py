@@ -110,7 +110,10 @@ def register_review_tools(
         name="carlina_translator_review_fetch",
         description=(
             "Fetch bounded verified document-block review evidence by block IDs or "
-            "an inclusive order range."
+            "an inclusive order range. view=target_only returns the translation "
+            "without source text, source headings, glossary or alignment, for the "
+            "target-alone reading recorded as target_reading coverage; it cannot "
+            "be combined with include_research or include_alignment."
         ),
     )
     async def translator_review_fetch(
@@ -123,6 +126,7 @@ def register_review_tools(
         include_research: bool = False,
         include_proposals: bool = False,
         include_alignment: bool = False,
+        view: Literal["bilingual", "target_only"] = "bilingual",
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.translator")
         try:
@@ -137,6 +141,7 @@ def register_review_tools(
                     include_research=include_research,
                     include_proposals=include_proposals,
                     include_alignment=include_alignment,
+                    view=view,
                 ),
             )
         except BaseException as exc:

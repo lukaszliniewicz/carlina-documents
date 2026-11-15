@@ -126,6 +126,7 @@ def test_review_methods_forward_context_and_proposal_flags(client, monkeypatch):
         include_research=True,
         include_proposals=True,
         include_alignment=False,
+        view="bilingual",
     )
     assert search.call_args_list[0].args == (project,)
     assert search.call_args_list[0].kwargs == {

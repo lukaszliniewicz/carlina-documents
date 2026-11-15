@@ -486,6 +486,42 @@ def test_review_fetch_includes_only_verified_alignment_projection(app):
     assert groups[0]["kind"] == "one_to_one"
 
 
+def test_target_only_fetch_withholds_source_evidence(app):
+    project = _project("ReviewTargetOnly")
+    plan = _plan(project)
+    workspace = load_block_source_plan(project)
+    block = next(item for item in plan.blocks if item.role == "paragraph")
+    _candidate_for_alignment_projection(project, workspace, block)
+
+    bilingual = review_fetch(project, block_ids=[block.id])
+    target_only = review_fetch(project, block_ids=[block.id], view="target_only")
+
+    assert bilingual["view"] == "bilingual"
+    assert target_only["view"] == "target_only"
+    item = target_only["items"][0]
+    assert item["target"] == bilingual["items"][0]["target"]
+    assert {"source", "heading_path", "glossary"}.isdisjoint(item)
+    first_page = review_fetch(project, order_start=1, order_end=3, limit=1)
+    with pytest.raises(DocumentReviewError) as switched:
+        review_fetch(
+            project,
+            order_start=1,
+            order_end=3,
+            limit=1,
+            view="target_only",
+            cursor=first_page["pagination"]["next_cursor"],
+        )
+    assert switched.value.code == "review-cursor-mismatch"
+
+    for options in ({"include_alignment": True}, {"include_research": True}):
+        with pytest.raises(DocumentReviewError) as conflict:
+            review_fetch(project, block_ids=[block.id], view="target_only", **options)
+        assert conflict.value.code == "review-view-conflict"
+    with pytest.raises(DocumentReviewError) as invalid:
+        review_fetch(project, block_ids=[block.id], view="source_only")
+    assert invalid.value.code == "review-view-invalid"
+
+
 def test_large_plan_review_projections_are_scoped_and_chunked(
     app, monkeypatch: pytest.MonkeyPatch
 ):

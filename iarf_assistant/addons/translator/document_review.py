@@ -59,6 +59,9 @@ REVIEW_CONTRACT = "translator-document-review-v1"
 NORMALIZATION_PROFILE = "unicode-nfkc-casefold-v1"
 
 MAX_FETCH_BLOCKS = 100
+# ``target_only`` serves the target-alone reading: no source text, source
+# headings, glossary source terms or alignment reach the reader.
+REVIEW_FETCH_VIEWS = frozenset({"bilingual", "target_only"})
 MAX_SEARCH_LIMIT = 50
 MAX_SEARCH_MATCHES = 10_000
 MAX_QUERY_CHARS = 512
@@ -1162,7 +1165,11 @@ def _safe_glossary(row: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _block_item(
-    context: _ReviewContext, block: Any, *, include_proposals: bool = False
+    context: _ReviewContext,
+    block: Any,
+    *,
+    include_proposals: bool = False,
+    target_only: bool = False,
 ) -> dict[str, Any]:
     target_projection = context.target_projections.get(block.id)
     target: dict[str, Any] | None = None
@@ -1182,6 +1189,21 @@ def _block_item(
             alignment = target_projection.get("alignment")
             if isinstance(alignment, Mapping):
                 target["alignment"] = dict(alignment)
+    reader_notes = [
+        note
+        for note in context.notes.get(block.id, [])
+        if include_proposals or note.get("state") != "proposed"
+    ]
+    if target_only:
+        return {
+            "id": block.id,
+            "order": block.order,
+            "role": block.role,
+            "source_pages": list(context.source_pages.get(block.id, [])),
+            "target": target,
+            "reader_notes": reader_notes,
+            "review": context.reviews.get(block.id),
+        }
     return {
         "id": block.id,
         "order": block.order,
@@ -1190,11 +1212,7 @@ def _block_item(
         "source_pages": list(context.source_pages.get(block.id, [])),
         "source": {"editor": compact_source_projection(block)},
         "target": target,
-        "reader_notes": [
-            note
-            for note in context.notes.get(block.id, [])
-            if include_proposals or note.get("state") != "proposed"
-        ],
+        "reader_notes": reader_notes,
         "glossary": context.glossary.get(block.id, []),
         "review": context.reviews.get(block.id),
     }
@@ -1367,6 +1385,7 @@ def review_fetch(
     include_research: bool = False,
     include_proposals: bool = False,
     include_alignment: bool = False,
+    view: str = "bilingual",
 ) -> dict[str, Any]:
     limit = _validate_limit(limit, MAX_FETCH_BLOCKS, "review-fetch-limit")
     if any(
@@ -1374,6 +1393,11 @@ def review_fetch(
         for flag in (include_research, include_proposals, include_alignment)
     ):
         raise _error("review-flag-invalid")
+    if view not in REVIEW_FETCH_VIEWS:
+        raise _error("review-view-invalid")
+    target_only = view == "target_only"
+    if target_only and (include_research or include_alignment):
+        raise _error("review-view-conflict")
     workspace_plan = _load_workspace_plan(project)
     selected = _select_blocks(workspace_plan, block_ids, order_start, order_end)
     selector = (
@@ -1391,6 +1415,7 @@ def review_fetch(
             "include_research": include_research,
             "include_proposals": include_proposals,
             "include_alignment": include_alignment,
+            "view": view,
             "target_review_state": _review_fetch_state_snapshot(
                 project, workspace_plan, selected
             ),
@@ -1405,20 +1430,26 @@ def review_fetch(
         block_ids=[block.id for block in page],
         include_notes=True,
         include_reviews=True,
-        include_glossary=True,
+        include_glossary=not target_only,
         include_proposals=include_proposals,
         include_research=include_research,
         include_alignment=include_alignment,
     )
     result: dict[str, Any] = {
         "contract": REVIEW_CONTRACT,
+        "view": view,
         "project": _safe_identity(project),
         "source_plan": {
             "id": context.workspace_plan.record.id,
             "version": context.workspace_plan.active_version,
         },
         "items": [
-            _block_item(context, block, include_proposals=include_proposals)
+            _block_item(
+                context,
+                block,
+                include_proposals=include_proposals,
+                target_only=target_only,
+            )
             for block in page
         ],
         "pagination": _pagination(

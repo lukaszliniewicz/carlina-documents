@@ -129,9 +129,9 @@ Do not resolve a doubt silently because there was nowhere to put it.
   headings you listed; parked items in your log. If the ruleset is older than v2, compare
   numbers and dates yourself as well.
 - **Record coverage honestly, by kind.** The target-alone reading of `revision.md` is
-  `target_reading`; the comparison with the source is `bilingual`. A sample covers the
-  anchors sampled. Neither diagnostics nor a heading check amounts to bilingual review of
-  the book.
+  `target_reading` (fetch with `view="target_only"`, which withholds the source); the
+  comparison with the source is `bilingual`. A sample covers the anchors sampled. Neither
+  diagnostics nor a heading check amounts to bilingual review of the book.
 - **Edit only at an idle boundary,** through the version-fenced review tools, and apply the
   restraint rules of `revision.md`: name the defect before changing a target.
 - **Report with the scope stated:** which coverage kinds, over which blocks, what the log

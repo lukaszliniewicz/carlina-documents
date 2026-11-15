@@ -1390,6 +1390,12 @@ both per-value and whole-document time limits. Review projections expose physica
 source page numbers where the immutable snapshot contains PDF page markers, and
 `carlina_translator_review_source_pages` renders up to four resolved source pages
 through Document Processor's existing bounded image path.
+`carlina_translator_review_fetch` with `view="target_only"` returns targets,
+reader notes and review state without source text, source-derived heading
+paths, glossary or alignment, so the target-alone reading recorded as
+`target_reading` coverage is not steered by the source; it rejects
+`include_research` and `include_alignment`, and its cursors do not carry over
+to the bilingual view.
 
 `carlina_translator_qa_diagnostics` runs a deterministic, read-only QA pass over
 active targets. It reports structural evidence, citation-key changes, repeated

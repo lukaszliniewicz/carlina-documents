@@ -990,6 +990,7 @@ class TranslatorClient:
         include_research: bool = False,
         include_proposals: bool = False,
         include_alignment: bool = False,
+        view: str = "bilingual",
     ) -> dict[str, Any]:
         """Return selected bounded evidence for a document-block project."""
 
@@ -1005,6 +1006,7 @@ class TranslatorClient:
             include_research=include_research,
             include_proposals=include_proposals,
             include_alignment=include_alignment,
+            view=view,
         )
 
 
