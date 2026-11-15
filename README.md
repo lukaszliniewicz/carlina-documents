@@ -173,6 +173,9 @@ For a first document, you can then ask your connected agent:
 > select. Preserve the text, note links, diagrams, tables, images, captions and
 > structure. Show me any uncertain results for review before processing the rest.
 
+The source includes two [skills for agents](integrations/README.md): one for
+operating Carlina through MCP, and one for translating and reviewing well.
+
 ## Run from source
 
 Install Git and [Pixi 0.81.0](https://github.com/prefix-dev/pixi/releases/tag/v0.81.0)
