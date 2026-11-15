@@ -738,6 +738,7 @@ def test_block_export_uses_verified_request_and_pinned_provider(
     build_request.assert_called_once_with(
         source_plan,
         export_format="epub",
+        bilingual_layout="none",
         start_h2_on_new_page=False,
         operation_witness={
             "id": operation.id,
