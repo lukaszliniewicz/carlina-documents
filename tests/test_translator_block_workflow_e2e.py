@@ -291,6 +291,7 @@ def _state(
     legacy_analysis_planner: bool = False,
     passive: bool = False,
     passive_analysis: bool = False,
+    extra_html: str = "",
 ) -> tuple[Any, Any, Any, Any, Any]:
     user = User(email="block-workflow-e2e@example.test", password_hash="x")
     db.session.add(user)
@@ -357,7 +358,8 @@ def _state(
     html = (
         "<html><body><h1>Title</h1>"
         f"{first_paragraph}"
-        "<p>Second paragraph.</p></body></html>"
+        "<p>Second paragraph.</p>"
+        f"{extra_html}</body></html>"
     )
     digest = hashlib.sha256(html.encode("utf-8")).hexdigest()
     plan = _planner.plan_document_blocks(
@@ -1918,6 +1920,11 @@ def test_passive_pre_analysis_runs_as_leased_work_across_queue_reentries(app):
         "part": 1,
         "parts": 1,
     }
+    compact = _work_claim_result(claimed, response_mode="compact")
+    assert (
+        compact.structured_content["request"]["dispatch"]["translator_analysis"]
+        == request["dispatch"]["translator_analysis"]
+    )
     harness.submit(claimed, _generated(provider, "translator_block_analysis", request))
 
     # The map completes in the same generation that polls it; the reduce is
@@ -1960,6 +1967,92 @@ def test_passive_pre_analysis_runs_as_leased_work_across_queue_reentries(app):
     assert "A witnessed fixture document." in json.dumps(
         window_requests[0]["messages"], ensure_ascii=False
     )
+
+
+def test_passive_analysis_keeps_its_token_aware_scopes_across_polls(app):
+    user, project, record, operation, plan = _state(
+        passive=True,
+        passive_analysis=True,
+        extra_html=(
+            "<h1>Second</h1><p>Third paragraph.</p>"
+            "<p>Fourth paragraph.</p><p>Fifth paragraph.</p>"
+        ),
+    )
+    harness = _PassiveHarness(app, user, project, operation)
+    provider = _DeterministicProvider(plan, record)
+
+    def counter(**kwargs: Any) -> int:
+        # At most three source blocks fit one analysis packet.
+        messages = kwargs.get("messages") or []
+        try:
+            payload = json.loads(messages[-1]["content"])
+        except (IndexError, KeyError, TypeError, ValueError):
+            return 1
+        blocks = payload.get("source_blocks") if isinstance(payload, dict) else None
+        return 10 if blocks is None or len(blocks) <= 3 else 1_000_000
+
+    harness.service.token_counter = counter
+    phase = _workflow_config.rehydrate_block_workflow_config(
+        _models.TranslationBlockWorkflowConfig.query.filter_by(
+            operation_id=operation.id
+        ).one(),
+        operation=operation,
+        source_plan=record,
+    ).config_json["pre_analysis"]
+    planned = _workflow_runtime._analysis_scopes_for_operation(
+        plan=plan,
+        operation=operation,
+        source_plan=record,
+        phase=phase,
+        budget=_workflow_runtime._analysis_budget(phase),
+        token_counter=counter,
+    )
+    legacy = import_module(f"{_translator}.block_analysis").build_analysis_scopes(plan)
+    # The case that used to flip on resume: both plans share the first scope.
+    assert (len(planned), len(legacy)) == (3, 2)
+    assert planned[0] == legacy[0]
+
+    with pytest.raises(ExternalWorkPending) as pending:
+        harness.run()
+    first_work_id = pending.value.work_item_id
+    harness.reenter()
+    with pytest.raises(ExternalWorkPending) as polled:
+        harness.run()
+    assert polled.value.work_item_id == first_work_id
+
+    steps: list[tuple[object, ...]] = []
+    work_id = first_work_id
+    for _ in range(len(planned) + 1 + len(plan.blocks) + 1):
+        claimed, request = harness.claim(work_id)
+        analysis = request.get("dispatch", {}).get("translator_analysis")
+        source = claimed.request["source"]
+        steps.append(
+            (analysis["step"], analysis.get("part"), analysis.get("parts"))
+            if analysis
+            else ("window",)
+        )
+        harness.submit(claimed, _generated(provider, source, request))
+        harness.reenter()
+        try:
+            completed, _result = harness.run()
+        except ExternalWorkPending as next_pending:
+            work_id = next_pending.work_item_id
+        else:
+            break
+    else:
+        pytest.fail("Passive workflow did not complete within its bounded work.")
+
+    assert completed.id == operation.id
+    assert steps == [
+        ("map", 1, 3),
+        ("map", 2, 3),
+        ("map", 3, 3),
+        ("reduce", None, None),
+        ("window",),
+    ]
+    attempts = _operation_analysis_attempts(operation)
+    assert len(attempts) == 4
+    assert {item.dispatch_state for item in attempts} == {"completed"}
 
 
 def test_rejected_passive_analysis_is_retried_once_with_its_rejection_code(app):

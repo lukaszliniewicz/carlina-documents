@@ -348,10 +348,17 @@ def _analysis_scopes_for_operation(
         analysis_kind=ANALYSIS_KIND,
     ).all()
     discovered = discover_analysis_scopes(existing, source_plan)
-    if discovered and discovered == legacy[: len(discovered)]:
+    if (
+        "scope_planner_contract" not in phase
+        and discovered
+        and discovered == legacy[: len(discovered)]
+    ):
         # Operations begun before whole-document/token-aware admission must
         # retain their exact historical scope plan.  Do this before current
         # model admission so recovery never depends on changed token metadata.
+        # A frozen planner contract proves the token-aware plan was used, so
+        # a first scope that both plans share must not switch partitions on
+        # resume (every passive poll is such a resume).
         return legacy
 
     model = phase.get("model")
@@ -594,6 +601,10 @@ def _raise_analysis_retry_exhausted(last_known_failure: Exception | None) -> Non
     raise exhausted
 
 
+# A pending passive analysis attempt is bound to its work item only through
+# this reproducible dispatch. Changing its fields or version orphans items
+# leased under the old shape, so such a change must first look up the previous
+# shape (as mcp_completion does for translator_window_index).
 ANALYSIS_DISPATCH_CONTRACT_VERSION = "translator-analysis-dispatch-v1"
 
 

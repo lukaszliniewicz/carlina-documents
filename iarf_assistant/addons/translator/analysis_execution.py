@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from carlina.core.utc import utc_now_db
 from iarf_assistant.extensions import db
 
+from ...core.mcp_completion import passive_execution_active
 from .analysis_attempts import (
     append_analysis_attempt_event,
     canonical_analysis_value,
@@ -595,9 +596,11 @@ def execute_analysis_attempt(
     if allow_external_reentry and (
         not isinstance(model, Mapping)
         or model.get("identity_kind") != EXTERNAL_IDENTITY_KIND
+        or not passive_execution_active()
     ):
         # Re-entry is safe only because a passive call is idempotent; a
-        # managed dispatch of unknown outcome must never be repeated.
+        # managed dispatch of unknown outcome must never be repeated, and an
+        # external one outside its passive context would fail and burn a retry.
         raise BlockContractError("analysis-external-reentry")
     if state == "dispatched":
         _fresh_fence(attempt_id, lineage=True)

@@ -749,7 +749,10 @@ generation that issued it: when the suspended delivery resumes under a renewed
 operation claim, the runtime polls the leased item again under a lineage fence
 (same queue job, version at least the attempt's, live lease) instead of
 reconciling it as an uncertain managed call. Re-entry is refused for any
-attempt not sealed with an external identity. Research remains managed-only,
+attempt not sealed with an external identity, or outside an active passive
+execution. Completed passive analysis is not yet reused by a later operation:
+evidence reuse matches managed model identities only, so each passive run
+analyses the document again. Research remains managed-only,
 and a pinned research dossier still replaces pre-analysis: start rejects a
 dossier pin while pre-analysis or research is enabled.
 

@@ -594,6 +594,45 @@ def test_analysis_attempt_cancellation_and_provider_failure_are_terminal(app):
         )
 
 
+def test_external_reentry_is_refused_for_a_managed_attempt(app):
+    record, operation = _state("-reentry")
+    attempt = _attempt(record, operation)
+    db.session.commit()
+    # A managed dispatch of unknown outcome must never be repeated, and no
+    # passive context is active here either.
+    with pytest.raises(BlockContractError, match="analysis-external-reentry"):
+        execute_analysis_attempt(
+            attempt,
+            completion_call=lambda _packet: pytest.fail("called"),
+            allow_external_reentry=True,
+        )
+    db.session.expire_all()
+    assert (
+        db.session.get(TranslationAnalysisAttempt, attempt.id).dispatch_state
+        == "prepared"
+    )
+
+    # A contract rejection keeps its stable code with the failure evidence.
+    with pytest.raises(BlockContractError, match="analysis-map-summary"):
+        execute_analysis_attempt(
+            attempt,
+            completion_call=lambda _packet: (_ for _ in ()).throw(
+                BlockContractError("analysis-map-summary")
+            ),
+        )
+    db.session.expire_all()
+    current = db.session.get(TranslationAnalysisAttempt, attempt.id)
+    failure = next(
+        event
+        for event in rehydrate_analysis_attempt_events(current)
+        if event.event_type == "provider_failure"
+    )
+    assert failure.payload_json == {
+        "error_type": "BlockContractError",
+        "code": "analysis-map-summary",
+    }
+
+
 def test_preparation_is_atomic_and_requires_a_clean_live_operation(app, monkeypatch):
     record, operation = _state("-preparation")
 

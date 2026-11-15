@@ -802,3 +802,36 @@ def test_context_get_is_owner_and_plan_fenced_bounded_and_read_only_while_active
     )
     assert forbidden.status_code == 404
     assert other_project.id != project.id
+
+
+def test_passive_start_freezes_pre_analysis_and_refuses_a_dossier_alongside_it(app):
+    owner = _user("context-passive-analysis@example.test")
+    settings = _settings(context_mode="self_contained")
+    settings["enable_pre_analysis"] = True
+    project, _plan, _record = _project_and_plan(owner, settings=settings)
+    client, context = _passive_client(owner)
+
+    # A dossier replaces pre-analysis, so a pin is refused before any write.
+    with pytest.raises(ValueError, match="pinned research dossier replaces"):
+        client.start_block_translation(
+            project.id,
+            executor_profile=EXECUTOR_PROFILE,
+            research_dossier_revision_id="dossier-revision-1",
+        )
+    assert TranslationOperation.query.filter_by(project_id=project.id).filter(
+        TranslationOperation.kind == "document_block_translate"
+    ).count() == 0
+    assert context.queue.enqueued == []
+
+    client.start_block_translation(project.id, executor_profile=EXECUTOR_PROFILE)
+    operation = TranslationOperation.query.filter_by(
+        project_id=project.id, kind="document_block_translate"
+    ).one()
+    frozen = TranslationBlockWorkflowConfig.query.filter_by(
+        operation_id=operation.id
+    ).one()
+    phase = frozen.config_json["pre_analysis"]
+    assert frozen.config_json["enable_pre_analysis"] is True
+    assert phase["model"] == frozen.config_json["translation"]["model"]
+    assert phase["model"]["identity_kind"] == "external_executor"
+    assert len(context.queue.enqueued) == 1
