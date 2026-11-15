@@ -9,6 +9,7 @@ from __future__ import annotations
 import hmac
 import json
 import re
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -1467,6 +1468,24 @@ def render_provider_packet(
     )
 
 
+def omitted_slot_types(
+    offered: Sequence[ContextSlot], admitted: Sequence[ContextSlot]
+) -> tuple[str, ...]:
+    """Name the optional slot types whole-slot reduction removed, in drop order."""
+
+    remaining = Counter(slot.slot_type for slot in admitted)
+    omitted: list[str] = []
+    for slot in offered:
+        if remaining[slot.slot_type] > 0:
+            remaining[slot.slot_type] -= 1
+        else:
+            omitted.append(slot.slot_type)
+    priority = {kind: index for index, kind in enumerate(_REDUCTION_ORDER)}
+    return tuple(
+        sorted(omitted, key=lambda kind: (priority.get(kind, len(priority)), kind))
+    )
+
+
 def render_admitted_packet(
     *,
     slots: Sequence[ContextSlot],
@@ -1513,6 +1532,7 @@ __all__ = [
     "ProviderPacket",
     "TranslationWindow",
     "context_dependency_manifest",
+    "omitted_slot_types",
     "plan_windows",
     "reduce_slots",
     "render_admitted_packet",

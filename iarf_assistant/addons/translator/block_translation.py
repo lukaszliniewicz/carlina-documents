@@ -59,6 +59,7 @@ from .window_contract import (
     ProviderPacket,
     TranslationWindow,
     context_dependency_manifest,
+    omitted_slot_types,
     render_admitted_packet,
 )
 from .window_execution import ModelExecutionProfile, admit_packet
@@ -144,6 +145,9 @@ class WindowMaterial:
     settings: Mapping[str, Any]
     model_profile: Mapping[str, Any]
     predecessor: Mapping[str, Any] | None
+    # Optional context slots removed by whole-slot reduction. Dispatch
+    # metadata only: it is not part of the persisted attempt evidence.
+    omitted_slot_types: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1641,6 +1645,7 @@ def build_window_material(
         settings=settings_evidence(workflow_config, profile),
         model_profile=execution_profile.to_dict(),
         predecessor=predecessor,
+        omitted_slot_types=omitted_slot_types(slots, packet.slots),
     )
 
 

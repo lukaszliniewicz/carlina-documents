@@ -74,6 +74,7 @@ from iarf_assistant.addons.translator.window_contract import (
     ContextSlot,
     TranslationWindow,
     _trusted_instruction,
+    omitted_slot_types,
     reduce_slots,
 )
 from iarf_assistant.addons.translator.window_execution import ModelExecutionProfile
@@ -1004,6 +1005,37 @@ def test_v2_pins_selected_context_and_v1_replays_legacy_reduction(app):
     assert not any(
         slot.artifact_id == "entity-register-revision" for slot in legacy_reduced
     )
+
+
+def test_omitted_slot_types_names_dropped_context_in_reduction_order():
+    def slot(kind: str, required: bool = False) -> ContextSlot:
+        content = f'{{"slot":"{kind}"}}'
+        return ContextSlot(
+            kind,
+            content,
+            {"resolver": "test"},
+            f"{kind}-artifact",
+            "1",
+            hashlib.sha256(content.encode()).hexdigest(),
+            {},
+            required=required,
+        )
+
+    offered = (
+        slot("terminology_guidance"),
+        slot("linked_notes"),
+        slot("research_evidence"),
+        slot("document_style_brief"),
+    )
+    admitted = reduce_slots(offered, keep_reducible=1)
+
+    assert [item.slot_type for item in admitted] == ["terminology_guidance"]
+    assert omitted_slot_types(offered, admitted) == (
+        "research_evidence",
+        "linked_notes",
+        "document_style_brief",
+    )
+    assert omitted_slot_types(offered, offered) == ()
 
 
 def test_historical_config_without_structure_capability_rebuilds_old_packet(app):

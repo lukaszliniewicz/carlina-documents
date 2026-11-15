@@ -698,6 +698,15 @@ protect activation; exact retries preserve accepted work and human edits. See
 [failure and continuation](#failure-retry-and-continuation) and the
 [MCP execution contract](mcp-integration-architecture.md#execution-model).
 
+When a window's packet does not fit its input budget, admission drops whole
+optional context slots in a fixed order and never truncates the source. For
+newly prepared windows, passive dispatch metadata then names the dropped slot
+types in `translator_context_omitted_slots`, in drop order, also in compact
+claims. The executor can recover what it needs through the review tools (for
+example the preceding target with `carlina_translator_context_get`). The list
+is dispatch metadata only: frozen messages and persisted attempt evidence are
+unchanged, and it is absent when nothing was dropped.
+
 Harness-side browsing or tools are outside Carlina's execution-policy receipts.
 Externally authored research conclusions remain external and unverified. If the
 harness separately invoked a governed Carlina tool, its receipt may prove only

@@ -1832,6 +1832,12 @@ def run_document_block_workflow(
         }
         if block_index is not None:
             dispatch["translator_window_index"] = block_index
+        # Optional context that did not fit this window's budget. The passive
+        # executor can recover what it needs through the review tools; frozen
+        # messages and persisted attempt evidence are unchanged.
+        omitted_slots = getattr(material, "omitted_slot_types", ())
+        if omitted_slots:
+            dispatch["translator_context_omitted_slots"] = list(omitted_slots)
         if attempt.retry_of_attempt_id is not None:
             current_events = rehydrate_attempt_events(attempt)
             current_event_payloads: tuple[tuple[object, object], ...] = (

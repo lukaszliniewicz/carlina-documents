@@ -2911,6 +2911,33 @@ def test_claim_projection_preserves_versioned_extraction_contract(response_mode)
 
 
 @pytest.mark.parametrize("response_mode", ["standard", "compact"])
+def test_claim_projection_keeps_omitted_context_slot_notice(response_mode):
+    claim = {
+        "work_item_id": "reduced-window-work",
+        "execution_id": "reduced-window-execution",
+        "lease_token": "synthetic-test-lease",
+        "request": {
+            "messages": [{"role": "user", "content": "Complete the leased task."}],
+            "response_format": {"type": "json_object"},
+            "dispatch": {
+                "translator_context_mode": "self_contained",
+                "translator_context_omitted_slots": [
+                    "research_evidence",
+                    "document_style_brief",
+                ],
+            },
+        },
+    }
+
+    projected = _work_claim_result(claim, response_mode=response_mode).structured_content
+
+    assert projected["request"]["dispatch"]["translator_context_omitted_slots"] == [
+        "research_evidence",
+        "document_style_brief",
+    ]
+
+
+@pytest.mark.parametrize("response_mode", ["standard", "compact"])
 def test_claim_projection_does_not_synthesize_extraction_contract_for_retained_work(
     response_mode,
 ):

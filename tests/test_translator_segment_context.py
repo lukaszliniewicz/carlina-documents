@@ -535,6 +535,10 @@ def test_v2_contextual_memory_is_optional_and_reduced_before_writable_source(app
         for slot in constrained.packet.slots
     )
     assert any(slot.slot_type == "writable_source" for slot in constrained.packet.slots)
+    # The dropped slot is named for dispatch, and only when one was dropped.
+    assert constrained.omitted_slot_types == ("translation_memory",)
+    assert retained_memory.omitted_slot_types == ()
+    assert base.omitted_slot_types == ()
 
 
 def test_v1_precedent_and_continuity_content_remain_unchanged(app):

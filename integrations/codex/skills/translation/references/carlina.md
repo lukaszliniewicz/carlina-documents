@@ -62,7 +62,11 @@ before they steer a whole book.
 - **Check which context slots actually arrived.** When a packet does not fit its budget,
   whole optional slots are dropped, research evidence first, then memory, precedents, linked
   notes, the continuity excerpt, style brief and metadata. The source is never truncated, but
-  the style brief you are counting on may not be there. Read the packet; do not assume.
+  the style brief you are counting on may not be there. In passive mode a newly prepared
+  window names what was dropped in `request.dispatch.translator_context_omitted_slots`;
+  recover what you need through the review tools before translating (a dropped continuity
+  excerpt with `carlina_translator_context_get`, your pinned dossier from your own record).
+  Older packets carry no such list: read the packet, do not assume.
 - **Re-anchor at every boundary.** In self-contained mode the packet carries a bounded
   preceding excerpt: read its source and target before the first sentence of the window. In
   retained mode, after compaction or a transfer, fetch the preceding aligned groups with

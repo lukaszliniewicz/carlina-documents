@@ -1754,7 +1754,7 @@ def _work_claim_result(
         if isinstance(dispatch, Mapping):
             context_dispatch = {key: dispatch[key] for key in (
                 "translator_context_mode", "translator_window_budget", "translator_window_retry",
-                "extraction_contract",
+                "translator_context_omitted_slots", "extraction_contract",
             ) if key in dispatch}
             if context_dispatch:
                 compact["request"]["dispatch"] = context_dispatch
