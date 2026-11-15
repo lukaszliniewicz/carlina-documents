@@ -197,7 +197,7 @@ def _source_copy(node: Tag) -> Tag:
             }
             classes = [name for name in _classes(element) if name not in note_classes]
             if classes:
-                element["class"] = classes
+                element["class"] = " ".join(classes)
             else:
                 element.attrs.pop("class", None)
         if element.name in {"h1", "h2", "h3", "h4", "h5", "h6"}:

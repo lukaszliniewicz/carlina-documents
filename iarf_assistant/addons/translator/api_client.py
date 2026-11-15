@@ -3252,7 +3252,7 @@ class TranslatorClient:
         request_value = build_semantic_export_request(
             workspace_plan.record,
             export_format="epub",
-            **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
+            bilingual_layout=bilingual_layout,
             provider_witness=provider_witness,
             export_metadata=effective_metadata,
             cover_uri=cover_uri,

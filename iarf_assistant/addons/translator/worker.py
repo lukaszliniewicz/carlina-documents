@@ -2607,7 +2607,7 @@ def export_document_blocks(payload: dict, task_queue, job_id: str):
     request_value = build_semantic_export_request(
         source_plan,
         export_format=export_format,
-        **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
+        bilingual_layout=bilingual_layout,
         start_h2_on_new_page=start_h2_on_new_page,
         operation_witness={
             "id": operation.id,

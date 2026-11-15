@@ -5070,7 +5070,7 @@ def epub_export_preflight(project_id: str) -> ResponseReturnValue:
         export_request = build_semantic_export_request(
             plan.record,
             export_format="epub",
-            **({"bilingual_layout": bilingual_layout} if bilingual_layout != "none" else {}),
+            bilingual_layout=bilingual_layout,
             provider_witness=provider_witness,
             export_metadata=export_metadata,
             cover_uri=cover_uri,
