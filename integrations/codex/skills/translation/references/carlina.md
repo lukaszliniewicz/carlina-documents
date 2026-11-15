@@ -119,14 +119,15 @@ Do not resolve a doubt silently because there was nowhere to put it.
   of source-language words, and (ruleset `translator-qa-rules-v2` and later) numbers present
   on one side only. In aligned-sentence projects they also report a sentence group much
   shorter than the rest of its block; `summary.alignment_coverage` says whether that check
-  ran. They do not compare names with the source, do not see an omission inside a sentence
-  group of normal length, and say nothing about negation, modality or meaning. A clean
-  diagnostics run is not a review, and a finding is evidence to look at, not a verdict.
+  ran, and when it is `unavailable` you compare sentence coverage yourself. They do not
+  compare names with the source, do not see an omission inside a sentence group of normal
+  length, and say nothing about negation, modality or meaning. A clean diagnostics run is
+  not a review, and a finding is evidence to look at, not a verdict.
 - **Do the checks they leave out** with review search and fetch: names against the source;
-  numbers QA marks `possibly_spelled_out`; each recurring term with every form used for it;
-  form of address; passages that recur verbatim in the source; the headings you listed;
-  parked items in your log. If the ruleset is older than v2, compare numbers and dates
-  yourself as well.
+  numbers QA marks `possibly_spelled_out` or `possibly_shortened`; each recurring term with
+  every form used for it; form of address; passages that recur verbatim in the source; the
+  headings you listed; parked items in your log. If the ruleset is older than v2, compare
+  numbers and dates yourself as well.
 - **Record coverage honestly, by kind.** The target-alone reading of `revision.md` is
   `target_reading`; the comparison with the source is `bilingual`. A sample covers the
   anchors sampled. Neither diagnostics nor a heading check amounts to bilingual review of

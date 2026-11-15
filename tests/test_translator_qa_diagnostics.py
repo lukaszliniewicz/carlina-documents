@@ -881,6 +881,7 @@ def test_number_mismatch_reports_a_dropped_year_as_advisory():
         "normalized": "1887",
         "side": "source_only",
         "possibly_spelled_out": False,
+        "possibly_shortened": False,
     }
     assert findings[0]["severity"] == "advisory"
 
@@ -913,6 +914,62 @@ def test_number_mismatch_tolerates_thousands_separators_and_decimals():
         )
         == []
     )
+
+
+def test_number_mismatch_keeps_a_year_and_a_count_apart():
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="Im Jahr 2019 250 Personen wurden eingestellt.",
+            target_text="In 2019, 250 people were hired.",
+        )
+        == []
+    )
+    changed = _number_findings(
+        **_qa_block_context(),
+        source_text="Im Jahr 2019 250 Personen wurden eingestellt.",
+        target_text="In 2019, 520 people were hired.",
+    )
+    assert [(item["evidence"]["number"], item["severity"]) for item in changed] == [
+        ("250", "warning"),
+        ("520", "warning"),
+    ]
+
+
+def test_number_mismatch_reads_a_space_joined_value_as_the_other_side_does():
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="Rozdział 3 100 lat później",
+            target_text="Chapter 3: 100 years later",
+        )
+        == []
+    )
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="Il y a 1 234 567 habitants.",
+            target_text="There are 1,234,567 inhabitants.",
+        )
+        == []
+    )
+
+
+def test_number_mismatch_marks_a_shortened_decade_as_advisory():
+    findings = _number_findings(
+        **_qa_block_context(),
+        source_text="In the 1990s, prices rose.",
+        target_text="W latach 90. ceny rosły.",
+    )
+
+    assert [
+        (
+            item["evidence"]["number"],
+            item["severity"],
+            item["evidence"]["possibly_shortened"],
+        )
+        for item in findings
+    ] == [("1990", "advisory", True), ("90", "advisory", True)]
 
 
 def test_number_mismatch_marks_small_spelled_out_numbers():
@@ -987,6 +1044,23 @@ def test_pairing_mismatch_requires_a_balanced_source():
     assert len(unopened) == 1
     assert unopened[0]["evidence"] == {"mark": ")", "problem": "unopened"}
     assert unopened[0]["severity"] == "advisory"
+
+
+def test_pairing_mismatch_reports_a_wrong_closing_bracket_once():
+    mismatched = _pairing_findings(
+        **_qa_block_context(),
+        source_text="He spoke (quietly) to them.",
+        target_text="Mówił (cicho] do nich.",
+    )
+    assert [(item["evidence"], item["severity"]) for item in mismatched] == [
+        ({"mark": "]", "problem": "mismatched"}, "warning")
+    ]
+    stray = _pairing_findings(
+        **_qa_block_context(),
+        source_text="He spoke (quietly) to them.",
+        target_text="Mówił (cicho ] do) nich.",
+    )
+    assert [item["evidence"]["problem"] for item in stray] == ["unopened"]
 
 
 def test_pairing_mismatch_reports_an_odd_quotation_count():
@@ -1106,8 +1180,10 @@ def test_alignment_coverage_accepts_natural_length_variation():
                 "one_to_one",
                 [_SOURCE_TWO],
                 [
-                    "Members asked several questions about the provisional timetable"
-                    " for next year."
+                    (
+                        "Members asked several questions about the provisional"
+                        " timetable for next year."
+                    )
                 ],
             ),
             _alignment_group(
@@ -1115,8 +1191,10 @@ def test_alignment_coverage_accepts_natural_length_variation():
                 "one_to_one",
                 [_SOURCE_THREE],
                 [
-                    "The chair promised a full written answer before the next plenary"
-                    " sitting in the chamber."
+                    (
+                        "The chair promised a full written answer before the next"
+                        " plenary sitting in the chamber."
+                    )
                 ],
             ),
         ]
@@ -1206,3 +1284,78 @@ def test_number_mismatch_reports_repeated_values_beyond_the_other_side():
     ]
     # The unpaired occurrence is the second one, after the first is paired.
     assert findings[0]["_qa_location"]["source"]["start"] == 12
+
+
+def test_alignment_coverage_uses_lower_minimums_for_logographic_sources():
+    alignment = {
+        "groups": [
+            _alignment_group(
+                1,
+                "one_to_one",
+                ["委员会在上午会议上详细审议了提案草案及其附件。"],
+                [
+                    "The committee reviewed the draft proposal and its annexes in detail."
+                ],
+            ),
+            _alignment_group(
+                2,
+                "one_to_one",
+                ["委员们就明年的时间表提出了几个问题。"],
+                ["Members asked several questions about next year's timetable."],
+            ),
+            _alignment_group(
+                3,
+                "one_to_one",
+                ["主席承诺在下次全体会议之前作出书面答复。"],
+                ["The chair agreed."],
+            ),
+        ]
+    }
+    source_text = " ".join(
+        sentence["text"]
+        for group in alignment["groups"]
+        for sentence in group["source_sentences"]
+    )
+    target_text = " ".join(
+        sentence["text"]
+        for group in alignment["groups"]
+        for sentence in group["target_sentences"]
+    )
+
+    findings = _alignment_coverage_findings(
+        **_qa_block_context(),
+        source_text=source_text,
+        target_text=target_text,
+        alignment=alignment,
+    )
+
+    assert [item["evidence"]["group_order"] for item in findings] == [3]
+
+
+def test_unreadable_alignment_is_reported_in_the_summary(app, monkeypatch):
+    project = _project()
+    plan, record = _plan(project)
+    block = next(block for block in plan.blocks if "Eingabe" in block.projection)
+    persist_manual_candidate(
+        project,
+        block.id,
+        _candidate(plan, record, block, "A stable target."),
+        0,
+        author_user_id=project.user_id,
+    )
+    db.session.commit()
+    original = qa_diagnostics.__globals__["_rehydrate_workspace_objects"]
+
+    def corrupt_alignment(workspace, *, include_alignment=False):
+        if include_alignment:
+            raise _block_workspace.BlockWorkspaceIntegrityError("alignment-corrupt")
+        return original(workspace)
+
+    monkeypatch.setitem(
+        qa_diagnostics.__globals__, "_rehydrate_workspace_objects", corrupt_alignment
+    )
+
+    result = qa_diagnostics(project, include_spelling=False)
+
+    assert result["summary"]["alignment_coverage"] == "unavailable"
+    assert result["summary"]["alignment_coverage_error"] == "alignment-corrupt"

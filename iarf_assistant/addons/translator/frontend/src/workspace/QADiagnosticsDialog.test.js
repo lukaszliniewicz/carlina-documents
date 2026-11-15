@@ -82,4 +82,13 @@ describe("QADiagnosticsDialog", () => {
     await fireEvent.click(view.getByRole("button", { name: "Back to all groups" }));
     expect(ongrouping).toHaveBeenCalledWith("token");
   });
+
+  it("says when sentence groups could not be compared", async () => {
+    const notice = /Sentence alignment could not be read/;
+    const payload = { summary: { total: 0, alignment_coverage: "unavailable" }, capabilities: { spellcheck: { available: true } }, items: [] };
+    const view = render(QADiagnosticsDialog, { props: { open: true, payload } });
+    expect(view.getByText(notice)).toBeTruthy();
+    await view.rerender({ open: true, payload: { ...payload, summary: { total: 0, alignment_coverage: "checked" } } });
+    expect(view.queryByText(notice)).toBeNull();
+  });
 });

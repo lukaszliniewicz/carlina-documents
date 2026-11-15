@@ -59,6 +59,9 @@
   {#if payload && !spell.available}
     <p class="qa-capability">Spellchecking is unavailable for {spell.requested_language || "the target language"} on this installation. Other QA checks still ran.</p>
   {/if}
+  {#if payload && summary.alignment_coverage === "unavailable"}
+    <p class="qa-capability">Sentence alignment could not be read, so sentence groups were not compared with the rest of their paragraph. Other QA checks still ran.</p>
+  {/if}
   {#if summary.truncated}
     <p class="qa-capability qa-truncated">{summary.omitted_total || 0} additional findings were omitted at the safety cap. Narrow the category or block scope through MCP for a complete focused pass.</p>
   {/if}

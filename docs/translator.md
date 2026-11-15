@@ -1408,22 +1408,32 @@ evidence for review and none a verdict:
 
 - `number-mismatch` (category `content`) compares the numbers in each block
   after normalising digit scripts, grouping and decimal separators and leading
-  zeros, ignoring URLs, DOIs and citation keys. A number on one side only is
-  advisory; when both sides have unmatched numbers (a changed value) the
-  findings are warnings. A missing source number of one or two digits up to 12
-  is marked `possibly_spelled_out`. Reordering, such as US to German date order,
-  produces no finding.
+  zeros, ignoring URLs, DOIs and citation keys. A separator followed by three
+  digits continues a value only when the value began with one to three digits,
+  so `2019 250` is a year and a count; a value joined by an ordinary space is
+  read as two numbers when only that reading occurs on the other side. A number
+  on one side only is advisory; when both sides have unmatched numbers (a
+  changed value) the findings are warnings. A missing source number of one or
+  two digits up to 12 is marked `possibly_spelled_out`, and a four-digit year
+  matched by its last two digits on the other side (`1990s` as `90.`) is
+  advisory and marked `possibly_shortened`. Reordering, such as US to German
+  date order, produces no finding.
 - `pairing-mismatch` (category `punctuation`) reports a bracket left open in the
-  target (warning) or closed without an opener (advisory), only where the source
-  block is itself balanced, and an odd number of double quotation marks where
-  the source has an even number.
+  target or closed by a different kind of bracket (warnings) or closed without
+  an opener (advisory), only where the source block is itself balanced, and an
+  odd number of double quotation marks where the source has an even number.
 - `alignment-coverage` (category `length`) compares each sentence-alignment group
   with the median ratio of the other groups in its block and reports a group
   under 60% of it, so one sentence dropped inside a paragraph shows even when
-  the block's overall length ratio looks normal. Blocks with fewer than two
-  groups are skipped. `summary.alignment_coverage` states whether alignment was
-  `checked`, `unavailable` (alignment could not be rehydrated, other checks
-  still ran) or `disabled` (the `length` category was not requested).
+  the block's overall length ratio looks normal. Groups under 40 source
+  characters are not judged and groups under 12 do not serve as the reference
+  (16 and 5 where the source block is at least a quarter Chinese or Japanese).
+  Blocks with fewer than two groups are skipped; a block whose every group is
+  compressed is left to `abnormal-length-ratio`. `summary.alignment_coverage`
+  states whether alignment was `checked`, `unavailable` (alignment could not be
+  rehydrated, other checks still ran; `summary.alignment_coverage_error` names
+  the integrity code and the dialog says the comparison did not run) or
+  `disabled` (the `length` category was not requested).
 
 None of the checks compares negation, modality or meaning.
 

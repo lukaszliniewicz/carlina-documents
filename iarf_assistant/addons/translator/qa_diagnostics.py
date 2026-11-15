@@ -15,6 +15,7 @@ from collections import Counter, OrderedDict
 from collections.abc import Mapping, Sequence
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
+from itertools import pairwise
 from threading import RLock
 from typing import Any, NamedTuple
 
@@ -44,7 +45,11 @@ MAX_NUMBER_FINDINGS_PER_BLOCK = 12
 MAX_PAIRING_FINDINGS_PER_BLOCK = 6
 MAX_ALIGNMENT_FINDINGS_PER_BLOCK = 6
 # Digits after a separator that make a thousands group (1,000 / 1.000 / 1 000).
+# A grouped value starts with one to three digits, so 2019 250 is two values.
 _THOUSANDS_GROUP_DIGITS = 3
+# Shortened years and decades (1990 as 90, 2019 as 19) are reported as advisory.
+_FULL_YEAR_DIGITS = 4
+_SHORT_YEAR_DIGITS = 2
 # A missing number up to this value may have been written out in words.
 _SPELLED_OUT_MAX = 12
 # A sentence group is flagged when its target/source length ratio falls below
@@ -53,6 +58,11 @@ _SPELLED_OUT_MAX = 12
 _ALIGNMENT_SHORT_SHARE = 0.6
 _ALIGNMENT_MIN_SOURCE_CHARS = 40
 _ALIGNMENT_MIN_REFERENCE_CHARS = 12
+# Chinese and Japanese carry more per character: a source block at least this
+# share logographic uses the lower minimums.
+_ALIGNMENT_LOGOGRAPHIC_SHARE = 0.25
+_ALIGNMENT_MIN_SOURCE_CHARS_LOGOGRAPHIC = 16
+_ALIGNMENT_MIN_REFERENCE_CHARS_LOGOGRAPHIC = 5
 MAX_SUGGESTIONS = 5
 
 _CATEGORIES = (
@@ -770,10 +780,22 @@ def _unbalanced_brackets(value: str) -> list[tuple[int, str, str]]:
         if stack and _BRACKET_PAIRS[stack[-1][1]] == character:
             stack.pop()
             continue
+        if stack and _BRACKET_PAIRS[stack[-1][1]] not in value[index + 1 :]:
+            # "(quietly]": one typo, reported once at the wrong closer.
+            stack.pop()
+            problems.append((index, character, "mismatched"))
+            continue
         problems.append((index, character, "unopened"))
     problems.extend((index, character, "unclosed") for index, character in stack)
     problems.sort()
     return problems
+
+
+_PAIRING_MESSAGES = {
+    "unclosed": "The target has an unclosed bracket.",
+    "unopened": "The target has a closing bracket without an opening one.",
+    "mismatched": "The target closes a bracket with a different kind of bracket.",
+}
 
 
 def _pairing_findings(
@@ -796,12 +818,8 @@ def _pairing_findings(
                     target_version=target_version,
                     code="pairing-mismatch",
                     category="punctuation",
-                    severity="warning" if problem == "unclosed" else "advisory",
-                    message=(
-                        "The target has an unclosed bracket."
-                        if problem == "unclosed"
-                        else "The target has a closing bracket without an opening one."
-                    ),
+                    severity="advisory" if problem == "unopened" else "warning",
+                    message=_PAIRING_MESSAGES[problem],
                     source_text=source_text,
                     target_text=target_text,
                     target_span=(index, index + 1),
@@ -853,49 +871,108 @@ def _number_key(digits: str) -> str:
     return ascii_digits.lstrip("0") or "0"
 
 
-def _number_items(value: str) -> list[tuple[str, str, tuple[int, int]]]:
-    """Split printed numerals into comparable values: (text, key, span).
+class _NumberItem(NamedTuple):
+    text: str
+    key: str
+    span: tuple[int, int]
+    # The separate values an ordinary space may have joined ("page 19 300 people").
+    alternatives: tuple[_NumberItem, ...] = ()
 
-    A separator followed by exactly three digits groups thousands; any other
-    separator ends one value and starts the next. Decimals, ranges and dotted
-    dates are therefore compared part by part, whichever convention each
-    language uses, and US and German date orders yield the same values.
+
+def _number_value(value: str, runs: Sequence[tuple[int, int, str]]) -> _NumberItem:
+    start, end = runs[0][0], runs[-1][1]
+    item = _NumberItem(
+        value[start:end], _number_key("".join(run[2] for run in runs)), (start, end)
+    )
+    joined_by_space = any(
+        value[left[1] : right[0]] == " " for left, right in pairwise(runs)
+    )
+    if joined_by_space:
+        item = item._replace(
+            alternatives=tuple(_number_value(value, [run]) for run in runs)
+        )
+    return item
+
+
+def _number_items(value: str) -> list[_NumberItem]:
+    """Split printed numerals into comparable values.
+
+    A separator followed by exactly three digits groups thousands when the value
+    began with one to three digits; any other separator ends one value and
+    starts the next. Decimals, ranges and dotted dates are therefore compared
+    part by part, whichever convention each language uses, and US and German
+    date orders yield the same values. A value joined by an ordinary space also
+    keeps its separate reading, which ``_resolve_space_groups`` may choose.
     """
-
     spans = _reference_spans(value)
-    items: list[tuple[str, str, tuple[int, int]]] = []
+    items: list[_NumberItem] = []
     for match in _NUMBER_RE.finditer(value):
         if _inside_any_span(match.start(), match.end(), spans):
             continue
-        parts = list(_DIGIT_RUN_RE.finditer(value, match.start(), match.end()))
-        start, end = parts[0].start(), parts[0].end()
-        digits = parts[0].group()
-        for part in parts[1:]:
-            if len(part.group()) == _THOUSANDS_GROUP_DIGITS:
-                digits += part.group()
-                end = part.end()
+        runs = [
+            (run.start(), run.end(), run.group())
+            for run in _DIGIT_RUN_RE.finditer(value, match.start(), match.end())
+        ]
+        group = [runs[0]]
+        for run in runs[1:]:
+            if (
+                len(run[2]) == _THOUSANDS_GROUP_DIGITS
+                and len(group[0][2]) <= _THOUSANDS_GROUP_DIGITS
+            ):
+                group.append(run)
                 continue
-            items.append((value[start:end], _number_key(digits), (start, end)))
-            start, end, digits = part.start(), part.end(), part.group()
-        items.append((value[start:end], _number_key(digits), (start, end)))
+            items.append(_number_value(value, group))
+            group = [run]
+        items.append(_number_value(value, group))
     return items
 
 
-def _surplus_numbers(
-    items: Sequence[tuple[str, str, tuple[int, int]]],
-    other_side: Mapping[str, int],
-) -> list[tuple[str, str, tuple[int, int]]]:
-    """Pair occurrences with the other side's count first; return the rest."""
+def _number_keys(items: Sequence[_NumberItem]) -> frozenset[str]:
+    return frozenset(
+        key
+        for item in items
+        for key in (item.key, *(part.key for part in item.alternatives))
+    )
 
-    paired: Counter[str] = Counter()
-    result: list[tuple[str, str, tuple[int, int]]] = []
+
+def _resolve_space_groups(
+    items: Sequence[_NumberItem], other_keys: frozenset[str]
+) -> list[_NumberItem]:
+    """Read "3 100" as 3 and 100 when only that reading occurs on the other side."""
+    resolved: list[_NumberItem] = []
     for item in items:
-        key = item[1]
-        if paired[key] < other_side.get(key, 0):
-            paired[key] += 1
+        if (
+            item.alternatives
+            and item.key not in other_keys
+            and all(part.key in other_keys for part in item.alternatives)
+        ):
+            resolved.extend(item.alternatives)
+        else:
+            resolved.append(item)
+    return resolved
+
+
+def _surplus_numbers(
+    items: Sequence[_NumberItem],
+    other_side: Mapping[str, int],
+) -> list[_NumberItem]:
+    """Pair occurrences with the other side's count first; return the rest."""
+    paired: Counter[str] = Counter()
+    result: list[_NumberItem] = []
+    for item in items:
+        if paired[item.key] < other_side.get(item.key, 0):
+            paired[item.key] += 1
             continue
         result.append(item)
     return result
+
+
+def _shortened_year(short: str, full: str) -> bool:
+    return (
+        len(short) == _SHORT_YEAR_DIGITS
+        and len(full) == _FULL_YEAR_DIGITS
+        and full.endswith(short)
+    )
 
 
 def _number_findings(
@@ -907,17 +984,27 @@ def _number_findings(
     source_text: str,
     target_text: str,
 ) -> list[dict[str, Any]]:
-    source_items = _number_items(source_text)
-    target_items = _number_items(target_text)
-    source_counter = Counter(item[1] for item in source_items)
-    target_counter = Counter(item[1] for item in target_items)
+    raw_source = _number_items(source_text)
+    raw_target = _number_items(target_text)
+    source_items = _resolve_space_groups(raw_source, _number_keys(raw_target))
+    target_items = _resolve_space_groups(raw_target, _number_keys(raw_source))
+    source_counter = Counter(item.key for item in source_items)
+    target_counter = Counter(item.key for item in target_items)
     if source_counter == target_counter:
         return []
     missing = _surplus_numbers(source_items, target_counter)
     added = _surplus_numbers(target_items, source_counter)
     changed_value = bool(missing) and bool(added)
+    shortened = {
+        key
+        for source_item in missing
+        for target_item in added
+        if _shortened_year(target_item.key, source_item.key)
+        or _shortened_year(source_item.key, target_item.key)
+        for key in (source_item.key, target_item.key)
+    }
     findings: list[dict[str, Any]] = []
-    for matched_text, key, span in missing:
+    for matched_text, key, span, _alternatives in missing:
         spelled_out = (
             matched_text.isdigit()
             and len(matched_text) <= len(str(_SPELLED_OUT_MAX))
@@ -931,7 +1018,11 @@ def _number_findings(
                 target_version=target_version,
                 code="number-mismatch",
                 category="content",
-                severity="advisory" if spelled_out or not changed_value else "warning",
+                severity=(
+                    "warning"
+                    if changed_value and not spelled_out and key not in shortened
+                    else "advisory"
+                ),
                 message="A number in the source does not appear in the target.",
                 source_text=source_text,
                 target_text=target_text,
@@ -941,10 +1032,11 @@ def _number_findings(
                     "normalized": key,
                     "side": "source_only",
                     "possibly_spelled_out": spelled_out,
+                    "possibly_shortened": key in shortened,
                 },
             )
         )
-    for matched_text, key, span in added:
+    for matched_text, key, span, _alternatives in added:
         findings.append(
             _finding(
                 workspace=workspace,
@@ -953,7 +1045,9 @@ def _number_findings(
                 target_version=target_version,
                 code="number-mismatch",
                 category="content",
-                severity="warning" if changed_value else "advisory",
+                severity=(
+                    "warning" if changed_value and key not in shortened else "advisory"
+                ),
                 message="A number in the target does not appear in the source.",
                 source_text=source_text,
                 target_text=target_text,
@@ -963,6 +1057,7 @@ def _number_findings(
                     "normalized": key,
                     "side": "target_only",
                     "possibly_spelled_out": False,
+                    "possibly_shortened": key in shortened,
                 },
             )
         )
@@ -1081,17 +1176,26 @@ def _alignment_coverage_findings(
     if not isinstance(groups, list) or len(groups) < 2:
         return []
     measured = [_measure_group(group) for group in groups if isinstance(group, Mapping)]
+    logographic = _cjk_share(source_text) >= _ALIGNMENT_LOGOGRAPHIC_SHARE
+    min_source, min_reference = (
+        (
+            _ALIGNMENT_MIN_SOURCE_CHARS_LOGOGRAPHIC,
+            _ALIGNMENT_MIN_REFERENCE_CHARS_LOGOGRAPHIC,
+        )
+        if logographic
+        else (_ALIGNMENT_MIN_SOURCE_CHARS, _ALIGNMENT_MIN_REFERENCE_CHARS)
+    )
     findings: list[dict[str, Any]] = []
     for index, measure in enumerate(measured):
         ratio = measure.ratio
-        if ratio is None or measure.source_chars < _ALIGNMENT_MIN_SOURCE_CHARS:
+        if ratio is None or measure.source_chars < min_source:
             continue
         reference_ratios = [
             other.ratio
             for position, other in enumerate(measured)
             if position != index
             and other.ratio is not None
-            and other.source_chars >= _ALIGNMENT_MIN_REFERENCE_CHARS
+            and other.source_chars >= min_reference
         ]
         if not reference_ratios:
             continue
@@ -1673,6 +1777,7 @@ def qa_diagnostics(
         raise _error("qa-spelling-flag-invalid")
     enabled_categories = set(canonical_categories) or set(_CATEGORIES)
     include_alignment = "length" in enabled_categories
+    alignment_error: str | None = None
 
     try:
         workspace = load_block_source_plan(project)
@@ -1681,11 +1786,14 @@ def qa_diagnostics(
                 workspace, include_alignment=include_alignment
             )
             alignment_available = include_alignment
-        except BlockWorkspaceIntegrityError:
+        except BlockWorkspaceIntegrityError as alignment_exc:
             if not include_alignment:
                 raise
             pointers, targets = _rehydrate_workspace_objects(workspace)
             alignment_available = False
+            alignment_error = str(
+                getattr(alignment_exc, "code", "") or "alignment-invalid"
+            )
     except BlockWorkspaceIntegrityError as exc:
         raise _error(getattr(exc, "code", "qa-source-invalid")) from exc
     blocks = list(workspace.plan.blocks)
@@ -1934,6 +2042,7 @@ def qa_diagnostics(
                 if include_alignment
                 else "disabled"
             ),
+            "alignment_coverage_error": alignment_error,
             "by_severity": {key: severity_counts[key] for key in _SEVERITIES},
             "by_category": {key: category_counts[key] for key in _CATEGORIES},
             "truncated": bool(omitted_by_severity),
