@@ -32,6 +32,21 @@ compatibility `enable_translator_notes` input; its persisted boolean is normaliz
 from that profile. Managed model identifiers and passive executor capabilities
 have separate readiness rules.
 
+The optional `translation_brief` records the commission: `register` (formal,
+neutral or informal), `target_variety` (a BCP 47 tag with a region or script,
+such as `en-GB` or `pt-BR`), `translation_type` (`overt` keeps the source's
+references and conventions; `covert` adapts them where the text's purpose
+requires it), `form_of_address` (formal, informal or impersonal), and free-text
+`purpose` and `readers` of at most 300 characters each. Empty fields are dropped
+and an empty brief is not stored. MCP accepts it at creation; the workspace
+settings dialog edits it at an idle boundary. The brief is frozen into the
+block workflow configuration when an operation starts. The enumerated fields
+become trusted project policy in the packet (register, variety, translation type
+and address are rendered as instructions); `purpose` and `readers` are owner
+text and travel only as an untrusted `translation-brief-reference-v1` metadata
+slot, so they inform the translation without being able to instruct it. Packets
+for a project without a brief render exactly as before.
+
 Admission commits the MCP execution before initializing the client or starting
 product work, releasing SQLite's writer slot. Initialization, startup and binding
 failures mark that execution failed. A projection error after successful binding

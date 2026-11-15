@@ -98,6 +98,63 @@ _REDUCTION_ORDER = (
     "terminology_guidance",
 )
 _REGISTER_VALUES = frozenset({"formal", "neutral", "informal"})
+_TARGET_VARIETY_RE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){1,3}")
+_BRIEF_SENTENCES = {
+    ("translation_type", "overt"): (
+        " Translate overtly: readers know this is a translation from another culture, "
+        "so keep its references, names, setting and conventions rather than adapting "
+        "them, and explain only in notes the annotation profile permits."
+    ),
+    ("translation_type", "covert"): (
+        " Translate covertly: the result should work as if written in the target "
+        "language for its readers, so adapt conventions, formats and culture-bound "
+        "references where the text's purpose requires it, without adding or dropping "
+        "content."
+    ),
+    ("form_of_address", "formal"): (
+        " Where the target language distinguishes forms of address, address the "
+        "reader formally."
+    ),
+    ("form_of_address", "informal"): (
+        " Where the target language distinguishes forms of address, address the "
+        "reader informally."
+    ),
+    ("form_of_address", "impersonal"): (
+        " Avoid addressing the reader directly where the target language allows; "
+        "prefer impersonal constructions."
+    ),
+}
+
+
+def _brief_instruction(brief: object) -> str:
+    """Render the enumerated translation brief; free text never reaches here."""
+
+    if (
+        not isinstance(brief, Mapping)
+        or not brief
+        or set(brief) - {"target_variety", "translation_type", "form_of_address"}
+    ):
+        raise BlockContractError("window-trusted-policy")
+    text = ""
+    variety = brief.get("target_variety")
+    if variety is not None:
+        if (
+            not isinstance(variety, str)
+            or len(variety) > 35
+            or not _TARGET_VARIETY_RE.fullmatch(variety)
+        ):
+            raise BlockContractError("window-trusted-policy")
+        text += (
+            f" Write the {variety} variety of the target language, following its "
+            "spelling, vocabulary and punctuation consistently."
+        )
+    for key in ("translation_type", "form_of_address"):
+        if key in brief:
+            sentence = _BRIEF_SENTENCES.get((key, brief[key]))
+            if sentence is None:
+                raise BlockContractError("window-trusted-policy")
+            text += sentence
+    return text
 
 
 def _target_result_schema(
@@ -671,7 +728,7 @@ def _trusted_instruction(slot: ContextSlot) -> str:
         return "Use target-block-result-v1 exactly as specified by this contract."
     if slot.slot_type == "project_policy":
         policy = slot.provenance.get("policy")
-        if not isinstance(policy, Mapping) or set(policy) not in (
+        if not isinstance(policy, Mapping) or set(policy) - {"brief"} not in (
             {"target_language", "register"},
             {"target_language", "register", "source_language", "foreign_language_policy"},
             {"target_language", "register", "source_language", "foreign_language_policy", "context_mode"},
@@ -686,6 +743,8 @@ def _trusted_instruction(slot: ContextSlot) -> str:
         ):
             raise BlockContractError("window-trusted-policy")
         instruction = f"Translate into {language} using a {register} register."
+        if "brief" in policy:
+            instruction += _brief_instruction(policy["brief"])
         if "context_mode" in policy:
             mode = policy["context_mode"]
             lookup = policy.get("continuity_lookup")

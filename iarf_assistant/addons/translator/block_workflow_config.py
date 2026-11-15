@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from collections.abc import Mapping
 from datetime import datetime
@@ -154,6 +155,7 @@ _CONFIG_OPTIONAL_KEYS = frozenset(
         "enable_translator_notes",
         "annotation_profile",
         "translation_unit_mode",
+        "translation_brief",
     }
 )
 _RESEARCH_DOSSIER_KEYS = frozenset(
@@ -353,6 +355,58 @@ def _normalize_window_profile(value: object) -> dict[str, Any]:
         if result["target_input_tokens"] > result["max_input_tokens"]:
             raise _error("workflow-config-window-input-target")
     return result
+
+
+TRANSLATION_BRIEF_KEYS = (
+    "register",
+    "target_variety",
+    "translation_type",
+    "form_of_address",
+    "purpose",
+    "readers",
+)
+_TRANSLATION_BRIEF_CHOICES: dict[str, frozenset[str]] = {
+    "register": frozenset({"formal", "neutral", "informal"}),
+    "translation_type": frozenset({"overt", "covert"}),
+    "form_of_address": frozenset({"formal", "informal", "impersonal"}),
+}
+_TARGET_VARIETY_RE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z0-9]{2,8}){1,3}")
+MAX_TRANSLATION_BRIEF_TEXT_CHARS = 300
+
+
+def normalize_translation_brief(value: object) -> dict[str, str] | None:
+    """Validate the owner's translation brief; empty values are dropped.
+
+    Enumerated choices and the BCP 47 variety tag may be rendered into the
+    trusted project policy. Purpose and readers are free text and only ever
+    reach a model as untrusted reference data.
+    """
+
+    if value is None:
+        return None
+    if not isinstance(value, Mapping) or set(value) - set(TRANSLATION_BRIEF_KEYS):
+        raise _error("workflow-config-translation-brief")
+    result: dict[str, str] = {}
+    for key in TRANSLATION_BRIEF_KEYS:
+        item = value.get(key)
+        if item is None:
+            continue
+        if not isinstance(item, str):
+            raise _error("workflow-config-translation-brief")
+        item = " ".join(item.split()) if key in {"purpose", "readers"} else item.strip()
+        if not item:
+            continue
+        choices = _TRANSLATION_BRIEF_CHOICES.get(key)
+        if choices is not None:
+            valid = item in choices
+        elif key == "target_variety":
+            valid = len(item) <= 35 and _TARGET_VARIETY_RE.fullmatch(item) is not None
+        else:
+            valid = len(item) <= MAX_TRANSLATION_BRIEF_TEXT_CHARS and "\x00" not in item
+        if not valid:
+            raise _error("workflow-config-translation-brief")
+        result[key] = item
+    return result or None
 
 
 def _normalize_owner_policy(value: object) -> str | None:
@@ -1072,6 +1126,10 @@ def _validate_config(config: object) -> dict[str, Any]:
             raise _error("workflow-config-foreign-language-policy-context")
     if config.get("owner_policy") is not None:
         _normalize_owner_policy(config["owner_policy"])
+    if "translation_brief" in config:
+        brief = config["translation_brief"]
+        if brief is None or normalize_translation_brief(brief) != brief:
+            raise _error("workflow-config-translation-brief")
     translation = config.get("translation")
     if not isinstance(translation, Mapping) or set(translation) != {
         "model",
@@ -1513,6 +1571,9 @@ def freeze_block_workflow_config(
         config.pop("owner_policy")
     else:
         config["owner_policy"] = owner_policy
+    translation_brief = normalize_translation_brief(settings.get("translation_brief"))
+    if translation_brief is not None:
+        config["translation_brief"] = translation_brief
     # Disabled phases are represented by a flag plus absent material, never by
     # null placeholders in the canonical encrypted payload.
     if not pre_analysis:
@@ -1725,6 +1786,9 @@ def safe_block_workflow_config_projection(
 
 __all__ = [
     "ANALYSIS_REASONING_SLOT",
+    "MAX_TRANSLATION_BRIEF_TEXT_CHARS",
+    "TRANSLATION_BRIEF_KEYS",
+    "normalize_translation_brief",
     "DOCUMENT_STRUCTURE_CONTEXT_VERSION",
     "RESEARCH_REASONING_SLOT",
     "TRANSLATION_REASONING_SLOT",

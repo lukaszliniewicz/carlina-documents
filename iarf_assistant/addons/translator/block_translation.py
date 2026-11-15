@@ -378,6 +378,11 @@ def build_required_slots(
         raise BlockContractError("block-translation-source-plan")
     selected = _require_window_against_plan(plan, window)
     language = _frozen_target_language(frozen_config)
+    brief = frozen_config.get("translation_brief")
+    if brief is not None and not isinstance(brief, Mapping):
+        raise BlockContractError("block-translation-brief")
+    brief = cast(Mapping[str, str], brief or {})
+    register = brief.get("register", register)
     if register not in _REGISTER_VALUES:
         raise BlockContractError("block-translation-register")
     source = frozen_config.get("source_plan")
@@ -390,7 +395,7 @@ def build_required_slots(
     control_content = canonical_json(
         {"contract_version": WINDOW_PROMPT_CONTRACT_VERSION}
     )
-    policy = {"target_language": language, "register": register}
+    policy: dict[str, object] = {"target_language": language, "register": register}
     translation_context_version, continuity_mode = _translation_context_spec(
         frozen_config
     )
@@ -421,6 +426,13 @@ def build_required_slots(
                 "source_plan_id": source_plan_id,
                 "before_block_id": selected[0].id,
             }
+    trusted_brief = {
+        key: brief[key]
+        for key in ("target_variety", "translation_type", "form_of_address")
+        if key in brief
+    }
+    if trusted_brief:
+        policy["brief"] = trusted_brief
     policy_content = canonical_json(policy)
     writable_contract_version = frozen_config.get(
         "writable_source_contract_version",
@@ -551,6 +563,23 @@ def build_required_slots(
             required=True,
         ),
     ]
+    brief_reference = {key: brief[key] for key in ("purpose", "readers") if key in brief}
+    if brief_reference:
+        slots.append(
+            _slot(
+                "document_metadata",
+                canonical_json(
+                    {
+                        "contract_version": "translation-brief-reference-v1",
+                        **brief_reference,
+                    }
+                ),
+                {"source": "frozen-translation-brief", "trust": "untrusted_reference"},
+                f"translation-brief:{source_plan_id}",
+                plan.plan_hash,
+                required=True,
+            )
+        )
     owner_policy = frozen_config.get("owner_policy")
     if owner_policy is not None:
         if not isinstance(owner_policy, str) or not owner_policy.strip():

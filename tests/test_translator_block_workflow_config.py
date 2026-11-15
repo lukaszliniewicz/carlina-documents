@@ -240,6 +240,35 @@ def test_disabled_phases_and_blank_policy_are_absent(app):
     assert row.config_json["translation"]["reasoning"]["slot"] == "translation"
 
 
+def test_translation_brief_is_frozen_normalised_and_validated(app):
+    user, _project, record, operation = _state()
+    material = freeze(
+        operation,
+        record,
+        user=user,
+        settings=_settings(
+            translation_brief={"register": "formal", "purpose": " Seminar  use ", "readers": ""}
+        ),
+        window_profile=_window_profile(),
+    )
+    assert material["translation_brief"] == {"register": "formal", "purpose": "Seminar use"}
+    row = persist(operation, record, material)
+    db.session.commit()
+    assert rehydrate(row, operation=operation, source_plan=record) is row
+
+    plain = freeze(
+        operation, record, user=user, settings=_settings(translation_brief={"readers": " "}),
+        window_profile=_window_profile(),
+    )
+    assert "translation_brief" not in plain
+    with pytest.raises(BlockContractError, match="workflow-config-translation-brief"):
+        freeze(
+            operation, record, user=user,
+            settings=_settings(translation_brief={"form_of_address": "royal"}),
+            window_profile=_window_profile(),
+        )
+
+
 def test_foreign_language_policy_v2_freezes_and_legacy_configs_remain_valid(app):
     user, _project, record, operation = _state()
     material = freeze(

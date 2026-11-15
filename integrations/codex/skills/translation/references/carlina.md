@@ -13,7 +13,7 @@ November 2026 and packets can carry an older frozen contract.
 
 | Craft step in this skill | In Carlina |
 |---|---|
-| Purpose, readers, quality level | Target language and annotation profile are project settings. Everything else is yours to establish and record in a research dossier. |
+| Purpose, readers, quality level | Target language, annotation profile and the translation brief (register, variety, overt or covert, form of address, purpose, readers) are project settings. Everything else is yours to establish and record in a research dossier. |
 | Orientation read, style analysis, term harvest | Run by Carlina only in managed mode (pre-analysis, research). **In passive mode nothing does this unless you do.** |
 | Style sheet and standing decisions | Research dossier, pinned when the run starts. |
 | Glossary | Project glossary: human-locked rows are binding; rows you propose are advice to later packets. |
@@ -50,8 +50,14 @@ Three properties of the settings to know:
 - **A custom prompt is delivered to the translating model as reference data, not as an
   instruction.** Do not rely on it to enforce style or terminology. Terms belong in the
   glossary; decisions belong in the dossier and in your own execution.
-- **Register is not a project setting** in the current contract. If the text needs anything
-  other than neutral, it has to be carried by the dossier and applied by you.
+- **Set the brief when creating the project** (`translation_brief`): `register`,
+  `target_variety` (`en-GB`, `pt-BR`), `translation_type` (`overt`: readers know it
+  is a translation and keep its references; `covert`: it should read as if written for
+  them), `form_of_address`, and short `purpose` and `readers`. The first
+  four reach every packet as instructions; purpose and readers arrive as reference data only.
+  Packets frozen before the brief existed carry none of it, and a field you leave out falls
+  back to the default (neutral register, no variety). Anything the brief cannot express
+  (spelling of names, quotation conventions, tense of narration) still belongs in the dossier.
 - **The annotation profile is the notes policy.** `none` means no notes and no inline
   substitute for them; `restrained` allows at most one per block; `study` several. Decide it
   before the run from the brief ("in the text or in a note: one policy").

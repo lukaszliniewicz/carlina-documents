@@ -14,6 +14,13 @@ Inspect a reported structural-limit error before adjusting model budgets: a
 source-planning limit is not a translation-window token limit. An unsuccessful
 creation must be reconciled with project/job discovery before retrying.
 
+Pass `translation_brief` at creation when the user has stated (or the commission
+implies) a register, target variety such as `en-GB`, overt or covert approach,
+form of address, purpose or readership. Its enumerated fields become packet
+instructions; `purpose` and `readers` are carried as reference data. There is no
+MCP update for the brief after creation; the owner can change it in workspace
+settings at an idle boundary.
+
 Respect the requested `translation_unit_mode` and `annotation_profile`. In
 `aligned_sentences` mode, Carlina supplies the source sentence addresses before
 translation; return complete blocks and their natural N:M sentence alignment,

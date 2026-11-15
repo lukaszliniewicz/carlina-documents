@@ -70,6 +70,20 @@ describe("BlockWorkspaceSettingsDialog", () => {
     vi.unstubAllGlobals();
   });
 
+  it("edits the translation brief as one setting and summarises it", async () => {
+    const onFieldChange = vi.fn();
+    const brief = { target_variety: "en-GB", translation_type: "overt", purpose: "Study edition" };
+    const view = render(BlockWorkspaceSettingsDialog, { props: {
+      open: true, models: readyModels, settingsForm: form({ translation_brief: brief }), onFieldChange
+    } });
+    expect(view.getByText("en-GB · overt translation")).toBeTruthy();
+    expect(view.getByLabelText("Purpose").value).toBe("Study edition");
+    await fireEvent.change(view.getByLabelText("Form of address"), { target: { value: "formal" } });
+    expect(onFieldChange).toHaveBeenLastCalledWith("translation_brief", { ...brief, form_of_address: "formal" });
+    await fireEvent.input(view.getByLabelText("Target variety"), { target: { value: " pt-BR " } });
+    expect(onFieldChange).toHaveBeenLastCalledWith("translation_brief", { ...brief, target_variety: "pt-BR" });
+  });
+
   it("preserves unavailable exact selections so owners can see and uncheck them", async () => {
     const onFieldChange = vi.fn();
     const view = render(BlockWorkspaceSettingsDialog, {
@@ -270,7 +284,7 @@ describe("BlockWorkspaceSettingsDialog", () => {
     expect(view.getByRole("button", { name: "Save settings" }).disabled).toBe(true);
   });
 
-  it("groups the three model phases into calm disclosure sections", () => {
+  it("groups the brief and the three model phases into calm disclosure sections", () => {
     const view = render(BlockWorkspaceSettingsDialog, {
       props: {
         open: true,
@@ -281,12 +295,11 @@ describe("BlockWorkspaceSettingsDialog", () => {
     });
 
     const sections = [...view.container.querySelectorAll("details.settings-section")];
-    expect(sections).toHaveLength(3);
-    expect(sections[0].open).toBe(true);
-    expect(sections[1].open).toBe(false);
-    expect(sections[2].open).toBe(false);
+    expect(sections).toHaveLength(4);
+    expect(sections.map((section) => section.open)).toEqual([true, false, false, false]);
     expect(sections.map((section) => section.querySelector("summary").textContent)).toEqual([
       expect.stringMatching(/Translation.*Translator ready/s),
+      expect.stringMatching(/Translation brief.*Not set/s),
       expect.stringMatching(/Preliminary analysis.*Analyzer ready.*On/s),
       expect.stringMatching(/Research.*Researcher ready.*Off/s)
     ]);

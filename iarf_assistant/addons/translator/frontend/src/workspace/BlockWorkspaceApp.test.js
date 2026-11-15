@@ -1549,10 +1549,12 @@ describe("BlockWorkspaceApp semantic actions", () => {
       "researcher_model",
       "translation_batch_input_tokens",
       "translation_batch_max_blocks",
+      "translation_brief",
       "translation_context_mode",
       "translation_unit_mode",
       "translator_model"
     ]);
+    expect(settingsPut.translation_brief).toBeNull();
     expect(settingsPut.research_tool_selections).toEqual([selection]);
     expect(settingsPut.translation_batch_input_tokens).toBe(128000);
     expect(settingsPut.translation_batch_max_blocks).toBe(18);

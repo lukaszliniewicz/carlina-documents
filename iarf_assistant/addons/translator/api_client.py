@@ -455,7 +455,11 @@ class TranslatorClient:
         translation_unit_mode: object = None,
         translation_max_block_chars: int = DEFAULT_TRANSLATION_MAX_BLOCK_CHARS,
         export_metadata: Mapping[str, Any] | None = None,
+        translation_brief: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
+        from .block_workflow_config import normalize_translation_brief
+
+        normalized_brief = normalize_translation_brief(translation_brief)
         normalized_export_metadata = normalize_export_metadata(
             {} if export_metadata is None else export_metadata
         )
@@ -593,6 +597,7 @@ class TranslatorClient:
             "translation_batch_max_blocks": batch_max_blocks,
             "translation_context_mode": effective_translation_context_mode,
             "translation_unit_mode": effective_translation_unit_mode,
+            **({"translation_brief": normalized_brief} if normalized_brief else {}),
             **(
                 {TRANSLATION_MAX_BLOCK_CHARS_SETTING: max_block_chars}
                 if effective_translation_unit_mode == "aligned_sentences"

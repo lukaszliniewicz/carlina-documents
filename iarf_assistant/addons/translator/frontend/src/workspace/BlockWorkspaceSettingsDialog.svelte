@@ -46,6 +46,19 @@
     onFieldChange(field, value);
   }
 
+  const VARIETY_PATTERN = "[a-z]{2,3}(-[A-Za-z0-9]{2,8}){1,3}";
+
+  function setBrief(field, value) {
+    setField("translation_brief", { ...(settingsForm.translation_brief || {}), [field]: value });
+  }
+
+  $: brief = settingsForm.translation_brief || {};
+  $: briefSummary = [
+    brief.target_variety,
+    brief.translation_type && `${brief.translation_type} translation`,
+    brief.register && `${brief.register} register`
+  ].filter(Boolean).join(" · ") || "Not set";
+
   function modelOptionsFor(field, availableModels, form) {
     const options = Array.isArray(availableModels) ? [...availableModels] : [];
     const selected = String(form?.[field] || "").trim();
@@ -287,6 +300,55 @@
 
       <details class="settings-section">
         <summary>
+          <span class="section-title"><strong>Translation brief</strong><small>{briefSummary}</small></span>
+        </summary>
+        <div class="section-body">
+          <small>Choices here become project policy for every new translation window. Purpose and readers are passed to the model as reference.</small>
+          <div class="brief-grid">
+            <label>
+              Register
+              <select value={brief.register || ""} disabled={interactionDisabled} on:change={(event) => setBrief("register", event.currentTarget.value)}>
+                <option value="">Neutral (default)</option>
+                <option value="formal">Formal</option>
+                <option value="neutral">Neutral</option>
+                <option value="informal">Informal</option>
+              </select>
+            </label>
+            <label>
+              Target variety
+              <input value={brief.target_variety || ""} placeholder="e.g. en-GB, pt-BR" pattern={VARIETY_PATTERN} maxlength="35" disabled={interactionDisabled} on:input={(event) => setBrief("target_variety", event.currentTarget.value.trim())} />
+            </label>
+            <label>
+              Translation type
+              <select value={brief.translation_type || ""} disabled={interactionDisabled} on:change={(event) => setBrief("translation_type", event.currentTarget.value)}>
+                <option value="">Not specified</option>
+                <option value="overt">Overt: read as a translation</option>
+                <option value="covert">Covert: read as an original</option>
+              </select>
+            </label>
+            <label>
+              Form of address
+              <select value={brief.form_of_address || ""} disabled={interactionDisabled} on:change={(event) => setBrief("form_of_address", event.currentTarget.value)}>
+                <option value="">Follow the source</option>
+                <option value="formal">Formal</option>
+                <option value="informal">Informal</option>
+                <option value="impersonal">Impersonal</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Purpose
+            <input value={brief.purpose || ""} maxlength="300" placeholder="e.g. study edition for a seminar" disabled={interactionDisabled} on:input={(event) => setBrief("purpose", event.currentTarget.value)} />
+          </label>
+          <label>
+            Readers
+            <input value={brief.readers || ""} maxlength="300" placeholder="e.g. students without German" disabled={interactionDisabled} on:input={(event) => setBrief("readers", event.currentTarget.value)} />
+          </label>
+        </div>
+      </details>
+
+      <details class="settings-section">
+        <summary>
           <span class="section-title"><strong>Preliminary analysis</strong><small>{selectedModelLabel("analyzer_model")}</small></span>
           <span class:enabled={settingsForm.enable_pre_analysis} class="phase-state">{settingsForm.enable_pre_analysis ? "On" : "Off"}</span>
         </summary>
@@ -401,6 +463,8 @@
   .section-title small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .phase-state { color:var(--color-ink-muted); font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; }
   .phase-state.enabled { color:var(--color-lichen,#56604f); }
+  .brief-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem; }
+  @media (max-width:560px) { .brief-grid { grid-template-columns:1fr; } }
   .section-body { display:grid; gap:.76rem; padding:.82rem; border-top:1px solid var(--color-rule); }
   .two-col { display:grid; gap:.8rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
   .model-control { display:grid; align-content:start; gap:.25rem; min-width:0; }

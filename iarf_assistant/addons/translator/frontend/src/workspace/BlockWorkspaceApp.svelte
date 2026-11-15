@@ -208,8 +208,20 @@
     research_tool_selections: [],
     translation_batch_input_tokens: DEFAULT_TRANSLATION_BATCH_INPUT_TOKENS,
     translation_batch_max_blocks: DEFAULT_TRANSLATION_BATCH_MAX_BLOCKS,
-    custom_prompt: ""
+    custom_prompt: "",
+    translation_brief: {}
   };
+
+  const TRANSLATION_BRIEF_FIELDS = ["register", "target_variety", "translation_type", "form_of_address", "purpose", "readers"];
+
+  function briefPayload(brief) {
+    const result = {};
+    for (const field of TRANSLATION_BRIEF_FIELDS) {
+      const value = String(brief?.[field] || "").trim();
+      if (value) result[field] = value;
+    }
+    return Object.keys(result).length ? result : null;
+  }
 
   const exportOptions = [
     {
@@ -1531,7 +1543,8 @@
         research_tool_selections: selectedResearchToolSelections(settings.research_tool_selections),
         translation_batch_input_tokens: Number(settings.translation_batch_input_tokens || DEFAULT_TRANSLATION_BATCH_INPUT_TOKENS),
         translation_batch_max_blocks: Number(settings.translation_batch_max_blocks || DEFAULT_TRANSLATION_BATCH_MAX_BLOCKS),
-        custom_prompt: String(settings.custom_prompt || "")
+        custom_prompt: String(settings.custom_prompt || ""),
+        translation_brief: { ...(settings.translation_brief || {}) }
       };
       settingsOpen = true;
     } catch (caught) {
@@ -1573,7 +1586,8 @@
           research_tool_selections: selectedResearchToolSelections(settingsForm.research_tool_selections),
           translation_batch_input_tokens: Number(settingsForm.translation_batch_input_tokens),
           translation_batch_max_blocks: Number(settingsForm.translation_batch_max_blocks),
-          custom_prompt: settingsForm.custom_prompt || ""
+          custom_prompt: settingsForm.custom_prompt || "",
+          translation_brief: briefPayload(settingsForm.translation_brief)
         })
       });
       settingsOpen = false;

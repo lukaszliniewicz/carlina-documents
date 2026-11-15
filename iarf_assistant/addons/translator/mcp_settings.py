@@ -162,6 +162,36 @@ class ExportMetadataSettings(BaseModel):
     )
 
 
+class TranslationBrief(BaseModel):
+    """The translation brief. Choices enter the trusted policy; text does not."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    register: Literal["formal", "neutral", "informal"] | None = None
+    target_variety: str | None = Field(
+        None,
+        max_length=35,
+        pattern=r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8}){1,3}$",
+        description="BCP 47 tag of the target variety, such as en-GB or pt-BR.",
+    )
+    translation_type: Literal["overt", "covert"] | None = Field(
+        None,
+        description=(
+            "overt: readers know it is a translation and source-culture references "
+            "stay; covert: it should read as written in the target language."
+        ),
+    )
+    form_of_address: Literal["formal", "informal", "impersonal"] | None = Field(
+        None, description="How the text addresses its reader; omit to follow the source."
+    )
+    purpose: str | None = Field(
+        None, max_length=300, description="What the translation is for; reference only."
+    )
+    readers: str | None = Field(
+        None, max_length=300, description="Who will read it; reference only."
+    )
+
+
 class TranslatorSettings(BaseModel):
     """Creation options; omitted values retain the product's defaults."""
 
@@ -172,6 +202,14 @@ class TranslatorSettings(BaseModel):
     analyzer_model: str | None = Field(None, max_length=255)
     chunk_size_chars: int | None = Field(None, ge=500, le=20_000)
     custom_prompt: str | None = Field(None, max_length=20_000)
+    translation_brief: TranslationBrief | None = Field(
+        None,
+        description=(
+            "Register, target variety, overt or covert translation and form of address "
+            "become project policy for every window; purpose and readers are passed as "
+            "reference data."
+        ),
+    )
     enable_pre_analysis: bool | None = Field(
         None, description="Managed mode only; passive creation defaults to false."
     )

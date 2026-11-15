@@ -87,6 +87,7 @@ from .block_translation import (
 )
 from .block_workflow_config import (
     freeze_block_workflow_config,
+    normalize_translation_brief,
     normalize_translation_context_mode,
     persist_block_workflow_config,
     rehydrate_block_workflow_config,
@@ -1083,6 +1084,8 @@ def _block_translation_request_payload(
             ).encode("utf-8")
         ).hexdigest(),
     }
+    if settings.get("translation_brief"):
+        intent["translation_brief"] = settings["translation_brief"]
     return {
         "engine_contract": DOCUMENT_BLOCK_ENGINE_CONTRACT,
         "source_content_hash": project.source_content_hash,
@@ -1806,6 +1809,20 @@ def manage_project_settings(project_id):
     ):
         if key in data:
             settings[key] = data[key]
+    if "translation_brief" in data:
+        try:
+            brief = normalize_translation_brief(data["translation_brief"])
+        except BlockContractError:
+            return jsonify(
+                {
+                    "error": "The translation brief is invalid.",
+                    "code": "translation-brief-invalid",
+                }
+            ), 400
+        if brief is None:
+            settings.pop("translation_brief", None)
+        else:
+            settings["translation_brief"] = brief
     try:
         settings["translation_context_mode"] = normalize_translation_context_mode(
             settings.get("translation_context_mode", "self_contained")
