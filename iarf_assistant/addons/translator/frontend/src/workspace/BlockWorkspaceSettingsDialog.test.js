@@ -236,6 +236,35 @@ describe("BlockWorkspaceSettingsDialog", () => {
     expect(onFieldChange).toHaveBeenCalledWith("annotation_profile", "study");
   });
 
+  it("offers passive pre-analysis as leased work and keeps research managed-only", async () => {
+    const onFieldChange = vi.fn();
+    const view = render(BlockWorkspaceSettingsDialog, {
+      props: {
+        open: true,
+        executionMode: "passive",
+        models: readyModels,
+        settingsForm: form({ translator_model: "", analyzer_model: "", researcher_model: "", enable_pre_analysis: false }),
+        researchTools: [executableTool],
+        onFieldChange
+      }
+    });
+
+    const analysis = view.getByRole("checkbox", { name: /preliminary terminology analysis/i });
+    expect(analysis.disabled).toBe(false);
+    await fireEvent.click(analysis);
+    expect(onFieldChange).toHaveBeenCalledWith("enable_pre_analysis", true);
+    expect(view.getByText(/receives the analysis as work items/i)).toBeTruthy();
+    expect(view.queryByRole("combobox", { name: "Analyzer model" })).toBeNull();
+    expect(view.getByRole("checkbox", { name: /preliminary research/i }).disabled).toBe(true);
+    expect(view.queryByRole("combobox", { name: "Researcher model" })).toBeNull();
+    expect(view.getByRole("button", { name: "Save settings" }).disabled).toBe(false);
+
+    await view.rerender({ settingsForm: form({ translator_model: "", enable_research: true }) });
+    expect(view.getByRole("checkbox", { name: /preliminary research/i }).disabled).toBe(false);
+    expect(view.getByRole("alert").textContent).toMatch(/Turn it off to save/);
+    expect(view.getByRole("button", { name: "Save settings" }).disabled).toBe(true);
+  });
+
   it("visibly selects the minimal Jina defaults when research is enabled", async () => {
     const onFieldChange = vi.fn();
     const search = {

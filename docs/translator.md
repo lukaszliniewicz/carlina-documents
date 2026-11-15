@@ -722,6 +722,37 @@ example the preceding target with `carlina_translator_context_get`). The list
 is dispatch metadata only: frozen messages and persisted attempt evidence are
 unchanged, and it is absent when nothing was dropped.
 
+### Passive pre-analysis
+
+A passive project may enable pre-analysis (`enable_pre_analysis`). The analysis
+phase then freezes the same external executor identity as translation, with no
+reasoning configuration, and runs before the first window as leased work: one
+map request per analysis scope (the whole document when it fits the executor's
+input limit, otherwise packed complete-block parts), then one reduce request
+that consolidates them. The resulting document brief, style guide and entity
+register reach every translation packet exactly as in managed mode. Carlina
+still owns scoping, the response schema, validation and artifact persistence;
+the executor only answers the leased requests.
+
+Each analysis work item carries `request.dispatch.translator_analysis`
+(`translator-analysis-dispatch-v1`): `step` (`map` or `reduce`), the
+`attempt_id`, and for a map its `part` of `parts`. A response the analysis
+contract rejects (for example a summary citing a block outside its scope) fails
+that attempt and is retried once as a new work item whose dispatch adds
+`retry_of_attempt_id`, `previous_state` and the stable `rejected_code`; a second
+rejection fails the operation. The dispatch is derived from durable attempt
+evidence only, so re-entering a pending attempt rebuilds the same request
+fingerprint and resolves the same work item.
+
+A dispatched analysis attempt belongs to the whole queue delivery, not to the
+generation that issued it: when the suspended delivery resumes under a renewed
+operation claim, the runtime polls the leased item again under a lineage fence
+(same queue job, version at least the attempt's, live lease) instead of
+reconciling it as an uncertain managed call. Re-entry is refused for any
+attempt not sealed with an external identity. Research remains managed-only,
+and a pinned research dossier still replaces pre-analysis: start rejects a
+dossier pin while pre-analysis or research is enabled.
+
 Harness-side browsing or tools are outside Carlina's execution-policy receipts.
 Externally authored research conclusions remain external and unverified. If the
 harness separately invoked a governed Carlina tool, its receipt may prove only
@@ -986,7 +1017,8 @@ this contract.
 ### Working glossary during translation
 
 Passive document-block translation uses three distinct stages: inspect the source,
-optionally research and pin an external dossier, then translate while maintaining
+optionally research and pin an external dossier (or instead enable
+[passive pre-analysis](#passive-pre-analysis)), then translate while maintaining
 live terminology. Source review/search/fetch tools remain available to the external
 executor, which may also use its own research tools. No managed researcher is required.
 
@@ -1111,7 +1143,9 @@ the current one-note projection.
 Passive projects do not select a Carlina-managed translator model in workspace
 settings. Their external executor capability and reasoning profile are confirmed
 and frozen when the passive operation starts; changing the annotation profile or
-batch limits therefore must not require a configured Carlina model.
+batch limits therefore must not require a configured Carlina model. The settings
+dialog offers preliminary analysis without an analyzer model (the executor
+receives it as leased work) and shows research as unavailable.
 
 Every note has a stable project note ID and append-only revisions, an author type
 and share-grant/user provenance, active/retired/needs-review state, document

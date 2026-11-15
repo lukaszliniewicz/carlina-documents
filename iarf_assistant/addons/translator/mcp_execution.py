@@ -95,7 +95,7 @@ def create_mcp_project(
     options = dict(settings)
     options["execution_mode"] = mode
     if str(mode or "").strip().lower() == "passive":
-        # Passive block creation has no model/research phase.
+        # Passive pre-analysis is opt-in leased work; research stays managed.
         options.setdefault("enable_pre_analysis", False)
     created = client_factory().create_from_document(
         document_id,

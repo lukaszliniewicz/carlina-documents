@@ -900,7 +900,7 @@ def _validate_model_settings(
         pre_analysis = _coerce_bool(settings.get("enable_pre_analysis"), default=False)
         if require_analysis or pre_analysis:
             raise ValueError(
-                "Passive pre-analysis must be run in a separately supported execution later."
+                "Passive pre-analysis is available for document-block projects only."
             )
         settings["enable_pre_analysis"] = False
         settings["enable_research"] = _coerce_bool(
@@ -953,20 +953,20 @@ def _validate_block_model_settings(settings: dict, *, user_id: int) -> None:
         raise ValueError("execution_mode must be managed or passive.")
     settings["execution_mode"] = execution_mode
     if execution_mode == "passive":
-        if _coerce_bool(settings.get("enable_pre_analysis"), default=False):
-            raise ValueError(
-                "Passive pre-analysis must be run in a separately supported execution later."
-            )
         if _coerce_bool(settings.get("enable_research"), default=False):
             raise ValueError(
-                "Passive translation currently supports translation only; research is unavailable."
+                "Carlina-managed research is unavailable in passive mode; submit and pin a research dossier instead."
             )
+        # Pre-analysis runs as leased work for the external executor, so no
+        # Carlina model is selected for any phase.
         settings.update(
             {
                 "translator_model": "",
                 "analyzer_model": "",
                 "researcher_model": "",
-                "enable_pre_analysis": False,
+                "enable_pre_analysis": _coerce_bool(
+                    settings.get("enable_pre_analysis"), default=False
+                ),
                 "enable_research": False,
             }
         )

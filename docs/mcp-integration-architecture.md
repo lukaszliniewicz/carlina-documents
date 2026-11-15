@@ -638,7 +638,10 @@ calling a managed provider.
    starts require the declared, task-authorized executor envelope and no Carlina provider.
 3. Poll the execution and drain leased block-window completions when requested.
    Each returned result passes the same structure, source-identity, wrapper,
-   note, and publication validators as managed execution.
+   note, and publication validators as managed execution. A passive project
+   with pre-analysis enabled first leases its analysis map and reduce requests
+   (`request.dispatch.translator_analysis`), validated by the same analysis
+   contract as managed calls.
 4. Read the safe projection and, after completion, optionally retrieve verified
    semantic target HTML.
 5. Where advertised, start `carlina_translator_export` with saved edition metadata,

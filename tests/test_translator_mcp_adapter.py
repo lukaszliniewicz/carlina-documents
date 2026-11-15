@@ -437,11 +437,21 @@ def test_passive_mode_needs_no_model_profile_but_managed_still_does(app):
             enable_pre_analysis=False,
             execution_mode="managed",
         )
-    with pytest.raises(ValueError, match="separately supported execution"):
+    # Passive pre-analysis is leased work for the external executor, so it
+    # needs no analyzer model either.
+    passive_analysis = client._settings(
+        enable_pre_analysis=True,
+        execution_mode="passive",
+    )
+    assert passive_analysis["enable_pre_analysis"] is True
+    assert passive_analysis["analyzer_model"] == ""
+    with pytest.raises(ValueError, match="research is disabled in passive mode"):
         client._settings(
             enable_pre_analysis=True,
+            enable_research=True,
             execution_mode="passive",
         )
+    assert db.session.query(LLMModel).count() == 0
 
 
 def test_set_mcp_execution_is_owner_scoped_and_refuses_active_work(app):

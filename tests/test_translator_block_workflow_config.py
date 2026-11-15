@@ -380,6 +380,54 @@ def test_passive_executor_identity_survives_json_persistence_and_rehydration(app
     assert rehydrate(row, operation=operation, source_plan=record) is row
 
 
+def test_passive_pre_analysis_freezes_the_external_identity_and_research_stays_managed(
+    app,
+):
+    user, _project, record, operation = _state()
+    material = freeze(
+        operation,
+        record,
+        user=user,
+        settings=_settings(
+            execution_mode="passive",
+            translator_model="",
+            enable_pre_analysis=True,
+        ),
+        window_profile=_window_profile(),
+        executor_profile=_executor_profile(),
+    )
+
+    phase = material["pre_analysis"]
+    assert phase["model"] == material["translation"]["model"]
+    assert phase["model"]["identity_kind"] == "external_executor"
+    assert phase["reasoning"] == {
+        "addon_id": "translator",
+        "slot": _config.ANALYSIS_REASONING_SLOT,
+        "model_id": "translator",
+        "config": None,
+    }
+    assert phase["scope_planner_contract"]
+    row = persist(operation, record, material)
+    db.session.commit()
+    # No Carlina model is consulted for a passive phase.
+    assert rehydrate(row, operation=operation, source_plan=record) is row
+
+    with pytest.raises(BlockContractError, match="workflow-config-passive-phase"):
+        freeze(
+            operation,
+            record,
+            user=user,
+            settings=_settings(
+                execution_mode="passive",
+                translator_model="",
+                enable_pre_analysis=True,
+                enable_research=True,
+            ),
+            window_profile=_window_profile(),
+            executor_profile=_executor_profile(),
+        )
+
+
 def test_enabled_block_notes_select_the_note_aware_writable_contract(app):
     user, _project, record, operation = _state()
     material = freeze(

@@ -235,7 +235,12 @@ class TranslatorSettings(BaseModel):
         ),
     )
     enable_pre_analysis: bool | None = Field(
-        None, description="Managed mode only; passive creation defaults to false."
+        None,
+        description=(
+            "Document brief, style guide and entity analysis before translation. "
+            "Passive creation defaults to false; when true, the analysis is leased "
+            "as work items before the first window."
+        ),
     )
     enable_research: bool | None = Field(
         None, description="Managed mode only; passive research uses submitted dossiers."

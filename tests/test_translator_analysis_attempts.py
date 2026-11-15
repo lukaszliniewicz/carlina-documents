@@ -885,9 +885,9 @@ def test_final_completion_fence_is_atomic_against_isolated_operation_change(
     )._fresh_fence
     changed = False
 
-    def observe_then_change(attempt_id):
+    def observe_then_change(attempt_id, *, lineage=False):
         nonlocal changed
-        result = original(attempt_id)
+        result = original(attempt_id, lineage=lineage)
         observer = sessionmaker(bind=db.engine, expire_on_commit=False)()
         try:
             durable = observer.get(TranslationAnalysisAttempt, attempt_id)

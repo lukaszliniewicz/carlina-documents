@@ -1516,13 +1516,21 @@ class TranslatorRouteWorkerBoundaryTests(unittest.TestCase):
         self.assertEqual(settings["annotation_profile"], "study")
         self.assertIs(settings["enable_translator_notes"], True)
 
-        for field in ("enable_pre_analysis", "enable_research"):
-            invalid = dict(settings)
-            invalid[field] = True
-            with self.subTest(field=field), self.assertRaisesRegex(
-                ValueError, "Passive"
-            ):
-                routes._validate_block_model_settings(invalid, user_id=7)
+        # Passive pre-analysis is leased work for the external executor and
+        # still needs no Carlina model; research stays managed-only.
+        analysed = {**settings, "enable_pre_analysis": True, "analyzer_model": "stale"}
+        with patch.object(
+            routes,
+            "_validate_chat_phase_model_settings",
+            side_effect=AssertionError("passive settings must not resolve a model"),
+        ):
+            routes._validate_block_model_settings(analysed, user_id=7)
+        self.assertIs(analysed["enable_pre_analysis"], True)
+        self.assertEqual(analysed["analyzer_model"], "")
+
+        researched = {**settings, "enable_research": True}
+        with self.assertRaisesRegex(ValueError, "research is unavailable in passive mode"):
+            routes._validate_block_model_settings(researched, user_id=7)
 
     def test_project_settings_rejects_non_object_json(self):
         app = self._app()

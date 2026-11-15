@@ -547,10 +547,6 @@ class TranslatorClient:
             else enable_pre_analysis,
             field="enable_pre_analysis",
         )
-        if normalized_execution_mode == "passive" and enable_analysis:
-            raise ValueError(
-                "Passive pre-analysis must be run in a separately supported execution later."
-            )
         research_enabled = self._parse_bool(enable_research, field="enable_research")
         if normalized_execution_mode == "passive" and research_enabled:
             raise ValueError(
@@ -688,11 +684,16 @@ class TranslatorClient:
             # Existing passive projects may retain stale Carlina IDs, but they
             # are deliberately ignored. The external executor profile is the
             # only capability admission input for passive completion.
-            if require_analysis or self._parse_bool(
+            # Document-block pre-analysis runs as leased passive work; the
+            # subtitle workflow has no passive analysis path.
+            pre_analysis = self._parse_bool(
                 settings.get("enable_pre_analysis", False), field="enable_pre_analysis"
+            )
+            if require_analysis or (
+                pre_analysis and project.engine_contract != DOCUMENT_BLOCK_ENGINE_CONTRACT
             ):
                 raise ValueError(
-                    "Passive pre-analysis must be run in a separately supported execution later."
+                    "Passive pre-analysis is available for document-block projects only."
                 )
             research_enabled = self._parse_bool(
                 settings.get("enable_research", False), field="enable_research"
@@ -2984,6 +2985,15 @@ class TranslatorClient:
         hydrated_source_plan = rehydrate_source_plan(source_plan)
         research_dossier = None
         if research_dossier_revision_id is not None:
+            if self._parse_bool(
+                settings.get("enable_pre_analysis", False), field="enable_pre_analysis"
+            ) or self._parse_bool(
+                settings.get("enable_research", False), field="enable_research"
+            ):
+                raise ValueError(
+                    "A pinned research dossier replaces Carlina's pre-analysis and research. "
+                    "Turn pre-analysis off in the project settings, or start without the dossier."
+                )
             research_dossier = scholarly_review.block_translation_dossier_pin(
                 project,
                 source_plan,

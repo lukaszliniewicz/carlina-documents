@@ -1459,8 +1459,11 @@ def freeze_block_workflow_config(
     execution_mode = str(settings.get("execution_mode") or "managed").strip().lower()
     if execution_mode not in {"managed", "passive"}:
         raise _error("workflow-config-execution-mode")
+    external_profile: ExecutorProfile | None = None
     if execution_mode == "passive":
-        if pre_analysis or enable_research:
+        # Research stays managed-only; passive pre-analysis runs as leased
+        # work under the same external executor identity as translation.
+        if enable_research:
             raise _error("workflow-config-passive-phase")
         if executor_profile is None:
             raise _error("workflow-config-external-identity")
@@ -1543,7 +1546,18 @@ def freeze_block_workflow_config(
         config["protected_targets"] = normalize_protected_targets(protected_targets)
     if translation_scope is not None:
         config["translation_scope"] = normalize_translation_scope(translation_scope)
-    if pre_analysis:
+    if pre_analysis and external_profile is not None:
+        config["pre_analysis"] = {
+            "model": _external_executor_identity(external_profile),
+            "reasoning": {
+                "addon_id": "translator",
+                "slot": ANALYSIS_REASONING_SLOT,
+                "model_id": EXTERNAL_EXECUTOR_ROLE,
+                "config": None,
+            },
+            "scope_planner_contract": ANALYSIS_SCOPE_PLANNER_CONTRACT_VERSION,
+        }
+    elif pre_analysis:
         analyzer = _string(
             settings.get("analyzer_model"),
             "workflow-config-analysis-model",

@@ -496,7 +496,7 @@ def test_map_packet_and_execution_use_the_same_capability_derived_transport():
             patch.object(
                 block_analysis,
                 "execute_analysis_attempt",
-                side_effect=lambda _attempt, *, completion_call, _packet=packet: (
+                side_effect=lambda _attempt, *, completion_call, _packet=packet, **_kw: (
                     completion_call(_packet)
                 ),
             ),

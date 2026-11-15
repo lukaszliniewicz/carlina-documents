@@ -380,7 +380,7 @@ def test_document_gateway_creation_does_not_import_news(monkeypatch):
 
 def test_full_instruction_text_matches_task_authorized_profile_contract():
     assert hashlib.sha256(SERVER_INSTRUCTIONS.encode("utf-8")).hexdigest() == (
-        "4aee80c878830d6d05383dd0a1d1874875031f5b78db28183b3ae52a7c81f7e6"
+        "6bb53b048216aecc8960e49604e69f586afa38f3d4df6d35399120b924e598f8"
     )
     assert "no separate literal confirmation is required" in SERVER_INSTRUCTIONS
     assert "obtain literal\n  user confirmation" not in SERVER_INSTRUCTIONS

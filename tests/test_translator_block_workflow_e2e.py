@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 from datetime import timedelta
 from importlib import import_module
 from pathlib import Path
@@ -289,6 +290,7 @@ def _state(
     enable_research: bool = False,
     legacy_analysis_planner: bool = False,
     passive: bool = False,
+    passive_analysis: bool = False,
 ) -> tuple[Any, Any, Any, Any, Any]:
     user = User(email="block-workflow-e2e@example.test", password_hash="x")
     db.session.add(user)
@@ -403,7 +405,7 @@ def _state(
     )
     workflow_settings: dict[str, Any] = {
         "translator_model": "e2e-provider/chat",
-        "enable_pre_analysis": not passive,
+        "enable_pre_analysis": not passive or passive_analysis,
         "enable_research": enable_research and not passive,
         "owner_policy": "Preserve document meaning and structure.",
     }
@@ -1784,6 +1786,226 @@ def test_passive_normalization_retry_fingerprints_are_versioned_compatibly(
     ).count()
     assert staged_revisions == len(retry_attempt.block_ids_json)
     assert _core_models.McpWorkItem.query.count() == 2
+
+
+class _PassiveHarness:
+    """Drive one passive operation the way the queue and an MCP worker do."""
+
+    def __init__(self, app: Any, user: Any, project: Any, operation: Any) -> None:
+        translator_addon = object.__new__(import_module(_translator).TranslatorAddon)
+        app.addon_manager = SimpleNamespace(
+            get_loaded_addon=lambda _addon_id: translator_addon
+        )
+        self.execution = create_execution(
+            user.id,
+            "translator",
+            "project",
+            str(project.id),
+            {"mode": "passive", "executor_profile": _PASSIVE_EXECUTOR_PROFILE},
+            mode="passive",
+        )
+        project_settings = dict(project.settings)
+        project_settings["mcp_execution_id"] = self.execution.id
+        project.settings = project_settings
+        db.session.commit()
+        issued = issue_access_key(
+            user.id, "passive analysis fixture", ["mcp.work", "mcp.translator"], []
+        )
+        self.principal = resolve_access_key(issued.raw_token)
+        db.session.commit()
+        self.user = user
+        self.project = project
+        self.operation = operation
+        self.context = {
+            "execution_id": self.execution.id,
+            "owner_user_id": user.id,
+            "addon_id": "translator",
+            "resource_kind": "project",
+            "resource_id": str(project.id),
+        }
+        self.service = LLMService(user_id=user.id, session_id="passive-analysis-e2e")
+
+    def run(self) -> Any:
+        with passive_execution(**self.context):
+            return _workflow_runtime.run_document_block_workflow(
+                project=self.project,
+                operation=self.operation,
+                service=self.service,
+                addon_manager=object(),
+                safe_boundary=_safe_boundary,
+            )
+
+    def reenter(self) -> None:
+        """Resume the same queue delivery: a higher version and a new lease."""
+
+        before = self.operation.version
+        self.operation = _operations.claim_operation(
+            self.operation.id,
+            self.operation.queue_job_id,
+            owner_user_id=self.user.id,
+        )
+        db.session.commit()
+        assert self.operation.version == before + 1
+
+    def claim(self, work_item_id: str) -> tuple[Any, dict[str, Any]]:
+        claimed = claim_next_work(
+            self.principal,
+            "passive-analysis-test-client",
+            addon_id="translator",
+            execution_id=self.execution.id,
+        )
+        assert claimed is not None
+        assert claimed.work_item_id == work_item_id
+        return claimed, _work_claim_result(claimed).structured_content["request"]
+
+    def submit(self, claimed: Any, content: str) -> None:
+        submitted = submit_work(
+            self.principal,
+            claimed.work_item_id,
+            claimed.lease_token,
+            {"content": content, "finish_reason": "stop"},
+        )
+        assert submitted["status"] == "accepted", {
+            key: submitted.get(key)
+            for key in ("error_code", "error_detail", "validation_errors")
+        }
+
+
+def _operation_analysis_attempts(operation: Any) -> list[Any]:
+    db.session.expire_all()
+    return (
+        db.session.query(TranslationAnalysisAttempt)
+        .filter_by(operation_id=operation.id)
+        .order_by(TranslationAnalysisAttempt.created_at)
+        .all()
+    )
+
+
+def _generated(provider: Any, source: str, request: Mapping[str, Any]) -> str:
+    response = provider.completion(source=source, messages=request["messages"])
+    return response["choices"][0]["message"]["content"]
+
+
+def test_passive_pre_analysis_runs_as_leased_work_across_queue_reentries(app):
+    _analysis_execution = import_module(f"{_translator}.analysis_execution")
+    assert (
+        _analysis_execution.EXTERNAL_IDENTITY_KIND
+        == _workflow_config.EXTERNAL_EXECUTOR_IDENTITY_KIND
+    )
+    user, project, record, operation, plan = _state(
+        passive=True, passive_analysis=True
+    )
+    harness = _PassiveHarness(app, user, project, operation)
+    provider = _DeterministicProvider(plan, record)
+
+    with pytest.raises(ExternalWorkPending) as pending:
+        harness.run()
+    map_work_id = pending.value.work_item_id
+    # A resumed delivery polls the same leased item; a managed dispatch of
+    # unknown outcome would instead be reconciled as uncertain.
+    harness.reenter()
+    with pytest.raises(ExternalWorkPending) as polled:
+        harness.run()
+    assert polled.value.work_item_id == map_work_id
+    (map_attempt,) = _operation_analysis_attempts(operation)
+    assert map_attempt.dispatch_state == "dispatched"
+    claimed, request = harness.claim(map_work_id)
+    assert claimed.request["source"] == "translator_block_analysis"
+    assert request["dispatch"]["translator_analysis"] == {
+        "contract_version": "translator-analysis-dispatch-v1",
+        "step": "map",
+        "attempt_id": map_attempt.id,
+        "part": 1,
+        "parts": 1,
+    }
+    harness.submit(claimed, _generated(provider, "translator_block_analysis", request))
+
+    # The map completes in the same generation that polls it; the reduce is
+    # leased next and completes after another re-entry.
+    with pytest.raises(ExternalWorkPending) as reduce_pending:
+        harness.run()
+    reduce_work_id = reduce_pending.value.work_item_id
+    assert reduce_work_id != map_work_id
+    claimed, request = harness.claim(reduce_work_id)
+    assert request["dispatch"]["translator_analysis"]["step"] == "reduce"
+    harness.submit(claimed, _generated(provider, "translator_block_analysis", request))
+    harness.reenter()
+
+    window_requests: list[dict[str, Any]] = []
+    for _ in range(len(plan.blocks) + 1):
+        try:
+            completed, result = harness.run()
+        except ExternalWorkPending as window_pending:
+            claimed, request = harness.claim(window_pending.work_item_id)
+            assert claimed.request["source"] == "translator_block_translation_window"
+            window_requests.append(request)
+            harness.submit(
+                claimed,
+                _generated(provider, "translator_block_translation_window", request),
+            )
+            harness.reenter()
+        else:
+            break
+    else:
+        pytest.fail("Passive workflow did not complete within its bounded windows.")
+
+    assert completed.id == operation.id
+    assert result["translated_block_count"] == 1
+    attempts = _operation_analysis_attempts(operation)
+    assert len(attempts) == 2
+    assert attempts[0].id == map_attempt.id
+    assert {item.dispatch_state for item in attempts} == {"completed"}
+    # The consolidated brief reaches the translating executor.
+    assert window_requests
+    assert "A witnessed fixture document." in json.dumps(
+        window_requests[0]["messages"], ensure_ascii=False
+    )
+
+
+def test_rejected_passive_analysis_is_retried_once_with_its_rejection_code(app):
+    user, project, record, operation, plan = _state(
+        passive=True, passive_analysis=True
+    )
+    harness = _PassiveHarness(app, user, project, operation)
+    provider = _DeterministicProvider(plan, record)
+
+    with pytest.raises(ExternalWorkPending) as pending:
+        harness.run()
+    claimed, request = harness.claim(pending.value.work_item_id)
+    rejected = json.loads(_generated(provider, "translator_block_analysis", request))
+    # Schema-valid, but the summary cites a block outside the analysed scope.
+    rejected["summary"]["source_block_ids"] = ["not-a-block-in-this-scope"]
+    harness.submit(claimed, json.dumps(rejected))
+
+    with pytest.raises(ExternalWorkPending) as retry_pending:
+        harness.run()
+    failed, retry = _operation_analysis_attempts(operation)
+    assert failed.dispatch_state == "provider_failed"
+    assert retry.retry_of_attempt_id == failed.id
+    assert retry.dispatch_state == "dispatched"
+    assert retry_pending.value.work_item_id != claimed.work_item_id
+    claimed, request = harness.claim(retry_pending.value.work_item_id)
+    assert request["dispatch"]["translator_analysis"] == {
+        "contract_version": "translator-analysis-dispatch-v1",
+        "step": "map",
+        "attempt_id": retry.id,
+        "part": 1,
+        "parts": 1,
+        "retry_of_attempt_id": failed.id,
+        "previous_state": "provider_failed",
+        "rejected_code": "analysis-map-summary",
+    }
+    harness.submit(claimed, json.dumps(rejected))
+    harness.reenter()
+
+    with pytest.raises(
+        _contract.BlockContractError, match="block-analysis-retry-exhausted"
+    ):
+        harness.run()
+    assert [item.dispatch_state for item in _operation_analysis_attempts(operation)] == [
+        "provider_failed",
+        "provider_failed",
+    ]
 
 
 def test_conductor_returns_safe_partial_after_two_window_normalization_failures(

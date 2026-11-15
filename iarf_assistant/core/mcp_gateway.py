@@ -285,8 +285,10 @@ Completed extraction review and correction:
 Translation project lifecycle:
 - Creation settings are typed in the tool schema. annotation_profile is none,
   restrained, or study; translation_unit_mode is block or aligned_sentences.
-  Passive creation uses no managed preliminary analysis or research; external
-  inspection and research remain available before starting translation.
+  Passive creation runs no Carlina-managed research. Preliminary analysis is
+  opt-in (enable_pre_analysis): its map and reduce requests are leased as work
+  items before the first window. External inspection and research remain
+  available before starting translation.
 - Use carlina_translator_list before creating anything. Inspect source metadata,
   outline and bounded excerpts with document_review_outline/search/fetch.
   After planning, translator_review_outline/search/fetch provide stable block IDs
@@ -486,6 +488,9 @@ Execution management & resuming passive jobs:
 - Translator retries expose request.dispatch.translator_window_retry with attempt
   identity and safe validation_codes. Correct those issues in the new response,
   preserving the packet's frozen schema, source scope and protected content.
+- Translator pre-analysis work carries request.dispatch.translator_analysis: step
+  map (part of parts) or reduce, and on a retry the rejected_code of the response
+  Carlina refused. Answer with the JSON the packet's schema requires.
 - When job_get reports suspended, inspect product.recovery, then call
   carlina_job_resume(execution_id, idempotency_key) with a new stable key for that
   resume attempt. Reuse that key after an uncertain response or connection loss.
@@ -1754,7 +1759,7 @@ def _work_claim_result(
         if isinstance(dispatch, Mapping):
             context_dispatch = {key: dispatch[key] for key in (
                 "translator_context_mode", "translator_window_budget", "translator_window_retry",
-                "translator_context_omitted_slots", "extraction_contract",
+                "translator_context_omitted_slots", "translator_analysis", "extraction_contract",
             ) if key in dispatch}
             if context_dispatch:
                 compact["request"]["dispatch"] = context_dispatch

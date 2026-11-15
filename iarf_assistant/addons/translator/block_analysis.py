@@ -1319,6 +1319,7 @@ def execute_block_analysis_attempt(
     attempt: Any,
     *,
     provider_service: Any,
+    allow_external_reentry: bool = False,
 ) -> AnalysisMapResult:
     """Execute one map attempt through the shared no-retry lifecycle."""
 
@@ -1359,7 +1360,11 @@ def execute_block_analysis_attempt(
         )
         return parse_analysis_map_result(response, scope).to_dict()
 
-    result = execute_analysis_attempt(attempt, completion_call=completion)
+    result = execute_analysis_attempt(
+        attempt,
+        completion_call=completion,
+        allow_external_reentry=allow_external_reentry,
+    )
     if not isinstance(result, Mapping):
         raise BlockContractError("analysis-map-result")
     return AnalysisMapResult.from_dict(result, scope)
@@ -1484,6 +1489,7 @@ def execute_reduce_analysis_attempt(
     attempt: Any,
     *,
     provider_service: Any,
+    allow_external_reentry: bool = False,
 ) -> AnalysisReduceResult:
     """Execute one no-tool consolidation call through the shared ledger."""
 
@@ -1518,7 +1524,11 @@ def execute_reduce_analysis_attempt(
             mapped_block_ids=mapped_blocks,
         ).to_dict()
 
-    result = execute_analysis_attempt(attempt, completion_call=completion)
+    result = execute_analysis_attempt(
+        attempt,
+        completion_call=completion,
+        allow_external_reentry=allow_external_reentry,
+    )
     if not isinstance(result, Mapping):
         raise BlockContractError("analysis-reduce-result")
     return AnalysisReduceResult.from_dict(
@@ -1530,13 +1540,13 @@ def execute_reduce_analysis_attempt(
 
 
 def resume_reduce_analysis_attempt(
-    attempt: Any, source_plan: Any
+    attempt: Any, source_plan: Any, *, lineage: bool = False
 ) -> AnalysisReduceResult:
     packet = rehydrate_analysis_attempt(attempt, source_plan)
     _phase, _results, source_plan_hash, scope_hashes, mapped_blocks = _reduce_input(
         packet
     )
-    result = resume_analysis_attempt(attempt)
+    result = resume_analysis_attempt(attempt, lineage=lineage)
     if not isinstance(result, Mapping):
         raise BlockContractError("analysis-reduce-result")
     return AnalysisReduceResult.from_dict(
@@ -1551,12 +1561,14 @@ def reconcile_reduce_analysis_attempt(attempt: Any) -> None:
     reconcile_dispatched_analysis_attempt(attempt)
 
 
-def resume_block_analysis_attempt(attempt: Any, source_plan: Any) -> AnalysisMapResult:
+def resume_block_analysis_attempt(
+    attempt: Any, source_plan: Any, *, lineage: bool = False
+) -> AnalysisMapResult:
     packet = rehydrate_analysis_attempt(attempt, source_plan)
     scope = AnalysisScope.from_dict(
         _mapping(packet["input"]["scope"], "analysis-scope")
     )
-    result = resume_analysis_attempt(attempt)
+    result = resume_analysis_attempt(attempt, lineage=lineage)
     if not isinstance(result, Mapping):
         raise BlockContractError("analysis-map-result")
     return AnalysisMapResult.from_dict(result, scope)

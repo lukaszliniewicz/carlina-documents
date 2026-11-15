@@ -14,7 +14,7 @@ November 2026 and packets can carry an older frozen contract.
 | Craft step in this skill | In Carlina |
 |---|---|
 | Purpose, readers, quality level | Target language, annotation profile and the translation brief (register, variety, overt or covert, form of address, purpose, readers) are project settings. Everything else is yours to establish and record in a research dossier. |
-| Orientation read, style analysis, term harvest | Run by Carlina only in managed mode (pre-analysis, research). **In passive mode nothing does this unless you do.** |
+| Orientation read, style analysis, term harvest | Managed mode: Carlina's pre-analysis and research. Passive mode: optional pre-analysis that you answer as leased work, and no research. **Otherwise nothing does this unless you do.** |
 | Style sheet and standing decisions | Research dossier, pinned when the run starts. |
 | Glossary | Project glossary: human-locked rows are binding; rows you propose are advice to later packets. |
 | State across blocks | Packet context: preceding excerpt, exact and sentence precedents, linked notes, glossary selection. |
@@ -25,8 +25,17 @@ November 2026 and packets can carry an older frozen contract.
 ## 2. Before the first window (passive mode)
 
 A passive run starts translating at block one with no document brief, no style guide and no
-terminology unless you supply them. Do the work of `long-documents.md`, section 1, with the
-review tools (outline, search, fetch) before calling start:
+terminology unless you supply them. There are two ways to supply them, and a run takes one:
+
+- **Pre-analysis** (`enable_pre_analysis`): before the first window Carlina leases you its
+  analysis requests, one map per part of the document and one reduce, and builds a brief, style
+  guide and entity register from your answers. It saves orientation work on a long book, but
+  it cannot carry standing decisions, and start rejects a dossier pin while it is on.
+- **A pinned dossier**, prepared as below. Prefer it whenever you have read the document and
+  settled decisions that every window must apply.
+
+For a dossier, do the work of `long-documents.md`, section 1, with the review tools (outline,
+search, fetch) before calling start:
 
 1. Read enough of the whole document to state its genre, purpose, voice and the classes of
    problem it will produce.
@@ -64,8 +73,8 @@ Three properties of the settings to know:
   substitute for them; `restrained` allows at most one per block; `study` several. Decide it
   before the run from the brief ("in the text or in a note: one policy").
 
-In managed mode Carlina produces a document brief, style guide and entity register. Treat
-them as hypotheses from a first read (see `machine-output.md`, section 3) and correct them
+With pre-analysis (managed, or passive answered by you) Carlina produces a document brief,
+style guide and entity register. Treat them as hypotheses from a first read (see `machine-output.md`, section 3) and correct them
 before they steer a whole book.
 
 ## 3. Working a window

@@ -32,6 +32,10 @@ from .operations import (
     TranslationOperationTransitionConflict,
 )
 
+# Mirrors EXTERNAL_EXECUTOR_IDENTITY_KIND in block_workflow_config, which
+# already imports this module transitively; a test pins the two together.
+EXTERNAL_IDENTITY_KIND = "external_executor"
+
 
 def _independent_session():
     return sessionmaker(bind=db.engine, expire_on_commit=False)()
@@ -91,6 +95,53 @@ def _fence_reason(
     return None
 
 
+def _lineage_fence_reason(
+    attempt: TranslationAnalysisAttempt, operation: TranslationOperation | None
+) -> str | None:
+    """Accept a later live generation of the same queue delivery.
+
+    Passive work suspends the delivery; when it resumes, the operation claim
+    is renewed with a higher version and a new lease. A dispatched external
+    request belongs to that whole lineage, not to the generation that issued
+    it.
+    """
+
+    reason = _fence_reason(attempt, operation)
+    if reason != "fence" or operation is None:
+        return reason
+    now = utc_now_db()
+    if (
+        operation.state != "running"
+        or operation.version < attempt.operation_version
+        or operation.queue_job_id != attempt.queue_job_id
+        or operation.lease_expires_at is None
+        or operation.lease_expires_at <= now
+        or operation.source_content_hash != attempt.source_content_hash
+        or operation.source_plan_id != attempt.source_plan_id
+        or operation.source_plan_hash != attempt.source_plan_hash
+    ):
+        return "fence"
+    return None
+
+
+def _live_operation_lineage(attempt: TranslationAnalysisAttempt, now: Any) -> Any:
+    """Final-CAS counterpart of :func:`_lineage_fence_reason`."""
+
+    return exists().where(
+        TranslationOperation.id == attempt.operation_id,
+        TranslationOperation.project_id == attempt.project_id,
+        TranslationOperation.owner_user_id == attempt.owner_user_id,
+        TranslationOperation.state == "running",
+        TranslationOperation.version >= attempt.operation_version,
+        TranslationOperation.queue_job_id == attempt.queue_job_id,
+        TranslationOperation.cancel_requested_at.is_(None),
+        TranslationOperation.lease_expires_at > now,
+        TranslationOperation.source_content_hash == attempt.source_content_hash,
+        TranslationOperation.source_plan_id == attempt.source_plan_id,
+        TranslationOperation.source_plan_hash == attempt.source_plan_hash,
+    )
+
+
 def _live_operation_fence(attempt: TranslationAnalysisAttempt, now: Any) -> Any:
     """Correlated EXISTS predicate for the final response fence.
 
@@ -115,7 +166,7 @@ def _live_operation_fence(attempt: TranslationAnalysisAttempt, now: Any) -> Any:
     )
 
 
-def _fresh_fence(attempt_id: str) -> None:
+def _fresh_fence(attempt_id: str, *, lineage: bool = False) -> None:
     session = _independent_session()
     try:
         attempt = session.get(TranslationAnalysisAttempt, attempt_id)
@@ -124,7 +175,11 @@ def _fresh_fence(attempt_id: str) -> None:
         )
         if attempt is None:
             raise BlockContractError("analysis-attempt-uncommitted")
-        reason = _fence_reason(attempt, operation)
+        reason = (
+            _lineage_fence_reason(attempt, operation)
+            if lineage
+            else _fence_reason(attempt, operation)
+        )
         if reason == "cancelled":
             raise TranslationOperationCancellation(
                 "Translator operation cancellation was observed at a safe boundary."
@@ -132,7 +187,11 @@ def _fresh_fence(attempt_id: str) -> None:
         if reason:
             if operation is None:
                 raise BlockContractError("analysis-attempt-operation")
-            if operation is not None and operation.version != attempt.operation_version:
+            if operation is not None and (
+                operation.version < attempt.operation_version
+                if lineage
+                else operation.version != attempt.operation_version
+            ):
                 raise TranslationOperationTransitionConflict(
                     operation.id, attempt.operation_version
                 )
@@ -151,6 +210,7 @@ def _transition(
     event_type: str,
     payload: Mapping[str, Any],
     require_lost_fence: bool = False,
+    lineage: bool = False,
 ) -> None:
     session = _independent_session()
     try:
@@ -176,7 +236,8 @@ def _transition(
             TranslationAnalysisAttempt.dispatch_version == attempt.dispatch_version,
         )
         if expected_state == "response_received" and next_state == "completed":
-            query = query.filter(_live_operation_fence(attempt, utc_now_db()))
+            live = _live_operation_lineage if lineage else _live_operation_fence
+            query = query.filter(live(attempt, utc_now_db()))
         elif require_lost_fence:
             query = query.filter(~_live_operation_fence(attempt, utc_now_db()))
         changed = query.update(values, synchronize_session=False)
@@ -310,11 +371,11 @@ def _response_from_transcript(
     return canonical_analysis_value(payload[key], "analysis-response")
 
 
-def _finalize_response(attempt_id: str, response: Any) -> Any:
+def _finalize_response(attempt_id: str, response: Any, *, lineage: bool = False) -> Any:
     """Complete a durable response without invoking provider I/O."""
 
     try:
-        _fresh_fence(attempt_id)
+        _fresh_fence(attempt_id, lineage=lineage)
     except (
         TranslationOperationCancellation,
         TranslationOperationNotRunnable,
@@ -329,12 +390,13 @@ def _finalize_response(attempt_id: str, response: Any) -> Any:
             next_state="completed",
             event_type="completed",
             payload={"output": response},
+            lineage=lineage,
         )
         return response
     except BlockContractError as exc:
         if exc.code == "analysis-dispatch-fence":
             try:
-                _fresh_fence(attempt_id)
+                _fresh_fence(attempt_id, lineage=lineage)
             except (
                 TranslationOperationCancellation,
                 TranslationOperationNotRunnable,
@@ -358,6 +420,7 @@ def resume_analysis_attempt(
     attempt: TranslationAnalysisAttempt,
     *,
     verified_plan: CanonicalSourcePlan | None = None,
+    lineage: bool = False,
 ) -> Any:
     """Resume a committed response after a worker/session restart.
 
@@ -366,6 +429,9 @@ def resume_analysis_attempt(
     same live-operation CAS used by the normal execution path.  A dispatched
     attempt remains explicitly unresolved because its provider outcome is
     unknowable from durable evidence alone.
+
+    ``lineage`` lets a passive response recorded by an earlier generation of
+    the same queue delivery complete under the current one.
     """
 
     attempt_id = _attempt_identifier(attempt)
@@ -389,7 +455,7 @@ def resume_analysis_attempt(
             raise BlockContractError("analysis-attempt-not-resumable")
     finally:
         persisted.close()
-    return _finalize_response(attempt_id, response)
+    return _finalize_response(attempt_id, response, lineage=lineage)
 
 
 def reconcile_dispatched_analysis_attempt(
@@ -488,19 +554,32 @@ def execute_analysis_attempt(
     completion_call: Callable[[Mapping[str, Any]], Mapping[str, Any] | str],
     before_dispatch_claim: Callable[[], None] | None = None,
     verified_plan: CanonicalSourcePlan | None = None,
+    allow_external_reentry: bool = False,
 ) -> Any:
     """Call a supplied no-retry adapter once and durably record its response.
 
     The runner records a response only. A later typed finalization API owns
     normalization and persistence; arbitrary callbacks are deliberately
     excluded because a savepoint cannot contain a callback that commits.
+
+    With ``allow_external_reentry`` an attempt sealed for an external executor
+    may be entered again while ``dispatched``: its leased work item is the one
+    durable dispatch, and the passive adapter resolves the same request
+    fingerprint instead of issuing another call. A pending external response
+    raises ``ExternalWorkPending`` (a ``BaseException``) and leaves the
+    attempt ``dispatched``.
     """
 
     attempt_id = _attempt_identifier(attempt)
     persisted = _independent_session()
     try:
         current = persisted.get(TranslationAnalysisAttempt, attempt_id)
-        if current is None or current.dispatch_state != "prepared":
+        if current is None:
+            raise BlockContractError("analysis-dispatch-replay")
+        state = current.dispatch_state
+        if state != "prepared" and not (
+            state == "dispatched" and allow_external_reentry
+        ):
             raise BlockContractError("analysis-dispatch-replay")
         # Rehydrate the durable row rather than the caller's potentially stale
         # ORM object: workers resume after process/session boundaries.
@@ -512,31 +591,47 @@ def execute_analysis_attempt(
         contract_version = current.contract_version
     finally:
         persisted.close()
-    try:
-        _fresh_fence(attempt_id)
-        _claim_dispatch(attempt_id, before_dispatch_claim)
-    except (
-        TranslationOperationCancellation,
-        TranslationOperationNotRunnable,
-        TranslationOperationTransitionConflict,
-    ) as exc:
-        _terminal_after_fence(attempt_id, "prepared", exc)
-        raise
-    except BlockContractError as exc:
-        if exc.code in {"analysis-attempt-operation", "analysis-operation-fence"}:
+    model = packet.get("model")
+    if allow_external_reentry and (
+        not isinstance(model, Mapping)
+        or model.get("identity_kind") != EXTERNAL_IDENTITY_KIND
+    ):
+        # Re-entry is safe only because a passive call is idempotent; a
+        # managed dispatch of unknown outcome must never be repeated.
+        raise BlockContractError("analysis-external-reentry")
+    if state == "dispatched":
+        _fresh_fence(attempt_id, lineage=True)
+    else:
+        try:
+            _fresh_fence(attempt_id)
+            _claim_dispatch(attempt_id, before_dispatch_claim)
+        except (
+            TranslationOperationCancellation,
+            TranslationOperationNotRunnable,
+            TranslationOperationTransitionConflict,
+        ) as exc:
             _terminal_after_fence(attempt_id, "prepared", exc)
-        raise
+            raise
+        except BlockContractError as exc:
+            if exc.code in {"analysis-attempt-operation", "analysis-operation-fence"}:
+                _terminal_after_fence(attempt_id, "prepared", exc)
+            raise
     try:
         # One and only one provider invocation.  Retrying is a new, witnessed
         # attempt created by the caller, never an invisible transport retry.
         response = completion_call(packet)
     except Exception as exc:
+        failure: dict[str, Any] = {"error_type": type(exc).__name__}
+        if isinstance(exc, BlockContractError):
+            # A stable contract code, never response text: a passive retry
+            # tells its worker which check the rejected response failed.
+            failure["code"] = exc.code
         _transition(
             attempt_id,
             expected_state="dispatched",
             next_state="provider_failed",
             event_type="provider_failure",
-            payload={"error_type": type(exc).__name__},
+            payload=failure,
         )
         raise
     if not isinstance(response, (str, Mapping)):
@@ -578,10 +673,11 @@ def execute_analysis_attempt(
             payload={"code": "response_evidence"},
         )
         raise
-    return _finalize_response(attempt_id, response)
+    return _finalize_response(attempt_id, response, lineage=allow_external_reentry)
 
 
 __all__ = [
+    "EXTERNAL_IDENTITY_KIND",
     "execute_analysis_attempt",
     "prepare_and_commit_analysis_attempt",
     "reconcile_dispatched_analysis_attempt",

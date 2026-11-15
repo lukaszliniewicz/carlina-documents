@@ -28,9 +28,17 @@ not one result per source sentence. `study` permits several useful reader notes
 per block. Budget the executor's output for the translation, alignment, and
 notes together; do not advertise a larger capacity than the actual executor.
 
-Passive translation does not run Carlina-managed preliminary analysis or
-research. Save externally prepared conclusions through research dossiers when
-needed; a custom prompt or the agent's conversation memory is not a persisted
+Passive translation never runs Carlina-managed research. Preliminary analysis
+is optional (`enable_pre_analysis` at creation or in the project settings): when
+it is on, the run first leases analysis work items, one `map` per part of the
+document and then one `reduce`, marked by `request.dispatch.translator_analysis`.
+Answer each with the JSON its schema requires; a rejected answer comes back once
+as a new item with `rejected_code`. The resulting brief, style guide and entity
+register reach every window. Analysis and a pinned dossier are alternatives, and
+start rejects a dossier pin while analysis is on: pin a dossier when you have
+read the document yourself and want standing decisions, use analysis for a
+structured first pass you have not done. Save externally prepared conclusions
+through research dossiers when needed; a custom prompt or the agent's conversation memory is not a persisted
 glossary or research record. Retain the `revision_id` returned by
 `carlina_translator_research_dossier_submit`. Saving a dossier alone does not
 include its conclusions in a translation run. Payload keys: `document_brief`,

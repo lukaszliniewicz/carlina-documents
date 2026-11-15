@@ -86,7 +86,10 @@ from .block_window_runtime import (
     finalize_staged_window_attempt,
     recover_staged_window_attempt,
 )
-from .block_workflow_config import rehydrate_block_workflow_config
+from .block_workflow_config import (
+    EXTERNAL_EXECUTOR_IDENTITY_KIND,
+    rehydrate_block_workflow_config,
+)
 from .context_adapters import (
     _SEGMENT_MEMORY_QUERY_EXCLUDED_ROLES,
     _segment_memory_query_text_is_eligible,
@@ -591,11 +594,69 @@ def _raise_analysis_retry_exhausted(last_known_failure: Exception | None) -> Non
     raise exhausted
 
 
+ANALYSIS_DISPATCH_CONTRACT_VERSION = "translator-analysis-dispatch-v1"
+
+
+def _external_analysis(phase: Mapping[str, Any]) -> bool:
+    """True when this phase is frozen for the active passive executor.
+
+    The adapter separately refuses an external identity outside its matching
+    passive context; this only decides whether a ``dispatched`` attempt is a
+    leased work item to poll rather than a managed call of unknown outcome.
+    """
+
+    model = phase.get("model")
+    return (
+        passive_execution_active()
+        and isinstance(model, Mapping)
+        and model.get("identity_kind") == EXTERNAL_EXECUTOR_IDENTITY_KIND
+    )
+
+
+def _analysis_dispatch(
+    attempt: Any, *, step: str, part: int | None = None, parts: int | None = None
+) -> dict[str, object]:
+    """Passive work metadata derived only from durable attempt evidence.
+
+    Re-entering a pending attempt must rebuild the exact same request
+    fingerprint, so nothing here may depend on in-memory failure details.
+    The attempt id keeps a retry from resolving to its rejected predecessor's
+    work item.
+    """
+
+    analysis: dict[str, object] = {
+        "contract_version": ANALYSIS_DISPATCH_CONTRACT_VERSION,
+        "step": step,
+        "attempt_id": attempt.id,
+    }
+    if part is not None:
+        analysis["part"] = part
+        analysis["parts"] = parts
+    retry_of = getattr(attempt, "retry_of_attempt_id", None)
+    if retry_of is not None:
+        predecessor = db.session.get(TranslationAnalysisAttempt, retry_of)
+        if predecessor is None:
+            raise _fail("block-analysis-retry-predecessor")
+        analysis["retry_of_attempt_id"] = predecessor.id
+        analysis["previous_state"] = predecessor.dispatch_state
+        codes = [
+            event.payload_json.get("code")
+            for event in rehydrate_analysis_attempt_events(predecessor)
+            if event.event_type in {"provider_failure", "failed"}
+            and isinstance(event.payload_json, Mapping)
+        ]
+        code = next((item for item in reversed(codes) if isinstance(item, str)), None)
+        if code is not None:
+            analysis["rejected_code"] = code
+    return {"translator_analysis": analysis}
+
+
 def _settle_map(
     *,
     operation: TranslationOperation,
     source_plan: TranslationSourcePlan,
     scope: Any,
+    scope_count: int,
     phase: Mapping[str, Any],
     settings: Mapping[str, Any],
     budget: Mapping[str, Any],
@@ -603,6 +664,7 @@ def _settle_map(
 ) -> tuple[AnalysisMapResult, Any]:
     """Recover or issue at most one of the two permitted exact map calls."""
 
+    external = _external_analysis(phase)
     last_known_failure: Exception | None = None
     while True:
         discovered = discover_exact_map_attempt(
@@ -625,8 +687,16 @@ def _settle_map(
             )
         elif discovered.executable_under_current_generation:
             pass
-        elif discovered.resumable:
-            return resume_block_analysis_attempt(attempt, source_plan), attempt
+        elif discovered.resumable or (
+            external and attempt.dispatch_state == "response_received"
+        ):
+            return (
+                resume_block_analysis_attempt(attempt, source_plan, lineage=external),
+                attempt,
+            )
+        elif discovered.reconciliation_required and external:
+            # The leased work item is the dispatch; poll it again.
+            pass
         elif discovered.reconciliation_required:
             reconcile_block_analysis_attempt(attempt)
             db.session.expire_all()
@@ -652,12 +722,23 @@ def _settle_map(
             )
         else:
             raise _fail("block-analysis-attempt-state")
-        result, failure = _execute_known_provider_attempt(
-            attempt,
-            lambda attempt=attempt: execute_block_analysis_attempt(
-                attempt, provider_service=service
-            ),
+        dispatch = (
+            _analysis_dispatch(
+                attempt, step="map", part=scope.part_index, parts=scope_count
+            )
+            if external
+            else None
         )
+
+        def execute_map(attempt: Any = attempt, dispatch: Any = dispatch) -> Any:
+            with passive_dispatch(dispatch):
+                return execute_block_analysis_attempt(
+                    attempt,
+                    provider_service=service,
+                    allow_external_reentry=external,
+                )
+
+        result, failure = _execute_known_provider_attempt(attempt, execute_map)
         if failure is None:
             return cast(AnalysisMapResult, result), attempt
         last_known_failure = failure
@@ -673,6 +754,7 @@ def _settle_reduce(
     budget: Mapping[str, Any],
     service: Any,
 ) -> tuple[AnalysisReduceResult, Any]:
+    external = _external_analysis(phase)
     last_known_failure: Exception | None = None
     while True:
         discovered = discover_exact_reduce_attempt(
@@ -695,8 +777,15 @@ def _settle_reduce(
             )
         elif discovered.executable_under_current_generation:
             pass
-        elif discovered.resumable:
-            return resume_reduce_analysis_attempt(attempt, source_plan), attempt
+        elif discovered.resumable or (
+            external and attempt.dispatch_state == "response_received"
+        ):
+            return (
+                resume_reduce_analysis_attempt(attempt, source_plan, lineage=external),
+                attempt,
+            )
+        elif discovered.reconciliation_required and external:
+            pass
         elif discovered.reconciliation_required:
             reconcile_reduce_analysis_attempt(attempt)
             db.session.expire_all()
@@ -719,12 +808,17 @@ def _settle_reduce(
             )
         else:
             raise _fail("block-analysis-attempt-state")
-        result, failure = _execute_known_provider_attempt(
-            attempt,
-            lambda attempt=attempt: execute_reduce_analysis_attempt(
-                attempt, provider_service=service
-            ),
-        )
+        dispatch = _analysis_dispatch(attempt, step="reduce") if external else None
+
+        def execute_reduce(attempt: Any = attempt, dispatch: Any = dispatch) -> Any:
+            with passive_dispatch(dispatch):
+                return execute_reduce_analysis_attempt(
+                    attempt,
+                    provider_service=service,
+                    allow_external_reentry=external,
+                )
+
+        result, failure = _execute_known_provider_attempt(attempt, execute_reduce)
         if failure is None:
             return cast(AnalysisReduceResult, result), attempt
         last_known_failure = failure
@@ -1566,6 +1660,7 @@ def run_document_block_workflow(
                 operation=operation,
                 source_plan=source_plan,
                 scope=scope,
+                scope_count=len(scopes),
                 phase=phase,
                 settings=settings,
                 budget=budget,

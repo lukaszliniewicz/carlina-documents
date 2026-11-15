@@ -159,7 +159,7 @@
     && (!settingsForm.enable_pre_analysis || validModelIds.has(settingsForm.analyzer_model))
     && (!settingsForm.enable_research || validModelIds.has(settingsForm.researcher_model)));
   $: researchSelectionValid = !settingsForm.enable_research
-    || (settingsForm.enable_pre_analysis && allSelectedResearchToolsExecutable(researchTools, selectedTools));
+    || (!passiveMode && settingsForm.enable_pre_analysis && allSelectedResearchToolsExecutable(researchTools, selectedTools));
   $: batchBudget = Number(settingsForm.translation_batch_input_tokens ?? DEFAULT_TRANSLATION_BATCH_INPUT_TOKENS);
   $: batchBudgetValid = isValidTranslationBatchInputTokens(batchBudget);
   $: batchBlockLimit = Number(settingsForm.translation_batch_max_blocks ?? DEFAULT_TRANSLATION_BATCH_MAX_BLOCKS);
@@ -401,7 +401,7 @@
 
       <details class="settings-section">
         <summary>
-          <span class="section-title"><strong>Preliminary analysis</strong><small>{selectedModelLabel("analyzer_model")}</small></span>
+          <span class="section-title"><strong>Preliminary analysis</strong><small>{passiveMode ? "External passive executor" : selectedModelLabel("analyzer_model")}</small></span>
           <span class:enabled={settingsForm.enable_pre_analysis} class="phase-state">{settingsForm.enable_pre_analysis ? "On" : "Off"}</span>
         </summary>
         <div class="section-body">
@@ -410,6 +410,9 @@
             Run preliminary terminology analysis
           </label>
           <small>Build terminology and structural guidance before the next translation operation.</small>
+          {#if passiveMode}
+            <p class="hint" role="status">The external executor receives the analysis as work items before the first window: one per part of the document, then one to consolidate them. A research dossier pinned at start replaces it, so turn this off if you plan to pin one.</p>
+          {:else}
           <div class="model-control">
             <label>
               Analyzer model
@@ -433,19 +436,26 @@
               />
             {/if}
           </div>
+          {/if}
         </div>
       </details>
 
       <details class="settings-section">
         <summary>
-          <span class="section-title"><strong>Research</strong><small>{selectedModelLabel("researcher_model")}</small></span>
+          <span class="section-title"><strong>Research</strong><small>{passiveMode ? "Not available in passive mode" : selectedModelLabel("researcher_model")}</small></span>
           <span class:enabled={settingsForm.enable_research} class="phase-state">{settingsForm.enable_research ? "On" : "Off"}</span>
         </summary>
         <div class="section-body">
           <label class="checkbox">
-            <input type="checkbox" checked={Boolean(settingsForm.enable_research)} disabled={interactionDisabled || isLoadingResearchTools} on:change={setResearchEnabled} />
+            <input type="checkbox" checked={Boolean(settingsForm.enable_research)} disabled={interactionDisabled || isLoadingResearchTools || (passiveMode && !settingsForm.enable_research)} on:change={setResearchEnabled} />
             Enable preliminary research
           </label>
+          {#if passiveMode}
+            <p class="hint" role="status">Carlina-managed research runs only in managed mode. Research with your own tools, then submit a research dossier and pin it when starting the translation.</p>
+            {#if settingsForm.enable_research}
+              <div class="alert error" role="alert">Research is still switched on from a managed setup. Turn it off to save these settings.</div>
+            {/if}
+          {:else}
           <small>Research is opt-in and enables preliminary analysis automatically. Selected sources remain exact and reviewable.</small>
           <div class="model-control">
             <label>
@@ -489,6 +499,7 @@
             <div class="alert error" role="alert">Research cannot be saved until at least one exact currently executable selection is chosen and unavailable saved selections are unchecked.</div>
           {:else if settingsForm.enable_research && !modelSelectionValid}
             <div class="alert error" role="alert">Select configured, usable chat models for translation, analysis, and research before saving.</div>
+          {/if}
           {/if}
         </div>
       </details>

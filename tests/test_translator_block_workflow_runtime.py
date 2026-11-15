@@ -573,6 +573,7 @@ def test_map_settlement_consumes_one_known_provider_failure_retry(monkeypatch):
         operation=object(),
         source_plan=object(),
         scope=scope,
+        scope_count=1,
         phase={},
         settings={},
         budget={},
