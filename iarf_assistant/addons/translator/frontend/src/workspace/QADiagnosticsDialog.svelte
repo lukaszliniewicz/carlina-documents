@@ -29,7 +29,7 @@
 <Dialog
   {open}
   title="Translation QA"
-  description="Checks structure, references, terminology, and spelling. Meaning and negation still need comparison with the source. Findings do not replace a review decision."
+  description="Checks structure, numbers, brackets and quotation marks, references, terminology and spelling and, where sentences are aligned, sentences much shorter than the rest of their paragraph. Names, negation and meaning still need comparison with the source. Findings do not replace a review decision."
   onclose={onclose}
 >
   <div class="qa-toolbar">
