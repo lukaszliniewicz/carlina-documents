@@ -33,8 +33,8 @@ subject of the separate `translation` skill. When it is installed, load it and
 its `references/carlina.md` before creating the project. It sets out the
 preparation a passive run needs before the first window (a read of the document,
 standing decisions saved as a pinned dossier, harvested terms saved as glossary
-entries), what to check in each window, where to keep doubts that the response
-contract has no field for, and what QA diagnostics do not cover. On how Carlina
+entries), what to check in each window, how to record doubts as Translator
+flags, and what QA diagnostics do not cover. On how Carlina
 behaves, a tool schema or claimed packet wins over this reference, and this
 reference wins over that skill. If the skill is not installed, continue without
 it.
@@ -243,6 +243,13 @@ substitution. Separate concepts by contextual `sense`; do not automatically equa
 compounds with a substring. Associating an observed inflection is a model claim,
 not a morphological proof supplied by Carlina.
 
+Entries may also carry `kind` (`term`, `name`, `title`, `formula`, or
+`do_not_translate`, whose `target_term` must equal `source_term`) and
+`verification` (`verified`, `unverified`, `coined`). Both are optional and kept on
+edits that omit them. `glossary_get` returns `summary.by_verification`; before
+an export, read `glossary_get(verification="unverified")` and settle or report
+each entry it lists.
+
 The host resolves exact quotes against a block's immutable source projection and
 validates translatable spans and optional sentence anchors. Repeated quotes need
 a one-based `occurrence_index`. Packet-local `n` values are not persistent block
@@ -296,7 +303,10 @@ A finished project remains editable. Use `carlina_translator_review_fetch` with
 explicit block IDs or an inclusive order range to inspect translations and
 notes, then `carlina_translator_target_update` or the `reader_note_create`,
 `reader_note_revise`, and `reader_note_set_state` tools with the returned version
-and an idempotency key. Read back the saved revision and regenerate exports
+and an idempotency key. `target_update` requires `reason`: the defect the change
+removes (`meaning`, `omission`, `addition`, `language`, `terminology`,
+`consistency`, `brief`, `misreading`, `formatting`) and one line naming what was
+wrong. A preferred wording is not a defect; leave such text unchanged. Read back the saved revision and regenerate exports
 after corrections; completion is not a reason to recreate or rerun the project.
 Inspect sentence groups as well as text after target edits. Local wording
 changes preserve existing group membership when their boundaries survive;
@@ -407,8 +417,24 @@ pass. Its default grouped view omits excerpts: inspect repeated-token groups wit
 `group_id`, then page every occurrence. Use `group_by="finding"` and
 `include_excerpts=true` when individual evidence is needed. Use `carlina_translator_review_source_pages`
 when a finding needs comparison with the original PDF image. QA findings are
-review evidence, not automatic invalidation or approval. Regex review search is
-bounded and should be used only when literal search cannot express the pattern.
+review evidence, not automatic invalidation or approval. After inspecting a
+finding, `carlina_translator_qa_disposition_set` can dismiss it as
+`false_positive` or `intended` with a reason, or reopen it, fenced on the
+finding's disposition `sequence` (0 when never decided). Diagnostics list open
+findings by default; `dispositions="dismissed"` or `"all"` shows the rest and
+`summary.dismissed_total` counts them. A dismissal lapses when the block's target
+or the QA ruleset changes. Regex review search is bounded and should be used only
+when literal search cannot express the pattern.
+
+Translator flags record doubts that belong to neither the text nor a reader
+note: `assumption`, `source_defect`, `unverified`, `departure` and `revisit`,
+each anchored to one block. Create them with `carlina_translator_flag_create`
+(stable idempotency key per doubt), list them with
+`carlina_translator_flag_list` (open flags by default) and resolve, dismiss or
+reopen them with `carlina_translator_flag_update`, fenced on the flag's
+`sequence`; resolving and dismissing need a note. Bilingual `review_fetch` shows
+a block's open flags. Flags never reach exports. Report open flags with block
+references when handing back a project.
 
 After actually checking a block or specified source anchors, record the kind of
 coverage with `carlina_translator_review_coverage_record`: `structural`,

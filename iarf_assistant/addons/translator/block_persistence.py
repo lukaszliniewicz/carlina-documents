@@ -606,6 +606,10 @@ def _ensure_database_transaction(session: Any | None = None) -> None:
         connection.exec_driver_sql("BEGIN")
 
 
+ensure_database_transaction = _ensure_database_transaction
+"""Public name for callers in the strict lane; behaviour is identical."""
+
+
 def rehydrate_source_plan(record: TranslationSourcePlanRecord) -> TranslationSourcePlan:
     """Load and validate an immutable source plan without exposing source text in errors."""
 
@@ -863,6 +867,7 @@ def plan_and_persist_source_snapshot(
 __all__ = [
     "active_source_plan_pointer",
     "effective_engine_contract",
+    "ensure_database_transaction",
     "persist_source_plan",
     "plan_and_persist_source_snapshot",
     "rehydrate_source_plan",

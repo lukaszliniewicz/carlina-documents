@@ -10,7 +10,7 @@ import re
 import unicodedata
 import uuid
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -24,7 +24,12 @@ from .analysis_contract import (
 from .block_contract import BlockContractError, canonical_json, sha256_text
 from .block_persistence import rehydrate_source_plan, require_active_source_plan
 from .block_workspace_api import _load_glossary_source_plan
-from .glossary_contract import GlossaryTermInput, GlossaryUsage
+from .glossary_contract import (
+    GlossaryKind,
+    GlossaryTermInput,
+    GlossaryUsage,
+    GlossaryVerification,
+)
 from .glossary_persistence import (
     create_glossary_concept,
     find_glossary_revisions_for_term,
@@ -130,6 +135,8 @@ def _entry(revision: Any, record: Any, *, locked: bool = False) -> dict[str, Any
         "provenance": usage.get("provenance", revision.author_type),
         "authority": "human_locked" if locked else "model_advisory",
         "scope": payload.scope,
+        "kind": usage.get("kind", "term"),
+        "verification": usage.get("verification"),
     }
 
 
@@ -275,8 +282,16 @@ def _page_bytes(page: Any) -> int:
     return len(canonical_json(page).encode("utf-8"))
 
 
+GLOSSARY_VERIFICATION_FILTERS = frozenset({"verified", "unverified", "coined", "unstated"})
+
+
+def _verification_state(entry: dict[str, Any]) -> str:
+    return entry.get("verification") or "unstated"
+
+
 def read_glossary(project: Any, *, query: str = "", offset: int = 0, limit: int = 50,
-                  include_observations: bool = True) -> dict[str, Any]:
+                  include_observations: bool = True,
+                  verification: str | None = None) -> dict[str, Any]:
     """Bounded paginated read with an honest byte budget, never silent loss.
 
     Concepts are the pagination unit (one latest revision per concept, so the
@@ -295,10 +310,17 @@ def read_glossary(project: Any, *, query: str = "", offset: int = 0, limit: int 
     if (not isinstance(query, str) or len(query) > 1000
             or type(offset) is not int or offset < 0
             or type(limit) is not int or not 1 <= limit <= 200
-            or not isinstance(include_observations, bool)):
+            or not isinstance(include_observations, bool)
+            or (verification is not None and verification not in GLOSSARY_VERIFICATION_FILTERS)):
         raise BlockContractError("glossary-read-parameters")
     record, _ = _load_glossary_source_plan(project)
     entries = _entries(record)
+    by_verification: dict[str, int] = dict.fromkeys(
+        ("verified", "unverified", "coined", "unstated"), 0)
+    for entry in entries:
+        by_verification[_verification_state(entry)] += 1
+    if verification is not None:
+        entries = [entry for entry in entries if _verification_state(entry) == verification]
     needle = _normalize_match(query)
     if needle:
         normalized_entries = []
@@ -336,6 +358,7 @@ def read_glossary(project: Any, *, query: str = "", offset: int = 0, limit: int 
         "source_plan_id": record.id,
         "items": page,
         "pagination": pagination,
+        "summary": {"total": sum(by_verification.values()), "by_verification": by_verification},
     }
 
 
@@ -395,6 +418,16 @@ def propose_glossary(project: Any, *, source_plan_id: str, entries: Sequence[Any
         raise BlockContractError("glossary-proposal-parameters")
     terms = [GlossaryTermInput.model_validate(entry) for entry in entries]
     record, _ = _load_glossary_source_plan(project)
+
+    def _fingerprint_entry(term: GlossaryTermInput) -> dict[str, Any]:
+        # kind and verification arrived with usage v3; leaving them out when
+        # unset keeps earlier request fingerprints, and so exact retries, valid.
+        value = term.model_dump()
+        for key in ("kind", "verification"):
+            if value.get(key) is None:
+                value.pop(key, None)
+        return value
+
     if record.id != source_plan_id:
         raise BlockContractError("source-plan-active-conflict")
     # Verify source/resolve quotes before obtaining the SQLite writer lock.
@@ -404,7 +437,7 @@ def propose_glossary(project: Any, *, source_plan_id: str, entries: Sequence[Any
     require_active_source_plan(project.id, source_plan_id, lock=True)
     saved: list[dict[str, Any]] = []
     request = {"source_plan_id": record.id,
-               "entries": [item.model_dump() for item in terms], "provenance": provenance}
+               "entries": [_fingerprint_entry(item) for item in terms], "provenance": provenance}
     fingerprint = private_witness(request, purpose="translator-working-glossary-request-v1")
     accepted_fingerprints = private_witness_candidates(
         request, purpose="translator-working-glossary-request-v1")
@@ -500,10 +533,17 @@ def propose_glossary(project: Any, *, source_plan_id: str, entries: Sequence[Any
             observations, positions = resolved[index]
             forms = list(dict.fromkeys([term.source_term, *forms, *[item["surface_form"] for item in observations]]))
             target_forms = list(dict.fromkeys(form for form in target_forms if form != term.target_term))
+            previous_usage = (previous.usage or {}) if previous is not None else {}
+            kind = cast(GlossaryKind, term.kind or previous_usage.get("kind", "term"))
+            verification = cast(GlossaryVerification | None,
+                                term.verification if term.verification is not None
+                                else previous_usage.get("verification"))
+            if kind == "do_not_translate" and term.target_term != term.source_term:
+                raise BlockContractError("glossary-do-not-translate")
             usage = GlossaryUsage(sense=term.sense, match_policy=term.match_policy,
                 source_forms=forms, accepted_target_forms=target_forms,
                 observations=observations, provenance=provenance,
-                request_fingerprint=fingerprint)
+                request_fingerprint=fingerprint, kind=kind, verification=verification)
             payload = GlossaryPayload(source_term=term.source_term, target_term=term.target_term,
                                       notes=term.notes, usage=usage.model_dump())
             try:
@@ -547,9 +587,14 @@ def build_glossary_slot(record: Any, plan: Any, window: Any, *,
         if entry["authority"] != "model_advisory":
             continue  # authoritative human locks belong to the frozen baseline
         if any(_contains_form(text, form) for form in entry["source_forms"]):
-            selected.append({key: entry[key] for key in (
+            item = {key: entry[key] for key in (
                 "concept_id", "revision_id", "source_term", "target_term", "sense",
-                "match_policy", "source_forms", "notes", "authority")})
+                "match_policy", "source_forms", "notes", "authority")}
+            if entry.get("kind", "term") != "term":
+                item["kind"] = entry["kind"]
+            if entry.get("verification") is not None:
+                item["verification"] = entry["verification"]
+            selected.append(item)
     if not selected:
         return None
     total = len(selected)

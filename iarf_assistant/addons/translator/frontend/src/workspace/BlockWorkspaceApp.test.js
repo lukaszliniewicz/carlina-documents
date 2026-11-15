@@ -758,7 +758,8 @@ describe("BlockWorkspaceApp presentation", () => {
       notes: "Reviewed wording.",
       accepted_target_forms: [],
       expected_active_version: 0,
-      expected_proposal_id: "proposal-1"
+      expected_proposal_id: "proposal-1",
+      kind: "term"
     });
   });
 
@@ -1012,6 +1013,13 @@ describe("BlockWorkspaceApp concurrent reads and writes", () => {
       const parsed = new URL(String(url), "http://localhost");
       const offset = parsed.searchParams.get("offset");
       if (parsed.pathname.endsWith("/status")) return terminalStatus.promise;
+      if (parsed.pathname.endsWith("/review-flags")) {
+        return Promise.resolve(jsonResponse({
+          items: [],
+          summary: { open: 0, resolved: 0, dismissed: 0 },
+          pagination: { offset: 0, limit: 100, total: 0, has_more: false }
+        }));
+      }
       if (parsed.pathname.endsWith("/block-glossary")) {
         glossaryReads += 1;
         return Promise.resolve(jsonResponse({

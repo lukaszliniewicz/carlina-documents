@@ -39,6 +39,29 @@ SentenceEdit = Annotated[
     Field(discriminator="action"),
 ]
 
+
+class EditReason(BaseModel):
+    """The defect a correction removes; "it reads better" is not a defect."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    defect: Literal[
+        "meaning",
+        "omission",
+        "addition",
+        "language",
+        "terminology",
+        "consistency",
+        "brief",
+        "misreading",
+        "formatting",
+    ]
+    note: str = Field(
+        min_length=1,
+        max_length=500,
+        description="One line naming what was wrong, e.g. the quoted span and why.",
+    )
+
+
 ExportMetadataName = Annotated[
     str,
     Field(
@@ -162,9 +185,7 @@ class TranslatorSettings(BaseModel):
     research_plugin_ids: list[str] | None = Field(None, max_length=20)
     translation_batch_input_tokens: int | None = Field(None, ge=2_048, le=1_000_000)
     translation_batch_max_blocks: int | None = Field(None, ge=1, le=256)
-    translation_context_mode: Literal["self_contained", "retained"] = (
-        "self_contained"
-    )
+    translation_context_mode: Literal["self_contained", "retained"] = "self_contained"
     translation_unit_mode: Literal["block", "aligned_sentences"] | None = Field(
         None,
         description="Complete semantic blocks, optionally with sentence alignment.",

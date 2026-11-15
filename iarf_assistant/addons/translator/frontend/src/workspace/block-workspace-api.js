@@ -346,12 +346,19 @@ export function validateBlockGlossaryPayload(payload) {
   return { ...payload, entries, proposals, suggestions };
 }
 
+export const GLOSSARY_KINDS = Object.freeze(["term", "name", "title", "formula", "do_not_translate"]);
+export const GLOSSARY_VERIFICATION = Object.freeze(["verified", "unverified", "coined"]);
+
 function validateGlossaryUsage(usage) {
-  const keys = isRecord(usage) ? Object.keys(usage).sort().join(",") : "";
+  const keys = isRecord(usage)
+    ? Object.keys(usage).filter((key) => key !== "kind" && key !== "verification").sort().join(",")
+    : "";
   const baseKeys = "match_policy,observations,provenance,sense,source_forms";
   const variantKeys = "accepted_target_forms,match_policy,observations,provenance,sense,source_forms";
   if (!isRecord(usage)
     || (keys !== baseKeys && keys !== variantKeys)
+    || (usage.kind !== undefined && !GLOSSARY_KINDS.includes(usage.kind))
+    || (usage.verification !== undefined && usage.verification !== null && !GLOSSARY_VERIFICATION.includes(usage.verification))
     || typeof usage.sense !== "string"
     || !["preferred", "exact"].includes(usage.match_policy)
     || typeof usage.provenance !== "string"
@@ -414,7 +421,9 @@ export function createBlockWorkspaceClient(client, projectId) {
               ? entry.usage.accepted_target_forms.map((item) => String(item)).filter(Boolean)
               : [],
           expected_active_version: Number(entry?.active_version || 0),
-          expected_proposal_id: entry?.proposal_id ? String(entry.proposal_id) : null
+          expected_proposal_id: entry?.proposal_id ? String(entry.proposal_id) : null,
+          ...(GLOSSARY_KINDS.includes(entry?.kind) ? { kind: entry.kind } : {}),
+          ...(GLOSSARY_VERIFICATION.includes(entry?.verification) ? { verification: entry.verification } : {})
         })
       });
       return validateBlockGlossaryPayload(payload);
@@ -510,8 +519,9 @@ export function createBlockWorkspaceClient(client, projectId) {
         body: JSON.stringify({ kind, expected_target_version: expectedTargetVersion, scope: "block", source_anchor_ids: [] })
       });
     },
-    async loadQaDiagnostics({ categories = [], severities = [], blockIds = [], includeSpelling = true, groupBy = "finding", includeExcerpts = true, groupId = null, cursor = null, limit = 100, signal } = {}) {
+    async loadQaDiagnostics({ categories = [], severities = [], blockIds = [], includeSpelling = true, groupBy = "finding", includeExcerpts = true, groupId = null, dispositions = "open", cursor = null, limit = 100, signal } = {}) {
       const params = new URLSearchParams();
+      if (dispositions !== "open") params.set("dispositions", dispositions);
       if (categories.length) params.set("categories", categories.join(","));
       if (severities.length) params.set("severities", severities.join(","));
       for (const blockId of blockIds) params.append("block_id", String(blockId));
@@ -522,6 +532,57 @@ export function createBlockWorkspaceClient(client, projectId) {
       if (cursor) params.set("cursor", String(cursor));
       params.set("limit", String(limit));
       return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/qa-diagnostics?${params}`, { signal });
+    },
+    async setQaDisposition({ blockId, findingId, action, expectedSequence, basis = null, reason = "" }, { signal } = {}) {
+      return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/qa-dispositions`, {
+        method: "POST",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": createIdempotencyKey(`translator.qa-disposition.${findingId}.${action}`)
+        },
+        body: JSON.stringify({
+          block_id: blockId,
+          finding_id: findingId,
+          action,
+          expected_sequence: expectedSequence,
+          ...(action === "dismiss" ? { basis, reason } : {})
+        })
+      });
+    },
+    async loadReviewFlags({ states = ["open"], blockIds = [], offset = 0, limit = 100, signal } = {}) {
+      const params = new URLSearchParams();
+      for (const state of states) params.append("state", state);
+      for (const blockId of blockIds) params.append("block_id", String(blockId));
+      params.set("offset", String(offset));
+      params.set("limit", String(limit));
+      return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/review-flags?${params}`, { signal });
+    },
+    async createReviewFlag(blockId, { kind, body }, { signal } = {}) {
+      return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/blocks/${encodeURIComponent(blockId)}/review-flags`, {
+        method: "POST",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": createIdempotencyKey(`translator.review-flag.${blockId}`)
+        },
+        body: JSON.stringify({ kind, body })
+      });
+    },
+    async transitionReviewFlag(flagId, action, expectedSequence, note = "", { signal } = {}) {
+      return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/review-flags/${encodeURIComponent(flagId)}/state`, {
+        method: "POST",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": createIdempotencyKey(`translator.review-flag.${flagId}.${action}`)
+        },
+        body: JSON.stringify({
+          action,
+          expected_sequence: expectedSequence,
+          ...(note ? { note } : {})
+        })
+      });
     },
     async loadResearchDossiers({ signal } = {}) {
       return client.fetchJson(`/addons/translator/api/projects/${encodedProjectId}/research-dossiers`, { signal });

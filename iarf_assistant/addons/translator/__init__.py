@@ -154,6 +154,11 @@ class TranslatorAddon(AddonBase):
             TranslationWindowAttempt,
             TranslationWindowAttemptEvent,
             TranslationWindowAttemptRevision,
+            TranslationReviewCoverage,
+            TranslationEpubEdition,
+            TranslationTargetEditReason,
+            TranslationReviewFlagEvent,
+            TranslationQaDisposition,
         )
 
         return [
@@ -218,6 +223,11 @@ class TranslatorAddon(AddonBase):
             TranslationResearchToolResultBlob,
             TranslationResearchToolCallEvent,
             TranslationMemoryEntry,
+            TranslationReviewCoverage,
+            TranslationEpubEdition,
+            TranslationTargetEditReason,
+            TranslationReviewFlagEvent,
+            TranslationQaDisposition,
         ]
 
     def on_activate(self):

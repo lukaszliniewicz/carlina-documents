@@ -21,6 +21,7 @@ _block_workspace = import_module(f"{_TRANSLATOR_ROOT}.block_workspace_api")
 _models = import_module(f"{_TRANSLATOR_ROOT}.models")
 _qa = import_module(f"{_TRANSLATOR_ROOT}.qa_diagnostics")
 _target_contract = import_module(f"{_TRANSLATOR_ROOT}.target_contract")
+_scholarly_review = import_module(f"{_TRANSLATOR_ROOT}.scholarly_review")
 _encryption = import_module(f"{_APPLICATION_ROOT}.core.encryption")
 db = import_module(f"{_APPLICATION_ROOT}.extensions").db
 User = import_module(f"{_APPLICATION_ROOT}.models").User
@@ -42,7 +43,9 @@ _prepare_glossary_entries = _qa._prepare_glossary_entries
 _punctuation_findings = _qa._punctuation_findings
 _terminology_findings = _qa._terminology_findings
 qa_diagnostics = _qa.qa_diagnostics
+set_qa_disposition = _qa.set_qa_disposition
 TargetBlockCandidate = _target_contract.TargetBlockCandidate
+ReviewActor = _scholarly_review.ReviewActor
 TargetTextPart = _target_contract.TargetTextPart
 structural_fingerprint = _target_contract.structural_fingerprint
 EncryptionService = _encryption.EncryptionService
@@ -1359,3 +1362,106 @@ def test_unreadable_alignment_is_reported_in_the_summary(app, monkeypatch):
 
     assert result["summary"]["alignment_coverage"] == "unavailable"
     assert result["summary"]["alignment_coverage_error"] == "alignment-corrupt"
+
+
+def _qa_error(call, *args, **kwargs) -> str:
+    with pytest.raises(_qa.QaDiagnosticsError) as raised:
+        call(*args, **kwargs)
+    db.session.rollback()
+    return raised.value.code
+
+
+def test_dismissed_findings_leave_the_default_view_and_lapse_with_the_target(app):
+    project = _project()
+    plan, record = _plan(project)
+    block = next(block for block in plan.blocks if "Eingabe" in block.projection)
+    persist_manual_candidate(
+        project,
+        block.id,
+        _candidate(plan, record, block, "See [Eingabe, 1845] for more!!"),
+        0,
+        author_user_id=project.user_id,
+    )
+    db.session.commit()
+    actor = ReviewActor("owner", project.user_id)
+    before = qa_diagnostics(project, include_spelling=False)
+    finding = next(
+        item for item in before["items"] if item["code"] == "repeated-punctuation"
+    )
+    request = {
+        "block_id": block.id,
+        "finding_id": finding["id"],
+        "action": "dismiss",
+        "expected_sequence": 0,
+        "actor": actor,
+        "idempotency_key": "dismiss-exclamation",
+        "basis": "intended",
+        "reason": "The doubled exclamation mark is the author's.",
+    }
+    assert _qa_error(set_qa_disposition, project, **{**request, "basis": None}) == (
+        "qa-disposition-basis"
+    )
+    assert _qa_error(set_qa_disposition, project, **{**request, "reason": ""}) == (
+        "qa-disposition-reason"
+    )
+    assert (
+        _qa_error(set_qa_disposition, project, **{**request, "expected_sequence": 1})
+        == "qa-disposition-version-conflict"
+    )
+    assert (
+        _qa_error(set_qa_disposition, project, **{**request, "finding_id": "0" * 24})
+        == "qa-finding-stale"
+    )
+
+    dismissed = set_qa_disposition(project, **request)
+    db.session.commit()
+    assert (dismissed["state"], dismissed["basis"], dismissed["sequence"]) == (
+        "dismissed",
+        "intended",
+        1,
+    )
+    assert set_qa_disposition(project, **request) == dismissed
+    default_view = qa_diagnostics(project, include_spelling=False)
+    assert finding["id"] not in {item["id"] for item in default_view["items"]}
+    assert default_view["summary"]["dismissed_total"] == 1
+    only_dismissed = qa_diagnostics(
+        project, include_spelling=False, dispositions="dismissed"
+    )
+    assert [item["id"] for item in only_dismissed["items"]] == [finding["id"]]
+    assert only_dismissed["items"][0]["disposition"]["reason"] == request["reason"]
+    assert _qa_error(qa_diagnostics, project, dispositions="hidden") == (
+        "qa-dispositions-filter-invalid"
+    )
+
+    reopened = set_qa_disposition(
+        project,
+        block_id=block.id,
+        finding_id=finding["id"],
+        action="reopen",
+        expected_sequence=1,
+        actor=actor,
+        idempotency_key="reopen-exclamation",
+    )
+    db.session.commit()
+    assert (reopened["state"], reopened["sequence"]) == ("open", 2)
+    restored = qa_diagnostics(project, include_spelling=False)
+    returned = next(item for item in restored["items"] if item["id"] == finding["id"])
+    assert returned["disposition"]["state"] == "open"
+
+    set_qa_disposition(
+        project,
+        **{**request, "expected_sequence": 2, "idempotency_key": "dismiss-again"},
+    )
+    persist_manual_candidate(
+        project,
+        block.id,
+        _candidate(plan, record, block, "See [Eingabe, 1845] for more!!!"),
+        1,
+        author_user_id=project.user_id,
+    )
+    db.session.commit()
+    edited = qa_diagnostics(project, include_spelling=False)
+    assert edited["summary"]["dismissed_total"] == 0
+    assert any(item["code"] == "repeated-punctuation" for item in edited["items"])
+    assert finding["id"] not in {item["id"] for item in edited["items"]}
+    assert _qa_error(set_qa_disposition, project, **request) == "qa-finding-stale"

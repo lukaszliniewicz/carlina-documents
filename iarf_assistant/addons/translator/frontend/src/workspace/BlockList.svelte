@@ -28,6 +28,8 @@
   export let onTransitionNote = () => {};
   export let onReview = () => {};
   export let onCoverage = () => {};
+  export let flagCounts = {};
+  export let onFlags = () => {};
 </script>
 
 {#if blocks.length}
@@ -62,6 +64,8 @@
         onTransitionNote={(noteId, state, version) => onTransitionNote(block, noteId, state, version)}
         onReview={(decision) => onReview(block, decision)}
         onCoverage={(kind) => onCoverage(block, kind)}
+        flagCount={flagCounts[block.id] || 0}
+        onFlags={() => onFlags(block)}
       />
     {/each}
   </div>

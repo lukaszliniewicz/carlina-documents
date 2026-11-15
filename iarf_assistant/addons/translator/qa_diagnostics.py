@@ -27,6 +27,9 @@ from .block_workspace_api import (
     _rehydrate_workspace_objects,
     load_block_source_plan,
 )
+from .models import TranslationTargetBlockActive
+from .review_records import qa_dispositions, record_qa_disposition
+from .scholarly_review import ScholarlyReviewError
 from .working_glossary import snapshot_current_glossary_entries
 
 QA_CONTRACT = "translator-qa-diagnostics-v1"
@@ -1676,12 +1679,121 @@ def _occurrence_record(
             "target": location.get("target"),
         },
     }
+    if isinstance(finding.get("disposition"), Mapping):
+        result["disposition"] = dict(finding["disposition"])
     if include_excerpts:
         for key in ("source", "target"):
             excerpt = finding.get(key)
             if isinstance(excerpt, Mapping):
                 result[key] = dict(excerpt)
     return result
+
+
+QA_DISPOSITION_FILTERS = frozenset({"open", "dismissed", "all"})
+
+
+def _apply_dispositions(
+    findings: Sequence[dict[str, Any]],
+    decisions: Mapping[str, Mapping[str, Any]],
+    selected: str,
+) -> tuple[list[dict[str, Any]], int, list[tuple[str, int]]]:
+    """Attach decisions to copies of findings and keep the selected states.
+
+    Cached block findings are shared between scans, so a decision is attached
+    to a shallow copy. Decisions whose finding no longer exists have lapsed
+    with the target version or the ruleset and are ignored.
+    """
+
+    visible: list[dict[str, Any]] = []
+    dismissed_total = 0
+    state: list[tuple[str, int]] = []
+    for finding in findings:
+        decision = decisions.get(str(finding["id"]))
+        dismissed = decision is not None and decision.get("state") == "dismissed"
+        if decision is not None:
+            state.append((str(finding["id"]), int(decision["sequence"])))
+        dismissed_total += int(dismissed)
+        if (selected == "open" and dismissed) or (
+            selected == "dismissed" and not dismissed
+        ):
+            continue
+        visible.append(
+            {**finding, "disposition": dict(decision)}
+            if decision is not None
+            else finding
+        )
+    return visible, dismissed_total, sorted(state)
+
+
+def current_block_finding(
+    project: Any, block_id: str, finding_id: str
+) -> tuple[dict[str, Any], str, str]:
+    """Return a finding that exists now, with its source plan and target revision.
+
+    A disposition may only be recorded against the current scan of the current
+    target; a finding from an earlier version is reported as gone.
+    """
+
+    if not isinstance(finding_id, str) or not finding_id:
+        raise _error("qa-finding-id-invalid")
+    cursor: str | None = None
+    while True:
+        result = qa_diagnostics(
+            project,
+            block_ids=[block_id],
+            cursor=cursor,
+            limit=MAX_QA_LIMIT,
+            include_spelling=True,
+            group_by="finding",
+            include_excerpts=False,
+            dispositions="all",
+        )
+        for item in result["items"]:
+            if item.get("id") == finding_id:
+                workspace = load_block_source_plan(project)
+                pointer = TranslationTargetBlockActive.query.filter_by(
+                    source_plan_id=workspace.record.id, block_id=block_id
+                ).one_or_none()
+                if pointer is None or pointer.version != item.get("target_version"):
+                    raise _error("qa-finding-stale")
+                return dict(item), str(workspace.record.id), str(pointer.revision_id)
+        cursor = result["pagination"].get("next_cursor")
+        if not cursor:
+            raise _error("qa-finding-stale")
+
+
+def set_qa_disposition(
+    project: Any,
+    *,
+    block_id: str,
+    finding_id: str,
+    action: str,
+    expected_sequence: int,
+    actor: Any,
+    idempotency_key: str,
+    basis: str | None = None,
+    reason: str | None = None,
+) -> dict[str, Any]:
+    """Dismiss a current finding as a false positive or intended, or reopen it."""
+
+    finding, source_plan_id, target_revision_id = current_block_finding(
+        project, block_id, finding_id
+    )
+    try:
+        return record_qa_disposition(
+            project,
+            source_plan_id=source_plan_id,
+            finding=finding,
+            target_revision_id=target_revision_id,
+            action=action,
+            expected_sequence=expected_sequence,
+            actor=actor,
+            idempotency_key=idempotency_key,
+            basis=basis,
+            reason=reason,
+        )
+    except ScholarlyReviewError as exc:
+        raise _error(exc.code) from exc
 
 
 def _finding_projection(
@@ -1746,6 +1858,7 @@ def qa_diagnostics(
     group_by: str = "finding",
     include_excerpts: bool = True,
     group_id: str | None = None,
+    dispositions: str = "open",
 ) -> dict[str, Any]:
     if (
         isinstance(limit, bool)
@@ -1753,6 +1866,8 @@ def qa_diagnostics(
         or not 1 <= limit <= MAX_QA_LIMIT
     ):
         raise _error("qa-limit-invalid")
+    if dispositions not in QA_DISPOSITION_FILTERS:
+        raise _error("qa-dispositions-filter-invalid")
     if not isinstance(group_by, str) or group_by not in {"finding", "token"}:
         raise _error("qa-grouping-invalid")
     if not isinstance(include_excerpts, bool):
@@ -1896,6 +2011,13 @@ def qa_diagnostics(
             str(item["id"]),
         )
     )
+    try:
+        decisions = qa_dispositions(project, str(workspace.record.id))
+    except ScholarlyReviewError as exc:
+        raise _error(exc.code) from exc
+    findings, dismissed_total, decision_state = _apply_dispositions(
+        findings, decisions, dispositions
+    )
     target_versions = [
         (block.id, int(pointers[block.id].version))
         for block in blocks
@@ -1917,6 +2039,8 @@ def qa_diagnostics(
             "group_by": group_by,
             "include_excerpts": include_excerpts,
             "group_id": group_id,
+            "dispositions": dispositions,
+            "decision_state": decision_state,
         }
     )
 
@@ -2027,9 +2151,11 @@ def qa_diagnostics(
             "group_by": group_by,
             "include_excerpts": include_excerpts,
             "group_id": group_id,
+            "dispositions": dispositions,
         },
         "summary": {
             "total": len(summary_findings),
+            "dismissed_total": dismissed_total,
             "total_groups": total_groups,
             "grouping": group_by,
             "unique_token_count": unique_token_count,

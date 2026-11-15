@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
@@ -28,7 +28,13 @@ from .alignment_persistence import (
     rehydrate_target_span_set,
 )
 from .analysis_contract import GlossaryPayload, glossary_usage_view, normalized_term, private_witness
-from .glossary_contract import GlossaryUsage
+from .glossary_contract import (
+    GLOSSARY_KINDS,
+    GLOSSARY_VERIFICATION,
+    GlossaryKind,
+    GlossaryUsage,
+    GlossaryVerification,
+)
 from .block_contract import (
     DOCUMENT_BLOCK_ENGINE_CONTRACT,
     LEGACY_ENGINE_CONTRACT,
@@ -1078,8 +1084,14 @@ def persist_human_glossary_entry(
     expected_active_version: int = 0,
     expected_proposal_id: str | None = None,
     accepted_target_forms: Sequence[str] | None = None,
+    kind: str | None = None,
+    verification: str | None = None,
 ) -> dict[str, Any]:
-    """Append, approve, and activate one explicit owner-authored glossary edit."""
+    """Append, approve, and activate one explicit owner-authored glossary edit.
+
+    ``kind`` and ``verification`` replace the stored values when supplied and
+    are otherwise carried from the proposal or active revision being edited.
+    """
 
     if (
         isinstance(expected_active_version, bool)
@@ -1091,6 +1103,12 @@ def persist_human_glossary_entry(
         not isinstance(expected_proposal_id, str) or not expected_proposal_id
     ):
         raise BlockWorkspaceIntegrityError("glossary-proposal-conflict")
+    if kind is not None and kind not in GLOSSARY_KINDS:
+        raise BlockWorkspaceIntegrityError("glossary-kind")
+    if verification is not None and verification not in GLOSSARY_VERIFICATION:
+        raise BlockWorkspaceIntegrityError("glossary-verification")
+    if kind == "do_not_translate" and target_term != source_term:
+        raise BlockWorkspaceIntegrityError("glossary-do-not-translate")
     workspace_plan = load_block_source_plan(project)
     record = workspace_plan.record
     if author_user_id != record.project.user_id:
@@ -1128,8 +1146,35 @@ def persist_human_glossary_entry(
                 if origin is None or origin.concept_id != concept_id:
                     raise BlockContractError("glossary-proposal-conflict")
                 usage = rehydrate_glossary_revision(origin, record).usage
-        if variants is not None:
+        if variants is not None or kind is not None or verification is not None:
             prior_usage = usage or {}
+            if variants is None:
+                variants = [
+                    form
+                    for form in cast(list[str], prior_usage.get("accepted_target_forms") or [])
+                    if normalized_term(form) != normalized_term(target_term)
+                ]
+            resolved_kind = cast(GlossaryKind, kind or prior_usage.get("kind", "term"))
+            if resolved_kind == "do_not_translate" and target_term != source_term:
+                raise BlockContractError("glossary-do-not-translate")
+            resolved_verification = cast(
+                GlossaryVerification | None,
+                verification if verification is not None else prior_usage.get("verification"),
+            )
+            fingerprint_request: dict[str, Any] = {
+                "project_id": record.project_id,
+                "source_plan_id": record.id,
+                "concept_id": concept_id,
+                "source_term": source_term,
+                "target_term": target_term,
+                "accepted_target_forms": variants,
+                "expected_active_version": expected_active_version,
+                "expected_proposal_id": expected_proposal_id,
+            }
+            if kind is not None:
+                fingerprint_request["kind"] = kind
+            if verification is not None:
+                fingerprint_request["verification"] = verification
             usage = GlossaryUsage(
                 sense=str(prior_usage.get("sense", "")),
                 match_policy=prior_usage.get("match_policy", "preferred"),
@@ -1138,18 +1183,11 @@ def persist_human_glossary_entry(
                 observations=list(prior_usage.get("observations") or []),
                 provenance="human-owner",
                 request_fingerprint=private_witness(
-                    {
-                        "project_id": record.project_id,
-                        "source_plan_id": record.id,
-                        "concept_id": concept_id,
-                        "source_term": source_term,
-                        "target_term": target_term,
-                        "accepted_target_forms": variants,
-                        "expected_active_version": expected_active_version,
-                        "expected_proposal_id": expected_proposal_id,
-                    },
+                    fingerprint_request,
                     purpose="translator-human-glossary-usage-v1",
                 ),
+                kind=resolved_kind,
+                verification=resolved_verification,
             ).model_dump()
         payload = GlossaryPayload(
             source_term=source_term,
@@ -1408,8 +1446,14 @@ def persist_manual_candidate(
     idempotency_key: str | None = None,
     restore_parent_alignment: bool = False,
     sentence_edit: Mapping[str, Any] | None = None,
+    edit_reason: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Persist and pair one owner or accountless reviewer candidate."""
+    """Persist and pair one owner or accountless reviewer candidate.
+
+    ``edit_reason`` (``{"defect", "note"}``) names the defect a correction
+    removes; it is stored beside the new revision and is part of the request
+    an idempotency key replays.
+    """
 
     sentence_edit_mode = sentence_edit is not None
     if sentence_edit_mode:
@@ -1440,6 +1484,16 @@ def persist_manual_candidate(
         idempotency_key = idempotency_key.strip()
         if len(idempotency_key) > 128:
             raise BlockWorkspaceIntegrityError("candidate-idempotency")
+    from .review_records import normalize_edit_reason, persist_edit_reason
+    from .scholarly_review import ScholarlyReviewError
+
+    try:
+        normalized_reason = normalize_edit_reason(edit_reason)
+    except ScholarlyReviewError as exc:
+        raise BlockWorkspaceIntegrityError(exc.code) from exc
+    reason_fingerprint = (
+        {"edit_reason": normalized_reason} if normalized_reason is not None else {}
+    )
     workspace_plan = load_block_source_plan(project)
     record, plan = workspace_plan.record, workspace_plan.plan
     block = next((item for item in plan.blocks if item.id == block_id), None)
@@ -1527,6 +1581,7 @@ def persist_manual_candidate(
                     "expected_active_version": expected_active_version,
                     "actor_type": actor_type,
                     "actor_id": actor_id,
+                    **reason_fingerprint,
                 }
             )
         )
@@ -1546,6 +1601,7 @@ def persist_manual_candidate(
                         if restore_parent_alignment
                         else {}
                     ),
+                    **reason_fingerprint,
                 }
             )
         )
@@ -1684,6 +1740,14 @@ def persist_manual_candidate(
                     record,
                     revision,
                     share_grant_id=share_grant_id,
+                )
+            if normalized_reason is not None:
+                persist_edit_reason(
+                    record,
+                    owner_user_id=project.user_id,
+                    block_id=block.id,
+                    target_revision_id=revision.id,
+                    reason=normalized_reason,
                 )
             alignment = _persist_manual_alignment(
                 record,

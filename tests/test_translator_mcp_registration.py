@@ -199,6 +199,10 @@ _EXPECTED_TOOL_NAMES = [
     "carlina_translator_review_fetch",
     "carlina_translator_review_source_pages",
     "carlina_translator_qa_diagnostics",
+    "carlina_translator_qa_disposition_set",
+    "carlina_translator_flag_create",
+    "carlina_translator_flag_update",
+    "carlina_translator_flag_list",
     "carlina_translator_review_coverage_record",
     "carlina_translator_review_coverage_get",
     "carlina_translator_review_search",
@@ -225,7 +229,7 @@ _EXPECTED_TOOL_NAMES = [
 ]
 
 
-def test_registration_publishes_the_ordered_40_tool_sdk_catalog_and_schemas(
+def test_registration_publishes_the_ordered_44_tool_sdk_catalog_and_schemas(
     tmp_path: Path,
 ) -> None:
     server, _app, _owners, _client = _register(tmp_path)

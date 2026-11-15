@@ -209,7 +209,7 @@ def test_block_only_reset_deletes_translator_projects_and_preserves_sources(tmp_
         ).get_table_names()
         assert db.session.execute(
             text("SELECT version_num FROM alembic_version_translator")
-        ).scalar_one() == "029_epub_editions"
+        ).scalar_one() == "030_review_records"
 
         with pytest.raises(RuntimeError, match="migration 023 is forward-only"):
             command.downgrade(config, "022_block_translator_notes")
@@ -290,7 +290,7 @@ def test_passive_window_migration_resets_post_block_projects_and_adds_state(tmp_
         assert "external_pending" in window_attempt_sql
         assert db.session.execute(
             text("SELECT version_num FROM alembic_version_translator")
-        ).scalar_one() == "029_epub_editions"
+        ).scalar_one() == "030_review_records"
 
         db.session.remove()
         db.engine.dispose()

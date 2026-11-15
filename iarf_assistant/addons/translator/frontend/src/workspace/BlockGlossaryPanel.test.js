@@ -61,4 +61,29 @@ describe("BlockGlossaryPanel", () => {
       accepted_target_forms: ["Free Religious", "Free-Religious Society"]
     }));
   });
+
+  it("classifies terms, filters unverified ones and saves kind and verification", async () => {
+    const onSave = vi.fn().mockResolvedValue(true);
+    const usage = (kind, verification) => ({ sense: "", match_policy: "preferred", source_forms: ["x"], observations: [], provenance: "human-owner", kind, verification });
+    const entries = [
+      { concept_id: "c-1", active_version: 1, source_term: "Allgemeine Zeitung", target_term: "Allgemeine Zeitung", notes: null, scope: "document", updated_at: null, usage: usage("do_not_translate", "verified") },
+      { concept_id: "c-2", active_version: 1, source_term: "Gemeinde", target_term: "parish", notes: null, scope: "document", updated_at: null, usage: usage("term", "unverified") }
+    ];
+    const view = render(BlockGlossaryPanel, { props: { entries, proposals: [], suggestions: [], loaded: true, accessRole: "owner", onSave } });
+
+    expect(view.getByText("Do not translate · Verified")).toBeTruthy();
+    expect(view.getByText("Unverified")).toBeTruthy();
+    await fireEvent.click(view.getByLabelText("Show only unverified entries (1)"));
+    expect(view.queryByText("Do not translate · Verified")).toBeNull();
+
+    await fireEvent.click(view.getByRole("button", { name: "Edit" }));
+    expect(view.getByLabelText("Verification").value).toBe("unverified");
+    await fireEvent.change(view.getByLabelText("Kind"), { target: { value: "do_not_translate" } });
+    expect(view.getByText(/uses the source term as its translation/)).toBeTruthy();
+    expect(view.getByRole("button", { name: "Save for next run" }).disabled).toBe(true);
+    await fireEvent.change(view.getByLabelText("Kind"), { target: { value: "name" } });
+    await fireEvent.change(view.getByLabelText("Verification"), { target: { value: "verified" } });
+    await fireEvent.click(view.getByRole("button", { name: "Save for next run" }));
+    expect(onSave.mock.calls[0][0]).toEqual(expect.objectContaining({ concept_id: "c-2", kind: "name", verification: "verified" }));
+  });
 });

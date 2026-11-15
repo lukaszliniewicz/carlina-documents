@@ -2338,6 +2338,58 @@ def test_block_glossary_owner_can_lock_contextual_target_variants(app):
         logout_user()
 
 
+def test_block_glossary_owner_sets_kind_and_verification(app):
+    project = _project("GlossaryKinds")
+    _plan(project, "<html><body><p>Die Allgemeine Zeitung schreibt.</p></body></html>")
+    owner = db.session.get(User, project.user_id)
+    assert owner is not None
+    with app.test_request_context("/block-glossary"):
+        login_user(owner)
+        created = persist_human_glossary_entry(
+            project,
+            source_term="Allgemeine Zeitung",
+            target_term="Allgemeine Zeitung",
+            kind="do_not_translate",
+            verification="verified",
+            notes=None,
+            author_user_id=project.user_id,
+        )
+        entry = created["entries"][0]
+        assert entry["usage"]["kind"] == "do_not_translate"
+        assert entry["usage"]["verification"] == "verified"
+
+        retargeted = persist_human_glossary_entry(
+            project,
+            concept_id=entry["concept_id"],
+            source_term="Allgemeine Zeitung",
+            target_term="Allgemeine Zeitung",
+            accepted_target_forms=["the Allgemeine"],
+            notes=None,
+            expected_active_version=1,
+            author_user_id=project.user_id,
+        )["entries"][0]
+        assert retargeted["usage"]["kind"] == "do_not_translate"
+        assert retargeted["usage"]["verification"] == "verified"
+
+        for kwargs, code in (
+            ({"kind": "brand"}, "glossary-kind"),
+            ({"verification": "probably"}, "glossary-verification"),
+            ({"kind": "do_not_translate", "target_term": "General Newspaper"},
+             "glossary-do-not-translate"),
+        ):
+            request = {
+                "source_term": "Zeitung",
+                "target_term": "newspaper",
+                "notes": None,
+                "author_user_id": project.user_id,
+                **kwargs,
+            }
+            with pytest.raises(BlockWorkspaceIntegrityError) as raised:
+                persist_human_glossary_entry(project, **request)
+            assert raised.value.code == code
+        logout_user()
+
+
 def test_glossary_projection_does_not_rehydrate_document_wide_source_plan(
     app, monkeypatch
 ):
@@ -2726,3 +2778,71 @@ def test_share_page_bootstraps_csrf_for_complete_review_flow(
     denied = guest.post(redeem_path, base_url=origin, headers=headers, json=body)
     assert denied.status_code == 400
     assert denied.get_json()["code"] == "grant-invalid"
+
+
+def test_manual_candidate_stores_an_edit_reason_beside_the_revision(app):
+    from iarf_assistant.addons.translator.document_review import review_fetch
+    from iarf_assistant.addons.translator.models import TranslationTargetEditReason
+    from iarf_assistant.addons.translator.review_records import edit_reasons
+
+    project = _project("EditReason")
+    plan, record = _plan(project, "<html><body><p>Hello.</p></body></html>")
+    block = plan.blocks[0]
+    reason = {"defect": "meaning", "note": "'Cześć' is informal; the letter is formal."}
+    persist_manual_candidate(
+        project,
+        block.id,
+        _candidate(plan, record, block, "Dzień dobry."),
+        0,
+        author_user_id=project.user_id,
+        idempotency_key="reasoned-edit",
+        edit_reason=reason,
+    )
+    revision = record.target_revisions[0]
+
+    assert edit_reasons(record.id, [revision.id]) == {revision.id: reason}
+    fetched = review_fetch(project, block_ids=[block.id])
+    assert fetched["items"][0]["target"]["provenance"]["edit_reason"] == reason
+    stored = db.session.execute(
+        text("SELECT payload_json FROM translation_target_edit_reason")
+    ).scalar_one()
+    assert "informal" not in stored
+    replay = persist_manual_candidate(
+        project,
+        block.id,
+        _candidate(plan, record, block, "Dzień dobry."),
+        0,
+        author_user_id=project.user_id,
+        idempotency_key="reasoned-edit",
+        edit_reason=reason,
+    )
+    assert replay["target"]["active_version"] == 1
+    assert TranslationTargetEditReason.query.count() == 1
+    with pytest.raises(
+        BlockWorkspaceIntegrityError, match="candidate-idempotency-conflict"
+    ):
+        persist_manual_candidate(
+            project,
+            block.id,
+            _candidate(plan, record, block, "Dzień dobry."),
+            0,
+            author_user_id=project.user_id,
+            idempotency_key="reasoned-edit",
+            edit_reason={"defect": "language", "note": "Different reason."},
+        )
+    for invalid, code in (
+        ({"defect": "style", "note": "Reads better."}, "edit-reason-defect"),
+        ({"defect": "meaning", "note": "   "}, "edit-reason-note"),
+        ({"defect": "meaning"}, "edit-reason-shape"),
+    ):
+        with pytest.raises(BlockWorkspaceIntegrityError, match=code):
+            persist_manual_candidate(
+                project,
+                block.id,
+                _candidate(plan, record, block, "Witam."),
+                1,
+                author_user_id=project.user_id,
+                idempotency_key=f"invalid-{code}",
+                edit_reason=invalid,
+            )
+    assert len(record.target_revisions) == 1

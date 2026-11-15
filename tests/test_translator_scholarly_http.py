@@ -506,3 +506,118 @@ def test_viewer_cannot_list_editorial_retranslation_requests(app, project, monke
         )
     assert response.status_code == 403
     listing.assert_not_called()
+
+
+def test_flag_and_qa_disposition_routes_forward_actor_and_map_errors(
+    app, project, monkeypatch
+):
+    monkeypatch.setattr(http, "_project", lambda _value: project)
+    owner = SimpleNamespace(is_authenticated=True, id=7)
+    base = f"/addons/translator/api/projects/{PROJECT_ID}"
+    key = {http.IDEMPOTENCY_HEADER: "review-record-1"}
+    with (
+        patch.object(http, "current_user", owner),
+        patch.object(http.db.session, "commit"),
+        patch.object(
+            http.review_records, "create_flag", return_value={"id": "flag-1"}
+        ) as create,
+        patch.object(
+            http.review_records, "transition_flag", return_value={"id": "flag-1"}
+        ) as transition,
+        patch.object(
+            http.review_records, "list_flags", return_value={"items": []}
+        ) as listing,
+        patch.object(
+            http, "set_qa_disposition", return_value={"state": "dismissed"}
+        ) as dispose,
+    ):
+        client = app.test_client()
+        missing_key = client.post(
+            f"{base}/blocks/b-1/review-flags", json={"kind": "assumption", "body": "x"}
+        )
+        created = client.post(
+            f"{base}/blocks/b-1/review-flags",
+            json={"kind": "assumption", "body": "Read as parish."},
+            headers=key,
+        )
+        moved = client.post(
+            f"{base}/review-flags/flag-1/state",
+            json={"action": "resolve", "expected_sequence": 1, "note": "Checked."},
+            headers=key,
+        )
+        listed = client.get(f"{base}/review-flags?state=open&kind=revisit&limit=10")
+        disposed = client.post(
+            f"{base}/qa-dispositions",
+            json={
+                "block_id": "b-1",
+                "finding_id": "f" * 24,
+                "action": "dismiss",
+                "expected_sequence": 0,
+                "basis": "intended",
+                "reason": "The author's emphasis.",
+            },
+            headers=key,
+        )
+    assert missing_key.status_code == 400
+    assert created.status_code == 201
+    assert create.call_args.kwargs["origin"] == "human"
+    assert create.call_args.kwargs["actor"].role == "owner"
+    assert moved.get_json() == {"flag": {"id": "flag-1"}}
+    assert transition.call_args.kwargs["expected_sequence"] == 1
+    assert listed.status_code == 200
+    assert listing.call_args.kwargs["states"] == ["open"]
+    assert listing.call_args.kwargs["kinds"] == ["revisit"]
+    assert listing.call_args.kwargs["limit"] == 10
+    assert disposed.get_json() == {"disposition": {"state": "dismissed"}}
+    assert dispose.call_args.kwargs["basis"] == "intended"
+
+    stale = http.QaDiagnosticsError("qa-finding-stale")
+    with (
+        patch.object(http, "current_user", owner),
+        patch.object(http, "set_qa_disposition", side_effect=stale),
+        patch.object(
+            http.review_records,
+            "transition_flag",
+            side_effect=ScholarlyReviewError("review-flag-transition"),
+        ),
+    ):
+        client = app.test_client()
+        stale_response = client.post(
+            f"{base}/qa-dispositions",
+            json={
+                "block_id": "b-1",
+                "finding_id": "f" * 24,
+                "action": "reopen",
+                "expected_sequence": 1,
+            },
+            headers=key,
+        )
+        transition_response = client.post(
+            f"{base}/review-flags/flag-1/state",
+            json={"action": "resolve", "expected_sequence": 2, "note": "Again."},
+            headers=key,
+        )
+    assert stale_response.status_code == 409
+    assert stale_response.get_json()["code"] == "qa-finding-stale"
+    assert transition_response.status_code == 409
+
+    with (
+        patch.object(http, "current_user", _anon()),
+        patch.object(
+            http,
+            "_resolve_request_actor",
+            return_value=(
+                ReviewActor("viewer", share_grant_id="grant-1"),
+                "viewer",
+                "Viewer",
+                True,
+                "grant_header",
+            ),
+        ),
+    ):
+        viewer = app.test_client().post(
+            f"{base}/blocks/b-1/review-flags",
+            json={"kind": "assumption", "body": "x"},
+            headers={**key, http.SHARE_TOKEN_HEADER: "trg-secret"},
+        )
+    assert viewer.status_code == 403

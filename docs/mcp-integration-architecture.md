@@ -327,8 +327,11 @@ The current catalog is deliberately small:
 - Translator review: `carlina_translator_review_outline`,
   `carlina_translator_review_fetch`, `carlina_translator_review_search`,
   `carlina_translator_review_source_pages`,
-  `carlina_translator_qa_diagnostics`, `carlina_translator_review_explain`, the three
-  `carlina_translator_reader_note_*` lifecycle tools, and
+  `carlina_translator_qa_diagnostics`, `carlina_translator_qa_disposition_set`,
+  `carlina_translator_review_explain`, the three
+  `carlina_translator_reader_note_*` lifecycle tools,
+  `carlina_translator_flag_create`, `carlina_translator_flag_update`,
+  `carlina_translator_flag_list`,
   `carlina_translator_research_dossier_submit`, and
   `carlina_translator_target_update`;
 - durable orchestration: `carlina_job_get`, `carlina_job_list`,

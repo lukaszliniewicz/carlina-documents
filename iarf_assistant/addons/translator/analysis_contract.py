@@ -194,8 +194,9 @@ def glossary_usage_view(payload: GlossaryPayload) -> dict[str, object] | None:
     if payload.usage is None:
         return None
     keys = ["sense", "match_policy", "source_forms", "observations", "provenance"]
-    if "accepted_target_forms" in payload.usage:
-        keys.append("accepted_target_forms")
+    for optional in ("accepted_target_forms", "kind", "verification"):
+        if optional in payload.usage:
+            keys.append(optional)
     return {key: payload.usage[key] for key in keys}
 
 
@@ -207,6 +208,10 @@ def glossary_prompt_mapping(payload: GlossaryPayload) -> dict[str, object]:
                       source_forms=payload.usage["source_forms"], notes=payload.notes)
         if "accepted_target_forms" in payload.usage:
             result["accepted_target_forms"] = payload.usage["accepted_target_forms"]
+        if payload.usage.get("kind", "term") != "term":
+            result["kind"] = payload.usage["kind"]
+        if payload.usage.get("verification") is not None:
+            result["verification"] = payload.usage["verification"]
     return result
 
 

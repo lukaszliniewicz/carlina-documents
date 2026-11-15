@@ -3904,6 +3904,238 @@ class TranslationReviewCoverage(db.Model):
     created_at = db.Column(db.DateTime, default=utc_now_db, nullable=False)
 
 
+TARGET_EDIT_DEFECTS = (
+    "meaning",
+    "omission",
+    "addition",
+    "language",
+    "terminology",
+    "consistency",
+    "brief",
+    "misreading",
+    "formatting",
+)
+REVIEW_FLAG_KINDS = (
+    "assumption",
+    "source_defect",
+    "unverified",
+    "departure",
+    "revisit",
+)
+
+
+def _sql_values(values: tuple[str, ...]) -> str:
+    return ", ".join(f"'{value}'" for value in values)
+
+
+def _review_record_scope_args(table: str) -> tuple[Any, ...]:
+    """Owner, project, plan and block scope shared by review record tables."""
+
+    return (
+        db.CheckConstraint("length(record_hash) = 64", name=f"ck_{table}_record_hash"),
+        db.CheckConstraint(
+            "length(integrity_receipt) = 64", name=f"ck_{table}_integrity_receipt"
+        ),
+        db.ForeignKeyConstraint(
+            ["project_id"],
+            ["translation_project.id"],
+            ondelete="CASCADE",
+            name=f"fk_{table}_project",
+        ),
+        db.ForeignKeyConstraint(
+            ["source_plan_id", "project_id"],
+            ["translation_source_plan.id", "translation_source_plan.project_id"],
+            ondelete="CASCADE",
+            name=f"fk_{table}_plan_scope",
+        ),
+        db.ForeignKeyConstraint(
+            ["block_id", "source_plan_id"],
+            ["translation_block.id", "translation_block.source_plan_id"],
+            ondelete="CASCADE",
+            name=f"fk_{table}_block_plan",
+        ),
+        db.ForeignKeyConstraint(
+            ["owner_user_id"],
+            ["user.id"],
+            ondelete="CASCADE",
+            name=f"fk_{table}_owner",
+        ),
+    )
+
+
+def _review_record_actor_args(table: str) -> tuple[Any, ...]:
+    return (
+        db.CheckConstraint(
+            "actor_type IN ('owner', 'reviewer')", name=f"ck_{table}_actor_type"
+        ),
+        db.ForeignKeyConstraint(
+            ["actor_user_id"],
+            ["user.id"],
+            ondelete="SET NULL",
+            name=f"fk_{table}_actor",
+        ),
+        db.ForeignKeyConstraint(
+            ["share_grant_id"],
+            ["translation_share_grant.id"],
+            ondelete="SET NULL",
+            name=f"fk_{table}_share_grant",
+        ),
+    )
+
+
+class TranslationTargetEditReason(db.Model):
+    """The named defect behind one corrective target revision.
+
+    Kept beside the integrity-hashed revision so revision hashes stay as they
+    were; the primary key is the revision it explains.
+    """
+
+    __tablename__ = "translation_target_edit_reason"
+    __table_args__ = (
+        db.CheckConstraint(
+            f"defect IN ({_sql_values(TARGET_EDIT_DEFECTS)})",
+            name="ck_translation_target_edit_reason_defect",
+        ),
+        db.ForeignKeyConstraint(
+            ["target_revision_id"],
+            ["translation_target_block_revision.id"],
+            ondelete="CASCADE",
+            name="fk_translation_target_edit_reason_target_revision",
+        ),
+        *_review_record_scope_args("translation_target_edit_reason"),
+    )
+
+    target_revision_id = db.Column(db.String(36), primary_key=True)
+    project_id = db.Column(db.String(36), nullable=False)
+    source_plan_id = db.Column(db.String(36), nullable=False)
+    block_id = db.Column(db.String(128), nullable=False)
+    owner_user_id = db.Column(db.Integer, nullable=False)
+    defect = db.Column(db.String(24), nullable=False)
+    payload_json = db.Column(ContentType(db.JSON, strategy="system"), nullable=False)
+    record_hash = db.Column(db.String(64), nullable=False)
+    integrity_receipt = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_db, nullable=False)
+
+
+class TranslationReviewFlagEvent(db.Model):
+    """One append-only event in a block-anchored translator flag's life.
+
+    A flag's state is its highest-sequence event; ``(flag_id, sequence)`` is
+    unique, so two writers fenced on the same sequence cannot both succeed.
+    """
+
+    __tablename__ = "translation_review_flag_event"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "flag_id", "sequence", name="uq_translation_review_flag_event_sequence"
+        ),
+        db.CheckConstraint(
+            "sequence >= 1", name="ck_translation_review_flag_event_sequence"
+        ),
+        db.CheckConstraint(
+            "action IN ('open', 'resolve', 'dismiss', 'reopen')",
+            name="ck_translation_review_flag_event_action",
+        ),
+        db.CheckConstraint(
+            "(sequence = 1) = (action = 'open')",
+            name="ck_translation_review_flag_event_open_first",
+        ),
+        db.CheckConstraint(
+            f"kind IN ({_sql_values(REVIEW_FLAG_KINDS)})",
+            name="ck_translation_review_flag_event_kind",
+        ),
+        db.CheckConstraint(
+            "origin IN ('agent', 'human', 'translation')",
+            name="ck_translation_review_flag_event_origin",
+        ),
+        *_review_record_scope_args("translation_review_flag_event"),
+        *_review_record_actor_args("translation_review_flag_event"),
+        db.Index(
+            "ix_translation_review_flag_event_plan_block",
+            "source_plan_id",
+            "block_id",
+        ),
+    )
+
+    id = db.Column(db.String(36), primary_key=True)
+    flag_id = db.Column(db.String(36), nullable=False)
+    sequence = db.Column(db.Integer, nullable=False)
+    project_id = db.Column(db.String(36), nullable=False)
+    source_plan_id = db.Column(db.String(36), nullable=False)
+    block_id = db.Column(db.String(128), nullable=False)
+    owner_user_id = db.Column(db.Integer, nullable=False)
+    action = db.Column(db.String(16), nullable=False)
+    kind = db.Column(db.String(24), nullable=False)
+    origin = db.Column(db.String(16), nullable=False)
+    actor_type = db.Column(db.String(16), nullable=False)
+    actor_user_id = db.Column(db.Integer, nullable=True)
+    share_grant_id = db.Column(db.String(36), nullable=True)
+    payload_json = db.Column(ContentType(db.JSON, strategy="system"), nullable=False)
+    record_hash = db.Column(db.String(64), nullable=False)
+    integrity_receipt = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_db, nullable=False)
+
+
+class TranslationQaDisposition(db.Model):
+    """An owner or reviewer decision on one QA finding of one target revision.
+
+    Finding ids bind the ruleset and target version, so a decision lapses when
+    the target or the rules change. The highest sequence per finding wins.
+    """
+
+    __tablename__ = "translation_qa_disposition"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "source_plan_id",
+            "finding_id",
+            "sequence",
+            name="uq_translation_qa_disposition_sequence",
+        ),
+        db.CheckConstraint("sequence >= 1", name="ck_translation_qa_disposition_sequence"),
+        db.CheckConstraint(
+            "action IN ('dismiss', 'reopen')",
+            name="ck_translation_qa_disposition_action",
+        ),
+        db.CheckConstraint(
+            "(action = 'dismiss' AND basis IN ('false_positive', 'intended')) OR "
+            "(action = 'reopen' AND basis IS NULL)",
+            name="ck_translation_qa_disposition_basis",
+        ),
+        db.ForeignKeyConstraint(
+            ["target_revision_id"],
+            ["translation_target_block_revision.id"],
+            ondelete="CASCADE",
+            name="fk_translation_qa_disposition_target_revision",
+        ),
+        *_review_record_scope_args("translation_qa_disposition"),
+        *_review_record_actor_args("translation_qa_disposition"),
+        db.Index(
+            "ix_translation_qa_disposition_plan_block",
+            "source_plan_id",
+            "block_id",
+        ),
+    )
+
+    id = db.Column(db.String(36), primary_key=True)
+    finding_id = db.Column(db.String(24), nullable=False)
+    sequence = db.Column(db.Integer, nullable=False)
+    project_id = db.Column(db.String(36), nullable=False)
+    source_plan_id = db.Column(db.String(36), nullable=False)
+    block_id = db.Column(db.String(128), nullable=False)
+    owner_user_id = db.Column(db.Integer, nullable=False)
+    target_revision_id = db.Column(db.String(36), nullable=False)
+    code = db.Column(db.String(64), nullable=False)
+    action = db.Column(db.String(16), nullable=False)
+    basis = db.Column(db.String(16), nullable=True)
+    actor_type = db.Column(db.String(16), nullable=False)
+    actor_user_id = db.Column(db.Integer, nullable=True)
+    share_grant_id = db.Column(db.String(36), nullable=True)
+    payload_json = db.Column(ContentType(db.JSON, strategy="system"), nullable=False)
+    record_hash = db.Column(db.String(64), nullable=False)
+    integrity_receipt = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, default=utc_now_db, nullable=False)
+
+
 class TranslationRetranslationRequest(db.Model):
     """Owner/share-actor request to retranslate a bounded source scope."""
 

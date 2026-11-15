@@ -1,6 +1,8 @@
-import { fireEvent, render } from "@testing-library/svelte";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render } from "@testing-library/svelte";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import QADiagnosticsDialog from "./QADiagnosticsDialog.svelte";
+
+afterEach(cleanup);
 
 describe("QADiagnosticsDialog", () => {
   it("shows deterministic findings, source pages, and navigation actions", async () => {
@@ -90,5 +92,41 @@ describe("QADiagnosticsDialog", () => {
     expect(view.getByText(notice)).toBeTruthy();
     await view.rerender({ open: true, payload: { ...payload, summary: { total: 0, alignment_coverage: "checked" } } });
     expect(view.queryByText(notice)).toBeNull();
+  });
+
+  it("dismisses a finding with a basis and reason, and reopens a dismissed one", async () => {
+    const ondecide = vi.fn().mockResolvedValue(true);
+    const ondispositions = vi.fn();
+    const finding = { id: "f-1", code: "repeated-punctuation", category: "punctuation", severity: "advisory", block_id: "b-1", order: 2, message: "Repeated punctuation." };
+    const payload = { summary: { total: 1, dismissed_total: 2 }, capabilities: { spellcheck: { available: true } }, items: [finding] };
+    const view = render(QADiagnosticsDialog, { props: { open: true, payload, canDecide: true, ondecide, ondispositions } });
+
+    expect(view.getByText("2 dismissed")).toBeTruthy();
+    await fireEvent.click(view.getByRole("button", { name: "Dismiss…" }));
+    const confirm = view.getByRole("button", { name: "Dismiss finding" });
+    expect(confirm.disabled).toBe(true);
+    await fireEvent.click(view.getByLabelText(/Intended: the translation departs on purpose/));
+    await fireEvent.input(view.getByLabelText(/Reason, kept with the finding/), { target: { value: "The author's emphasis." } });
+    await fireEvent.click(view.getByRole("button", { name: "Dismiss finding" }));
+    expect(ondecide).toHaveBeenCalledWith(finding, { action: "dismiss", basis: "intended", reason: "The author's emphasis." });
+
+    await fireEvent.change(view.getByLabelText("Findings"), { target: { value: "dismissed" } });
+    expect(ondispositions).toHaveBeenCalledWith("dismissed");
+
+    const dismissed = { ...finding, disposition: { state: "dismissed", sequence: 1, basis: "false_positive", reason: "A quoted title." } };
+    await view.rerender({ open: true, canDecide: true, ondecide, dispositions: "dismissed", payload: { ...payload, items: [dismissed] } });
+    expect(view.getByText("Dismissed as false positive: A quoted title.")).toBeTruthy();
+    await fireEvent.click(view.getByRole("button", { name: "Reopen" }));
+    expect(ondecide).toHaveBeenLastCalledWith(dismissed, { action: "reopen" });
+  });
+
+  it("offers no decisions to viewers or on unopened token groups", () => {
+    const group = { id: "group-1", code: "spelling-suspect", category: "spelling", severity: "advisory", token: "ofthe", count: 3,
+      preview_occurrences: [{ id: "f-1", block_id: "b-1", order: 1 }], preview_omitted: 2 };
+    const grouped = render(QADiagnosticsDialog, { props: { open: true, canDecide: true, payload: { summary: { total: 3, grouping: "token" }, capabilities: { spellcheck: { available: true } }, groups: [group] } } });
+    expect(grouped.queryByRole("button", { name: "Dismiss…" })).toBeNull();
+    grouped.unmount();
+    const viewer = render(QADiagnosticsDialog, { props: { open: true, payload: { summary: { total: 1 }, capabilities: { spellcheck: { available: true } }, items: [{ id: "f-1", block_id: "b-1", order: 1, code: "x", category: "spelling", severity: "advisory" }] } } });
+    expect(viewer.queryByRole("button", { name: "Dismiss…" })).toBeNull();
   });
 });

@@ -51,7 +51,9 @@ def register_glossary_tools(
             "pass include_observations=false for a bounded compact projection. Query matches "
             "headword, form, sense or target. Model entries are immediately usable advice; "
             "human locks remain authoritative. Research dossiers are separate; routine "
-            "glossary writes are not dossiers and never imply human approval."
+            "glossary writes are not dossiers and never imply human approval. Entries carry "
+            "kind and verification; summary.by_verification counts the whole glossary, and "
+            "verification='unverified' lists the entries to settle or report before export."
         ),
     )
     async def translator_glossary_get(
@@ -60,6 +62,8 @@ def register_glossary_tools(
         offset: int = 0,
         limit: int = 50,
         include_observations: bool = True,
+        verification: Literal["verified", "unverified", "coined", "unstated"]
+        | None = None,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.translator")
         try:
@@ -70,6 +74,7 @@ def register_glossary_tools(
                     offset=offset,
                     limit=limit,
                     include_observations=include_observations,
+                    verification=verification,
                 ),
             )
         except BaseException as exc:
@@ -90,7 +95,10 @@ def register_glossary_tools(
             "a one-based occurrence_index. Newly prepared packets carry a read-only "
             "translator_window_index (local n to canonical block_id plus sentence anchor "
             "ids) in dispatch metadata; use it instead of extra outline fetches. New forms "
-            "are model associations, not certified morphology. Stable idempotency_key retries "
+            "are model associations, not certified morphology. Set kind for names, titles, "
+            "fixed formulae and do_not_translate strings, and verification when you know it: "
+            "verified (checked against a reference), unverified (not checked; listed before "
+            "export) or coined (your own rendering where none is established). Stable idempotency_key retries "
             "reuse receipts. Cannot overwrite human locks. Propose BEFORE submitting the "
             "current window translation when the next window should see it; already "
             "prepared or leased packets and frozen research do not change. No dossier needed; "

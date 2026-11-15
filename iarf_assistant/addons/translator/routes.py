@@ -2131,6 +2131,7 @@ def get_qa_diagnostics(project_id):
             group_by=request.args.get("group_by", "finding"),
             include_excerpts=request.args.get("include_excerpts", "1").casefold() not in {"0", "false", "no", "off"},
             group_id=request.args.get("group_id") or None,
+            dispositions=request.args.get("dispositions", "open"),
         )
     except QaDiagnosticsError as exc:
         return jsonify({"error": "QA diagnostics request is invalid.", "code": exc.code}), 400
@@ -2196,7 +2197,7 @@ def _block_glossary_write(concept_id: str | None):
         "expected_active_version",
         "expected_proposal_id",
     }
-    allowed = required | {"accepted_target_forms"}
+    allowed = required | {"accepted_target_forms", "kind", "verification"}
     if (
         not isinstance(data, dict)
         or not required.issubset(data)
@@ -2206,8 +2207,8 @@ def _block_glossary_write(concept_id: str | None):
             {
                 "error": (
                     "Glossary updates must contain source_term, target_term, notes, "
-                    "expected_active_version, and expected_proposal_id; accepted_target_forms "
-                    "is optional."
+                    "expected_active_version, and expected_proposal_id; accepted_target_forms, "
+                    "kind and verification are optional."
                 )
             }
         ), 400
@@ -2217,6 +2218,8 @@ def _block_glossary_write(concept_id: str | None):
     expected_version = data.get("expected_active_version")
     expected_proposal_id = data.get("expected_proposal_id")
     accepted_target_forms = data.get("accepted_target_forms")
+    kind = data.get("kind")
+    verification = data.get("verification")
     if (
         not isinstance(source_term, str)
         or not isinstance(target_term, str)
@@ -2237,6 +2240,8 @@ def _block_glossary_write(concept_id: str | None):
                 or any(not isinstance(item, str) for item in accepted_target_forms)
             )
         )
+        or (kind is not None and not isinstance(kind, str))
+        or (verification is not None and not isinstance(verification, str))
     ):
         return jsonify({"error": "Glossary fields have invalid types."}), 400
     try:
@@ -2249,6 +2254,8 @@ def _block_glossary_write(concept_id: str | None):
             expected_active_version=expected_version,
             expected_proposal_id=expected_proposal_id,
             accepted_target_forms=accepted_target_forms,
+            kind=kind,
+            verification=verification,
             author_user_id=author_user_id,
         )
     except BlockWorkspaceIntegrityError as exc:

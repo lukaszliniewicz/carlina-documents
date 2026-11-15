@@ -7,7 +7,7 @@ from flask import Flask
 from pydantic import Field
 
 from ...core.mcp_tool_runtime import McpToolRuntime
-from .mcp_settings import SentenceEdit
+from .mcp_settings import EditReason, SentenceEdit
 
 if TYPE_CHECKING:
     from mcp.server import MCPServer
@@ -192,7 +192,10 @@ def register_review_tools(
             "accepted contextual target variants, split/joined tokens, source-language leakage and spelling "
             "suspicions when an Enchant dictionary is available. include_spelling=false disables spelling "
             "advisories only. Filter by category/severity or block IDs, paginate with cursor, and inspect "
-            "summary.truncated/omitted_* when a safety cap was reached."
+            "summary.truncated/omitted_* when a safety cap was reached. Findings dismissed through "
+            "carlina_translator_qa_disposition_set are hidden by default (dispositions=open) and "
+            "counted in summary.dismissed_total; dispositions=dismissed or all shows them with "
+            "their reasons. A dismissal lapses when the target or the ruleset changes."
         ),
     )
     async def translator_qa_diagnostics(
@@ -206,6 +209,7 @@ def register_review_tools(
         group_by: Literal["finding", "token"] = "token",
         include_excerpts: bool = False,
         group_id: str | None = None,
+        dispositions: Literal["open", "dismissed", "all"] = "open",
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.translator")
         try:
@@ -221,6 +225,142 @@ def register_review_tools(
                     group_by=group_by,
                     include_excerpts=include_excerpts,
                     group_id=group_id,
+                    dispositions=dispositions,
+                ),
+            )
+        except BaseException as exc:
+            raise runtime.failure(exc) from exc
+
+    @server.tool(
+        name="carlina_translator_qa_disposition_set",
+        description=(
+            "Record a decision on one current QA finding. action=dismiss needs basis "
+            "false_positive (the rule misfired) or intended (a deliberate deviation) and a "
+            "one-line reason; action=reopen withdraws a dismissal. expected_sequence is the "
+            "finding's disposition.sequence, or 0 when it has none. The finding must exist "
+            "in a scan of the current target; fix real errors instead of dismissing them."
+        ),
+    )
+    async def translator_qa_disposition_set(
+        project_id: str,
+        block_id: str,
+        finding_id: str,
+        action: Literal["dismiss", "reopen"],
+        expected_sequence: int,
+        idempotency_key: str,
+        basis: Literal["false_positive", "intended"] | None = None,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        principal = runtime.authorize("mcp.translator")
+        try:
+            return await runtime.run(
+                lambda: client(runtime.app, principal.owner_user_id).qa_disposition_set(
+                    project_id,
+                    block_id=block_id,
+                    finding_id=finding_id,
+                    action=action,
+                    expected_sequence=expected_sequence,
+                    idempotency_key=idempotency_key,
+                    basis=basis,
+                    reason=reason,
+                ),
+            )
+        except BaseException as exc:
+            raise runtime.failure(exc) from exc
+
+    @server.tool(
+        name="carlina_translator_flag_create",
+        description=(
+            "Open a translator flag on one block: an assumption made, a suspected source "
+            "defect, an unverified name, quotation or fact, a deliberate departure, or "
+            "something to revisit. Flags are review records, never exported into the text; "
+            "do not put doubts in the translation itself. excerpt may quote the span concerned."
+        ),
+    )
+    async def translator_flag_create(
+        project_id: str,
+        block_id: str,
+        kind: Literal[
+            "assumption", "source_defect", "unverified", "departure", "revisit"
+        ],
+        body: Annotated[str, Field(min_length=1, max_length=1000)],
+        idempotency_key: str,
+        excerpt: Annotated[str, Field(max_length=300)] | None = None,
+    ) -> dict[str, Any]:
+        principal = runtime.authorize("mcp.translator")
+        try:
+            return await runtime.run(
+                lambda: client(runtime.app, principal.owner_user_id).flag_create(
+                    project_id,
+                    block_id=block_id,
+                    kind=kind,
+                    body=body,
+                    excerpt=excerpt,
+                    origin="agent",
+                    idempotency_key=idempotency_key,
+                ),
+            )
+        except BaseException as exc:
+            raise runtime.failure(exc) from exc
+
+    @server.tool(
+        name="carlina_translator_flag_update",
+        description=(
+            "Resolve, dismiss or reopen a translator flag. resolve and dismiss need a note "
+            "saying what was decided; expected_sequence is the flag's current sequence."
+        ),
+    )
+    async def translator_flag_update(
+        project_id: str,
+        flag_id: str,
+        action: Literal["resolve", "dismiss", "reopen"],
+        expected_sequence: int,
+        idempotency_key: str,
+        note: Annotated[str, Field(max_length=1000)] | None = None,
+    ) -> dict[str, Any]:
+        principal = runtime.authorize("mcp.translator")
+        try:
+            return await runtime.run(
+                lambda: client(runtime.app, principal.owner_user_id).flag_update(
+                    project_id,
+                    flag_id=flag_id,
+                    action=action,
+                    expected_sequence=expected_sequence,
+                    note=note,
+                    idempotency_key=idempotency_key,
+                ),
+            )
+        except BaseException as exc:
+            raise runtime.failure(exc) from exc
+
+    @server.tool(
+        name="carlina_translator_flag_list",
+        description=(
+            "List translator flags in document order, open ones by default, with counts "
+            "by state and open counts by kind. Page with offset and limit (1-100)."
+        ),
+    )
+    async def translator_flag_list(
+        project_id: str,
+        states: list[Literal["open", "resolved", "dismissed"]] | None = None,
+        kinds: list[
+            Literal["assumption", "source_defect", "unverified", "departure", "revisit"]
+        ]
+        | None = None,
+        block_ids: list[str] | None = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        principal = runtime.authorize("mcp.translator")
+        try:
+            return await runtime.run(
+                lambda: client(runtime.app, principal.owner_user_id).flag_list(
+                    project_id,
+                    states=states,
+                    kinds=kinds,
+                    block_ids=block_ids,
+                    offset=offset,
+                    limit=limit,
                 ),
             )
         except BaseException as exc:
@@ -385,7 +525,11 @@ def register_review_tools(
             "replace keeps boundaries, split uses a Unicode character offset, and "
             "merge_next joins adjacent target segments. Source segmentation stays fixed. "
             "Set restore_parent_alignment=true only to recover the immediate parent "
-            "revision's pairing; unsafe or ambiguous recovery is rejected."
+            "revision's pairing; unsafe or ambiguous recovery is rejected. reason names "
+            "the defect the change removes (meaning, omission, addition, language, "
+            "terminology, consistency, brief, misreading, formatting) with one line on "
+            "what was wrong; it is stored with the revision and shown in review. A "
+            "preferred wording is not a defect: leave the text."
         ),
     )
     async def translator_target_update(
@@ -393,6 +537,7 @@ def register_review_tools(
         block_id: str,
         expected_active_version: int,
         idempotency_key: str,
+        reason: EditReason,
         candidate: dict[str, Any] | None = None,
         restore_parent_alignment: bool = False,
         sentence_edit: SentenceEdit | None = None,
@@ -409,6 +554,7 @@ def register_review_tools(
                     idempotency_key,
                     restore_parent_alignment=restore_parent_alignment,
                     response_mode=response_mode,
+                    edit_reason=reason.model_dump(),
                     **(
                         {"sentence_edit": sentence_edit.model_dump()}
                         if sentence_edit is not None

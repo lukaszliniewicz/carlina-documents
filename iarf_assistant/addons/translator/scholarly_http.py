@@ -24,9 +24,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from ...database_utils import run_transaction_with_retry
 from ...extensions import db
-from . import document_review, scholarly_review
+from . import document_review, review_records, scholarly_review
 from .block_workspace_api import BlockWorkspaceIntegrityError, load_block_source_plan
 from .models import TranslationProject, TranslationShareGrant
+from .qa_diagnostics import QaDiagnosticsError, set_qa_disposition
 from .scholarly_wire import (
     block_review,
     dossier,
@@ -323,8 +324,18 @@ def _role_required(*roles: str) -> tuple[Response, int] | None:
     return None
 
 
+_STALE_STATE_CODES = frozenset(
+    {
+        "review-target-version",
+        "review-flag-transition",
+        "qa-disposition-transition",
+        "qa-finding-stale",
+    }
+)
+
+
 def _status_for_service_code(code: str) -> int:
-    if "conflict" in code or "idempotency" in code or code == "review-target-version":
+    if "conflict" in code or "idempotency" in code or code in _STALE_STATE_CODES:
         return 409
     if code in {
         "review-owner-required",
@@ -1157,6 +1168,141 @@ def scholarly_document_review_explain(project_id: str):
     return jsonify(result)
 
 
+def _idempotency_header() -> str | None:
+    key = request.headers.get(IDEMPOTENCY_HEADER)
+    if not isinstance(key, str) or not 1 <= len(key) <= _MAX_IDEMPOTENCY_KEY:
+        return None
+    return key
+
+
+def scholarly_list_review_flags(project_id: str):
+    role_error = _role_required("owner", "reviewer", "viewer")
+    if role_error is not None:
+        return role_error
+    actor = _read_actor()
+    if actor is None:
+        return _error_response("review-authority-required", 403)
+    try:
+        offset = int(request.args.get("offset", "0"))
+        limit = int(request.args.get("limit", "50"))
+    except (TypeError, ValueError):
+        return _error_response("review-flag-limit", 400)
+    result, error = _call_service(
+        lambda: review_records.list_flags(
+            g.project,
+            actor=actor,
+            states=request.args.getlist("state") or None,
+            kinds=request.args.getlist("kind") or None,
+            block_ids=request.args.getlist("block_id") or None,
+            offset=offset,
+            limit=limit,
+        )
+    )
+    if error is not None:
+        return error
+    return jsonify(result)
+
+
+def scholarly_create_review_flag(project_id: str, block_id: str):
+    role_error = _role_required("owner", "reviewer")
+    if role_error is not None:
+        return role_error
+    key = _idempotency_header()
+    if key is None:
+        return _error_response("idempotency-key-required", 400)
+    body = _json_body_optional(
+        required={"kind", "body"}, optional={"excerpt"}, maximum_bytes=8 * 1024
+    )
+    if not isinstance(body, dict):
+        return body
+    result, error = _call_service(
+        lambda: review_records.create_flag(
+            g.project,
+            block_id=block_id,
+            kind=body["kind"],
+            body=body["body"],
+            excerpt=body.get("excerpt"),
+            actor=g.review_actor,
+            idempotency_key=key,
+            origin="human",
+        ),
+        mutation=True,
+    )
+    if error is not None:
+        return error
+    return jsonify({"flag": result}), 201
+
+
+def scholarly_transition_review_flag(project_id: str, flag_id: str):
+    role_error = _role_required("owner", "reviewer")
+    if role_error is not None:
+        return role_error
+    key = _idempotency_header()
+    if key is None:
+        return _error_response("idempotency-key-required", 400)
+    body = _json_body_optional(
+        required={"action", "expected_sequence"},
+        optional={"note"},
+        maximum_bytes=8 * 1024,
+    )
+    if not isinstance(body, dict):
+        return body
+    result, error = _call_service(
+        lambda: review_records.transition_flag(
+            g.project,
+            flag_id=flag_id,
+            action=body["action"],
+            expected_sequence=body["expected_sequence"],
+            actor=g.review_actor,
+            idempotency_key=key,
+            note=body.get("note"),
+        ),
+        mutation=True,
+    )
+    if error is not None:
+        return error
+    return jsonify({"flag": result})
+
+
+def scholarly_set_qa_disposition(project_id: str):
+    role_error = _role_required("owner", "reviewer")
+    if role_error is not None:
+        return role_error
+    key = _idempotency_header()
+    if key is None:
+        return _error_response("idempotency-key-required", 400)
+    body = _json_body_optional(
+        required={"block_id", "finding_id", "action", "expected_sequence"},
+        optional={"basis", "reason"},
+        maximum_bytes=8 * 1024,
+    )
+    if not isinstance(body, dict):
+        return body
+    if not isinstance(body["block_id"], str) or not body["block_id"]:
+        return _error_response("invalid-request-shape", 400)
+
+    def operation() -> dict[str, Any]:
+        try:
+            return set_qa_disposition(
+                g.project,
+                block_id=body["block_id"],
+                finding_id=body["finding_id"],
+                action=body["action"],
+                expected_sequence=body["expected_sequence"],
+                actor=g.review_actor,
+                idempotency_key=key,
+                basis=body.get("basis"),
+                reason=body.get("reason"),
+            )
+        except QaDiagnosticsError as exc:
+            raise scholarly_review.ScholarlyReviewError(exc.code) from exc
+
+    result, error = _call_service(operation, mutation=True)
+    if error is not None:
+        return error
+    return jsonify({"disposition": result})
+
+
 def register_scholarly_routes(blueprint: Blueprint) -> Blueprint:
     """Register the complete scholarly HTTP surface on a Translator blueprint."""
 
@@ -1174,6 +1320,10 @@ def register_scholarly_routes(blueprint: Blueprint) -> Blueprint:
         ("/api/projects/<project_id>/reader-notes/<note_id>/state", "scholarly_transition_reader_note", project_access_required(scholarly_transition_reader_note), ("POST",)),
         ("/api/projects/<project_id>/blocks/<block_id>/review", "scholarly_record_block_review", project_access_required(scholarly_record_block_review), ("PUT",)),
         ("/api/projects/<project_id>/blocks/<block_id>/review-coverage", "scholarly_record_review_coverage", project_access_required(scholarly_record_review_coverage), ("POST",)),
+        ("/api/projects/<project_id>/review-flags", "scholarly_list_review_flags", project_access_required(scholarly_list_review_flags), ("GET",)),
+        ("/api/projects/<project_id>/blocks/<block_id>/review-flags", "scholarly_create_review_flag", project_access_required(scholarly_create_review_flag), ("POST",)),
+        ("/api/projects/<project_id>/review-flags/<flag_id>/state", "scholarly_transition_review_flag", project_access_required(scholarly_transition_review_flag), ("POST",)),
+        ("/api/projects/<project_id>/qa-dispositions", "scholarly_set_qa_disposition", project_access_required(scholarly_set_qa_disposition), ("POST",)),
         ("/api/projects/<project_id>/glossary-suggestions", "scholarly_list_glossary_suggestions", project_access_required(scholarly_list_glossary_suggestions), ("GET",)),
         ("/api/projects/<project_id>/glossary-suggestions", "scholarly_create_glossary_suggestion", project_access_required(scholarly_create_glossary_suggestion), ("POST",)),
         ("/api/projects/<project_id>/glossary-suggestions/<suggestion_id>/resolve", "scholarly_resolve_glossary_suggestion", project_access_required(scholarly_resolve_glossary_suggestion), ("POST",)),

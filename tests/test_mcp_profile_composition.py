@@ -280,7 +280,7 @@ async def _inspect_catalog(endpoint: str, token: str, mode: str):
 
 
 @pytest.mark.parametrize(
-    "profile,expected_count", [("workbench", 98), ("documents", 84)]
+    "profile,expected_count", [("workbench", 102), ("documents", 88)]
 )
 @pytest.mark.parametrize("mode", ["2026-07-28", "legacy"])
 def test_profile_catalogs_and_advertised_instructions(

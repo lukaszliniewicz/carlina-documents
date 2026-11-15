@@ -40,7 +40,10 @@ review tools (outline, search, fetch) before calling start:
 5. Save 3 as glossary entries before the run, with `sense` to separate concepts, the source
    forms you observed, and in `notes` what a later window needs to use the term correctly:
    grammatical gender and citation form in a gendered target language, register, when an
-   alternative applies.
+   alternative applies. Set `kind` for names, titles of works, fixed formulae and strings
+   kept untranslated, and `verification` whenever you know it: `verified` when you checked
+   the rendering against a reference edition or authority, `unverified` when you could not,
+   `coined` when no established rendering exists and the one given is yours.
 
 Three properties of the settings to know:
 
@@ -94,22 +97,29 @@ before they steer a whole book.
 
 ## 4. Where doubts go
 
-The response has blocks, fields, optional reader notes and alignment. There is no place for a
-translator's flag, and a reader note is addressed to the reader of the book, capped in number
-and tied to an anchor in the target: it is not a substitute.
+A reader note is addressed to the reader of the book, capped in number and tied to an anchor in
+the target: it is not a place for a translator's doubt. Doubts go into Translator flags, one per
+doubt, anchored to its block, with `carlina_translator_flag_create`:
 
-Until Carlina has such a channel, keep a run log outside the response, keyed by block: the
-assumption made, the alternative rejected and why, suspected source defects, unverified names
-and quotations, passages translated closely because they could not be construed, headings to
-revisit. Then:
+- `assumption`: a reading the text does not settle, with the alternative rejected and why;
+- `source_defect`: a misprint, gap or garbled passage in the source;
+- `unverified`: a name, date, quotation or fact not yet checked;
+- `departure`: a deliberate change of form or content, such as a passage translated closely
+  because it could not be construed, or a joke replaced;
+- `revisit`: a heading, term or passage to come back to once more of the text is done.
 
-- suspected defects in the extracted source go to the document issue tools, with the excerpt
-  and candidate readings;
-- term decisions and their reasons go into the glossary entry's notes;
-- everything else is worked through in review after the run reaches a terminal state, and
-  whatever remains unresolved is reported to the user with block references.
+State the doubt and what would settle it; add a short excerpt when it helps find the place. Use a
+stable idempotency key per doubt so a retry does not duplicate it. Flags can be raised while a
+passive run is active; the block need not have a translation yet. Also:
 
-Do not resolve a doubt silently because there was nowhere to put it.
+- suspected defects in the extracted source (structure, missing text) go to the document issue
+  tools as well, with the excerpt and candidate readings;
+- term decisions and their reasons go into the glossary entry's notes, not a flag;
+- after the run reaches a terminal state, work through `carlina_translator_flag_list`, resolve
+  or dismiss each flag with a note (`carlina_translator_flag_update`, fenced on its
+  `sequence`), and report whatever stays open to the user with block references.
+
+Do not resolve a doubt silently because it was inconvenient to record.
 
 ## 5. After the last window
 
@@ -123,19 +133,30 @@ Do not resolve a doubt silently because there was nowhere to put it.
   compare names with the source, do not see an omission inside a sentence group of normal
   length, and say nothing about negation, modality or meaning. A clean diagnostics run is
   not a review, and a finding is evidence to look at, not a verdict.
+- **Dismiss a finding only after looking at it,** with `carlina_translator_qa_disposition_set`:
+  `false_positive` when the check misread the text, `intended` when the translation departs on
+  purpose, and a reason either way. A dismissal holds for that version of the block; if an edit
+  brings the finding back, it shows again. Report `summary.dismissed_total` with a clean run,
+  since a clean run after dismissals is a different claim from one without.
 - **Do the checks they leave out** with review search and fetch: names against the source;
   numbers QA marks `possibly_spelled_out` or `possibly_shortened`; each recurring term with
   every form used for it; form of address; passages that recur verbatim in the source; the
-  headings you listed; parked items in your log. If the ruleset is older than v2, compare
+  headings you listed; open `revisit` and `unverified` flags. If the ruleset is older than v2, compare
   numbers and dates yourself as well.
 - **Record coverage honestly, by kind.** The target-alone reading of `revision.md` is
   `target_reading` (fetch with `view="target_only"`, which withholds the source); the
   comparison with the source is `bilingual`. A sample covers the anchors sampled. Neither
   diagnostics nor a heading check amounts to bilingual review of the book.
 - **Edit only at an idle boundary,** through the version-fenced review tools, and apply the
-  restraint rules of `revision.md`: name the defect before changing a target.
-- **Report with the scope stated:** which coverage kinds, over which blocks, what the log
-  still contains.
+  restraint rules of `revision.md`: `target_update` requires the defect class and a line on
+  what was wrong, and both stay with the revision. If no class fits, the change is a
+  preference: leave the text.
+- **Settle the unverified glossary entries before export.** Read
+  `carlina_translator_glossary_get(verification="unverified")`; check each rendering and
+  mark it `verified`, or tell the user which renderings remain unconfirmed. Mention
+  `coined` renderings too: a reader may need a note for them.
+- **Report with the scope stated:** which coverage kinds, over which blocks, how many findings
+  were dismissed, and which flags remain open.
 
 ## 6. Multi-volume and shared work
 

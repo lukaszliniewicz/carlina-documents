@@ -23,6 +23,7 @@
   import RetranslationDialog from "./RetranslationDialog.svelte";
   import RetranslationRequestsDialog from "./RetranslationRequestsDialog.svelte";
   import QADiagnosticsDialog from "./QADiagnosticsDialog.svelte";
+  import ReviewFlagsDialog from "./ReviewFlagsDialog.svelte";
   import ShareGrantsDialog from "./ShareGrantsDialog.svelte";
   import ConfirmationDialog from "../lib/ConfirmationDialog.svelte";
   import SemanticPreviewDialog from "./SemanticPreviewDialog.svelte";
@@ -88,6 +89,18 @@
   let qaError = "";
   let qaGrouping = "token";
   let qaGroupId = null;
+  let qaDispositions = "open";
+  let qaDecidingId = "";
+  let flagsOpen = false;
+  let flagsLoading = false;
+  let flagsLoadingMore = false;
+  let flagsPayload = null;
+  let flagsError = "";
+  let flagsState = "open";
+  let flagsBlock = null;
+  let flagsBusyId = "";
+  let flagCounts = {};
+  let openFlagTotal = null;
   let previewLoading = false;
   let previewHtml = "";
   let previewError = "";
@@ -1228,6 +1241,10 @@
     if (accessRole !== "owner") return;
     if (!exportStatus && (activeOperation() || !allBlocksVerified)) return;
     exportOpen = true;
+    if (!glossaryBusy) {
+      glossaryLoaded = false;
+      void loadGlossary();
+    }
     if (exportMetadataLoading || exportBusy) return;
     exportMetadataLoading = true;
     try {
@@ -1634,6 +1651,7 @@
         limit: 200,
         groupBy: qaGrouping,
         groupId: qaGroupId,
+        dispositions: qaDispositions,
         signal: lifecycleController.signal
       });
     } catch (caught) {
@@ -1656,6 +1674,7 @@
         limit: 200,
         groupBy: qaGrouping,
         groupId: qaGroupId,
+        dispositions: qaDispositions,
         signal: lifecycleController.signal
       });
       qaPayload = {
@@ -1684,6 +1703,61 @@
     await loadQaDiagnostics();
   }
 
+  async function chooseQaDispositions(value) {
+    qaDispositions = value;
+    qaPayload = null;
+    await loadQaDiagnostics();
+  }
+
+  function applyQaDecision(finding, decision) {
+    if (!qaPayload) return;
+    const removed = (qaDispositions === "open" && decision.state === "dismissed")
+      || (qaDispositions === "dismissed" && decision.state !== "dismissed");
+    const update = (list) => Array.isArray(list)
+      ? (removed
+        ? list.filter((item) => item.id !== finding.id)
+        : list.map((item) => item.id === finding.id ? { ...item, disposition: decision } : item))
+      : list;
+    const summary = { ...(qaPayload.summary || {}) };
+    summary.dismissed_total = Math.max(0, Number(summary.dismissed_total || 0) + (decision.state === "dismissed" ? 1 : -1));
+    if (removed) {
+      summary.total = Math.max(0, Number(summary.total || 0) - 1);
+      if (summary.by_severity && finding.severity in summary.by_severity) {
+        summary.by_severity = { ...summary.by_severity, [finding.severity]: Math.max(0, summary.by_severity[finding.severity] - 1) };
+      }
+    }
+    const pagination = qaPayload.pagination && removed
+      ? { ...qaPayload.pagination, total: Math.max(0, Number(qaPayload.pagination.total || 0) - 1) }
+      : qaPayload.pagination;
+    qaPayload = { ...qaPayload, summary, pagination, items: update(qaPayload.items), occurrences: update(qaPayload.occurrences) };
+  }
+
+  async function decideQaFinding(finding, { action, basis = null, reason = "" }) {
+    if (qaDecidingId) return false;
+    qaDecidingId = finding.id;
+    qaError = "";
+    try {
+      const response = await workspaceClient.setQaDisposition({
+        blockId: finding.block_id,
+        findingId: finding.id,
+        action,
+        expectedSequence: Number(finding.disposition?.sequence || 0),
+        basis,
+        reason
+      }, { signal: lifecycleController.signal });
+      applyQaDecision(finding, response.disposition);
+      return true;
+    } catch (caught) {
+      if (isAbortError(caught)) return false;
+      qaError = isConflictError(caught)
+        ? "This finding changed or no longer applies to the current translation. Run QA again."
+        : caught.message || "Unable to record the decision.";
+      return false;
+    } finally {
+      qaDecidingId = "";
+    }
+  }
+
   async function inspectQaGroup(id) {
     qaGroupId = id;
     qaPayload = null;
@@ -1700,10 +1774,126 @@
   }
 
   async function navigateQaFinding(finding) {
-    const blockId = String(finding?.block_id || "");
-    const order = Number(finding?.order);
-    if (!blockId) return;
     qaOpen = false;
+    await navigateToBlock(finding);
+  }
+
+  async function loadFlagIndex() {
+    const counts = {};
+    let offset = 0;
+    try {
+      for (let page = 0; page < 10; page += 1) {
+        const payload = await workspaceClient.loadReviewFlags({ offset, limit: 100, signal: lifecycleController.signal });
+        for (const flag of payload?.items || []) counts[flag.block_id] = (counts[flag.block_id] || 0) + 1;
+        openFlagTotal = Number(payload?.summary?.open || 0);
+        if (!payload?.pagination?.has_more) break;
+        offset += payload.items.length;
+      }
+      flagCounts = counts;
+    } catch (caught) {
+      if (!isAbortError(caught)) openFlagTotal = null;
+    }
+  }
+
+  function flagQuery(offset = 0) {
+    return {
+      states: flagsState === "all" ? ["open", "resolved", "dismissed"] : [flagsState],
+      blockIds: flagsBlock ? [flagsBlock.id] : [],
+      offset,
+      limit: 50,
+      signal: lifecycleController.signal
+    };
+  }
+
+  async function loadFlags() {
+    flagsLoading = true;
+    flagsError = "";
+    try {
+      flagsPayload = await workspaceClient.loadReviewFlags(flagQuery());
+    } catch (caught) {
+      if (!isAbortError(caught)) flagsError = caught.message || "Unable to load flags.";
+    } finally {
+      flagsLoading = false;
+    }
+  }
+
+  async function loadMoreFlags() {
+    if (!flagsPayload?.pagination?.has_more || flagsLoadingMore) return;
+    flagsLoadingMore = true;
+    try {
+      const next = await workspaceClient.loadReviewFlags(flagQuery(flagsPayload.items.length));
+      flagsPayload = { ...next, items: [...flagsPayload.items, ...(next?.items || [])] };
+    } catch (caught) {
+      if (!isAbortError(caught)) flagsError = caught.message || "Unable to load more flags.";
+    } finally {
+      flagsLoadingMore = false;
+    }
+  }
+
+  async function openFlags(block = null) {
+    flagsBlock = block ? { id: block.id, order: block.order } : null;
+    flagsOpen = true;
+    flagsPayload = null;
+    await loadFlags();
+  }
+
+  async function chooseFlagState(value) {
+    flagsState = value;
+    flagsPayload = null;
+    await loadFlags();
+  }
+
+  async function clearFlagBlock() {
+    flagsBlock = null;
+    flagsPayload = null;
+    await loadFlags();
+  }
+
+  async function navigateFlag(flag) {
+    flagsOpen = false;
+    await navigateToBlock(flag);
+  }
+
+  async function transitionFlag(flag, action, note) {
+    if (flagsBusyId) return false;
+    flagsBusyId = flag.id;
+    flagsError = "";
+    try {
+      await workspaceClient.transitionReviewFlag(flag.id, action, flag.sequence, note, { signal: lifecycleController.signal });
+      await Promise.all([loadFlags(), loadFlagIndex()]);
+      return true;
+    } catch (caught) {
+      if (isAbortError(caught)) return false;
+      flagsError = isConflictError(caught)
+        ? "Someone changed this flag in the meantime. The list has been refreshed."
+        : caught.message || "Unable to update the flag.";
+      if (isConflictError(caught)) await loadFlags();
+      return false;
+    } finally {
+      flagsBusyId = "";
+    }
+  }
+
+  async function createFlag({ kind, body }) {
+    if (!flagsBlock || flagsBusyId) return false;
+    flagsBusyId = "new";
+    flagsError = "";
+    try {
+      await workspaceClient.createReviewFlag(flagsBlock.id, { kind, body }, { signal: lifecycleController.signal });
+      await Promise.all([loadFlags(), loadFlagIndex()]);
+      return true;
+    } catch (caught) {
+      if (!isAbortError(caught)) flagsError = caught.message || "Unable to add the flag.";
+      return false;
+    } finally {
+      flagsBusyId = "";
+    }
+  }
+
+  async function navigateToBlock(target) {
+    const blockId = String(target?.block_id || "");
+    const order = Number(target?.order);
+    if (!blockId) return;
     if (!blocks.some((block) => String(block.id) === blockId) && Number.isInteger(order) && order > 0) {
       try {
         const payload = await workspaceClient.load({
@@ -1722,6 +1912,7 @@
     }, 0);
   }
 
+  $: unverifiedGlossary = [...glossaryEntries, ...glossaryProposals].filter((item) => item?.usage?.verification === "unverified");
   $: operationState = String(operation?.state || workspaceProject?.status || "").toLowerCase();
   $: operationActive = ACTIVE_OPERATION_STATES.has(operationState);
   $: cancellationRequested = ["cancel_requested", "cancelling"].includes(operationState);
@@ -1751,6 +1942,7 @@
     }
     await refresh();
     polling.start();
+    loadFlagIndex();
   });
 
   onDestroy(() => {
@@ -1803,6 +1995,7 @@
       {/if}
       <IconButton icon="book" label={glossaryLoaded ? `Glossary (${glossaryEntries.length + glossaryProposals.length + glossarySuggestions.length})` : "Glossary"} disabled={loading} aria-haspopup="dialog" onclick={openGlossary} />
       <IconButton icon="refresh" label={qaLoading ? "Running translation QA…" : qaPayload ? `Translation QA (${qaPayload.summary?.total || 0})` : "Translation QA"} disabled={loading || qaLoading} aria-haspopup="dialog" onclick={openQaDiagnostics} />
+      <IconButton icon="warning" label={openFlagTotal === null ? "Translator flags" : `Translator flags (${openFlagTotal} open)`} disabled={loading} aria-haspopup="dialog" onclick={() => openFlags()} />
       <IconButton icon="folder" label={dossierBusy ? "Loading research…" : "Research dossiers"} disabled={dossierBusy} aria-haspopup="dialog" onclick={openResearchDossiers} />
       {#if ownerAccess}
         <IconButton icon="refresh" label="Synchronize list numbering" disabled={loading || structuralActionsDisabled} aria-haspopup="dialog" onclick={() => (numberingOpen = true)} />
@@ -1886,13 +2079,27 @@
         onStop={stopActiveOperation}
       />
 
-      <QADiagnosticsDialog open={qaOpen} loading={qaLoading} loadingMore={qaLoadingMore} error={qaError} payload={qaPayload} grouping={qaGrouping} groupId={qaGroupId} ongrouping={chooseQaGrouping} ongroup={inspectQaGroup} onclose={closeQaDiagnostics} onrefresh={loadQaDiagnostics} onloadmore={loadMoreQaDiagnostics} onnavigate={navigateQaFinding} />
+      <QADiagnosticsDialog open={qaOpen} loading={qaLoading} loadingMore={qaLoadingMore} error={qaError} payload={qaPayload} grouping={qaGrouping} groupId={qaGroupId} ongrouping={chooseQaGrouping} ongroup={inspectQaGroup} onclose={closeQaDiagnostics} onrefresh={loadQaDiagnostics} onloadmore={loadMoreQaDiagnostics} onnavigate={navigateQaFinding} dispositions={qaDispositions} ondispositions={chooseQaDispositions} canDecide={!viewerAccess} decidingId={qaDecidingId} ondecide={decideQaFinding} />
+
+      <ReviewFlagsDialog open={flagsOpen} loading={flagsLoading} loadingMore={flagsLoadingMore} error={flagsError} payload={flagsPayload} stateFilter={flagsState} block={flagsBlock} canEdit={!viewerAccess} busyId={flagsBusyId} onclose={() => (flagsOpen = false)} onstate={chooseFlagState} onclearblock={clearFlagBlock} onnavigate={navigateFlag} onloadmore={loadMoreFlags} ontransition={transitionFlag} oncreate={createFlag} />
 
       {#if numberingOpen}
         <NumberingSyncDialog client={workspaceClient} onClose={() => (numberingOpen = false)} onApplied={() => refresh()} />
       {/if}
 
       <Dialog open={exportOpen} title="Export semantic document" description="Choose a format for the verified translation. Reader annotations are included in every format." size="lg" onclose={closeExport}>
+            {#if unverifiedGlossary.length}
+              <section class="export-attention" aria-label="Unverified glossary entries">
+                <p><strong>{unverifiedGlossary.length} glossary {unverifiedGlossary.length === 1 ? "entry is" : "entries are"} still unverified.</strong> Check {unverifiedGlossary.length === 1 ? "this rendering" : "these renderings"} against a reference, or tell readers {unverifiedGlossary.length === 1 ? "it is" : "they are"} unconfirmed, before publishing.</p>
+                <ul>
+                  {#each unverifiedGlossary.slice(0, 12) as item (item.proposal_id || item.concept_id)}
+                    <li>{item.source_term} <span aria-hidden="true">→</span> {item.target_term}</li>
+                  {/each}
+                </ul>
+                {#if unverifiedGlossary.length > 12}<p>And {unverifiedGlossary.length - 12} more in the glossary.</p>{/if}
+                <button type="button" class="btn btn-ghost" disabled={exportBusy} on:click={() => { exportOpen = false; openGlossary(); }}>Open glossary</button>
+              </section>
+            {/if}
             <form class="export-form" on:submit={submitExport}>
               <fieldset class="export-options" disabled={exportBusy || epubEditionBusy}>
                 <legend>Choose export format</legend>
@@ -2179,6 +2386,8 @@
           onTransitionNote={transitionReaderNote}
           onReview={saveBlockReview}
           onCoverage={recordBlockCoverage}
+          {flagCounts}
+          onFlags={openFlags}
         />
         {#if hasMore}
           <button type="button" class="btn btn-ghost load-more" disabled={loadingMore} on:click={loadMore}>{loadingMore ? "Loading..." : `Load more blocks (${blocks.length} of ${total})`}</button>
@@ -2236,6 +2445,10 @@
   .btn:disabled { opacity:.55; cursor:not-allowed; }
   .state-card { padding:2rem 1rem; border:1px dashed var(--color-rule,#ddd); border-radius:.55rem; color:var(--color-ink-muted,#667); text-align:center; }
   .export-form { display:grid; gap:.85rem; }
+  .export-attention { display:grid; gap:.4rem; margin-bottom:.85rem; padding:.7rem .8rem; border:1px solid color-mix(in srgb,var(--color-warning) 40%,var(--color-rule)); border-left-width:4px; background:var(--color-surface); font-size:.82rem; }
+  .export-attention p { margin:0; color:var(--color-ink-soft); }
+  .export-attention ul { margin:0; padding-left:1.1rem; color:var(--color-ink); columns:2 16rem; }
+  .export-attention .btn { justify-self:start; }
   .export-metadata-field { display:grid; gap:.3rem; font-size:.82rem; color:var(--color-ink-soft,#555); }
   .more-book-details { display:grid; gap:.7rem; }
   .more-book-details > * { margin-top:.7rem; }

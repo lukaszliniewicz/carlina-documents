@@ -14,7 +14,7 @@ from carlina.runtime_composition import resolve_runtime_composition
 from iarf_assistant.addons.translator import api_client
 from iarf_assistant.addons.translator import models, review_coverage
 from iarf_assistant.core import mcp_gateway
-from iarf_assistant.addons.translator.mcp_settings import SentenceEdit
+from iarf_assistant.addons.translator.mcp_settings import EditReason, SentenceEdit
 from iarf_assistant.extensions import db
 
 
@@ -155,6 +155,7 @@ def test_review_methods_forward_context_and_proposal_flags(client, monkeypatch):
         group_by="finding",
         include_excerpts=True,
         group_id=None,
+        dispositions="open",
     )
     explain.assert_called_once_with(
         project, block_ids=["block-2"], question="Why this wording?"
@@ -559,6 +560,7 @@ def test_gateway_routes_target_update_through_authenticated_owner(
             candidate={"candidate": True},
             expected_active_version=3,
             idempotency_key="target-edit-1",
+            reason=EditReason(defect="omission", note="Second clause was missing."),
             restore_parent_alignment=restore_parent_alignment,
         )
     )
@@ -574,6 +576,7 @@ def test_gateway_routes_target_update_through_authenticated_owner(
         "target-edit-1",
         restore_parent_alignment=restore_parent_alignment,
         response_mode="compact",
+        edit_reason={"defect": "omission", "note": "Second clause was missing."},
     )
 
 
@@ -636,6 +639,7 @@ def test_gateway_forwards_typed_sentence_edit_with_named_json_fields(
             block_id="block-1",
             expected_active_version=8,
             idempotency_key="sentence-edit-1",
+            reason=EditReason(defect="language", note="Agreement error."),
             sentence_edit=typed_edit,
         )
     )
@@ -650,4 +654,5 @@ def test_gateway_forwards_typed_sentence_edit_with_named_json_fields(
         restore_parent_alignment=False,
         sentence_edit=expected,
         response_mode="compact",
+        edit_reason={"defect": "language", "note": "Agreement error."},
     )

@@ -1031,6 +1031,7 @@ class TranslatorClient:
         group_by: str = "finding",
         include_excerpts: bool = True,
         group_id: str | None = None,
+        dispositions: str = "open",
     ) -> dict[str, Any]:
         """Run deterministic post-translation QA over active target revisions."""
 
@@ -1047,6 +1048,133 @@ class TranslatorClient:
             group_by=group_by,
             include_excerpts=include_excerpts,
             group_id=group_id,
+            dispositions=dispositions,
+        )
+
+    def qa_disposition_set(
+        self,
+        project_id: str,
+        *,
+        block_id: str,
+        finding_id: str,
+        action: str,
+        expected_sequence: int,
+        idempotency_key: str,
+        basis: str | None = None,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Dismiss a current QA finding with a reason, or reopen it."""
+
+        try:
+            project = self._project(project_id)
+            require_document_block_engine(project)
+            result = qa_diagnostics.set_qa_disposition(
+                project,
+                block_id=block_id,
+                finding_id=finding_id,
+                action=action,
+                expected_sequence=expected_sequence,
+                actor=scholarly_review.ReviewActor("owner", self.user_id),
+                idempotency_key=idempotency_key,
+                basis=basis,
+                reason=reason,
+            )
+            db.session.commit()
+            return result
+        except BaseException:
+            db.session.rollback()
+            raise
+
+    def flag_create(
+        self,
+        project_id: str,
+        *,
+        block_id: str,
+        kind: str,
+        body: str,
+        idempotency_key: str,
+        excerpt: str | None = None,
+        origin: str = "agent",
+    ) -> dict[str, Any]:
+        """Open a block-anchored translator flag."""
+
+        from .review_records import create_flag
+
+        try:
+            project = self._project(project_id)
+            require_document_block_engine(project)
+            result = create_flag(
+                project,
+                block_id=block_id,
+                kind=kind,
+                body=body,
+                excerpt=excerpt,
+                origin=origin,
+                actor=scholarly_review.ReviewActor("owner", self.user_id),
+                idempotency_key=idempotency_key,
+            )
+            db.session.commit()
+            return result
+        except BaseException:
+            db.session.rollback()
+            raise
+
+    def flag_update(
+        self,
+        project_id: str,
+        *,
+        flag_id: str,
+        action: str,
+        expected_sequence: int,
+        idempotency_key: str,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        """Resolve, dismiss or reopen a translator flag."""
+
+        from .review_records import transition_flag
+
+        try:
+            project = self._project(project_id)
+            require_document_block_engine(project)
+            result = transition_flag(
+                project,
+                flag_id=flag_id,
+                action=action,
+                expected_sequence=expected_sequence,
+                note=note,
+                actor=scholarly_review.ReviewActor("owner", self.user_id),
+                idempotency_key=idempotency_key,
+            )
+            db.session.commit()
+            return result
+        except BaseException:
+            db.session.rollback()
+            raise
+
+    def flag_list(
+        self,
+        project_id: str,
+        *,
+        states: Sequence[str] | None = None,
+        kinds: Sequence[str] | None = None,
+        block_ids: Sequence[str] | None = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """List translator flags in document order, open ones by default."""
+
+        from .review_records import list_flags
+
+        project = self._project(project_id)
+        require_document_block_engine(project)
+        return list_flags(
+            project,
+            actor=scholarly_review.ReviewActor("owner", self.user_id),
+            states=states,
+            kinds=kinds,
+            block_ids=block_ids,
+            offset=offset,
+            limit=limit,
         )
 
     def review_coverage_record(
@@ -1190,6 +1318,7 @@ class TranslatorClient:
         restore_parent_alignment: bool = False,
         sentence_edit: dict[str, Any] | None = None,
         response_mode: str = "full",
+        edit_reason: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Append one owner-authored target correction through the block service."""
 
@@ -1209,6 +1338,7 @@ class TranslatorClient:
                 idempotency_key=idempotency_key,
                 restore_parent_alignment=restore_parent_alignment,
                 **({"sentence_edit": sentence_edit} if sentence_edit is not None else {}),
+                **({"edit_reason": edit_reason} if edit_reason is not None else {}),
             )
             db.session.commit()
             if response_mode == "compact":
@@ -1347,11 +1477,13 @@ class TranslatorClient:
 
     def glossary_get(self, project_id: str, *, query: str = "",
                      offset: int = 0, limit: int = 50,
-                     include_observations: bool = True) -> dict[str, Any]:
+                     include_observations: bool = True,
+                     verification: str | None = None) -> dict[str, Any]:
         """Read current live terminology, including lemma forms and revision fences."""
         from .working_glossary import read_glossary
         return read_glossary(self._project(project_id), query=query, offset=offset,
-                             limit=limit, include_observations=include_observations)
+                             limit=limit, include_observations=include_observations,
+                             verification=verification)
 
     def glossary_propose(self, project_id: str, *, source_plan_id: str,
                          entries: Sequence[Mapping[str, Any]], idempotency_key: str,

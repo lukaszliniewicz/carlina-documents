@@ -34,6 +34,8 @@
   export let onTransitionNote = () => {};
   export let onReview = () => {};
   export let onCoverage = () => {};
+  export let flagCount = 0;
+  export let onFlags = () => {};
 
   const MAX_NOTE_ANCHOR_LENGTH = 160;
   const NOTE_TOOLBAR_HALF_WIDTH = 24;
@@ -307,6 +309,9 @@
     <div class="block-title">
       <span class="order">Block {blockNumber}</span>
       <h2>{roleLabel}</h2>
+      {#if flagCount}
+        <button type="button" class="flag-pill" title="Open translator flags for this block" on:click={onFlags}>{flagCount} open flag{flagCount === 1 ? "" : "s"}</button>
+      {/if}
       {#if alignedReview}
         <span class="alignment-info" role="img" aria-label={alignmentDescription} title={alignmentDescription}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" /><path d="M10 9v5m0-8v.2" /></svg>
@@ -344,6 +349,8 @@
                 {#each [["structural", "Structure checked"], ["target_reading", "Target text read"], ["bilingual", "Compared with source"]] as [kind, label]}
                   <button type="button" disabled={noteBusy || readOnly} aria-pressed={Boolean(review.coverage?.[kind]?.complete)} on:click={() => onCoverage(kind)}>{label}{review.coverage?.[kind]?.complete ? " ✓" : ""}</button>
                 {/each}
+                <span class="menu-rule" aria-hidden="true"></span>
+                <button type="button" on:click={() => { reviewOpen = false; onFlags(); }}>{flagCount ? `Translator flags (${flagCount} open)` : "Flag a doubt…"}</button>
               </div>
             {/if}
           </div>
@@ -535,6 +542,8 @@
   .block-card { display:grid; gap:0; border:1px solid color-mix(in srgb,var(--color-rule,#d0c8bc) 72%,transparent); background:var(--color-surface,#faf8f3); }
   .block-card.status-attention { border-color:color-mix(in srgb,var(--color-tobacco,#69583f) 48%,var(--color-rule,#d0c8bc)); }
   .block-card.selected { border-color:color-mix(in srgb,var(--color-clay,#7c6053) 62%,var(--color-rule,#d0c8bc)); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-clay,#7c6053) 16%,transparent); }
+  .flag-pill { border:1px solid color-mix(in srgb,var(--color-clay) 45%,var(--color-rule)); background:transparent; color:var(--color-clay); border-radius:999px; padding:.08rem .45rem; font:inherit; font-size:.66rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .flag-pill:hover, .flag-pill:focus-visible { background:color-mix(in srgb,var(--color-clay) 10%,transparent); }
   .block-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.15rem .6rem; padding:.25rem .65rem .25rem 1rem; }
   .block-title { display:flex; align-items:center; flex-wrap:wrap; gap:.45rem; }
   .order { color:var(--color-ink-muted,#675f56); font-size:.61rem; font-weight:650; font-variant-numeric:tabular-nums; }

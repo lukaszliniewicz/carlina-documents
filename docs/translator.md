@@ -979,6 +979,18 @@ headword. Eligible-span validation excludes protected text; lexical association 
 model evidence, not a machine-certified morphological analysis. New usage metadata
 is encrypted and receipt-bound, while legacy payload serialization remains unchanged.
 
+Usage v3 adds `kind` (`term`, `name`, `title`, `formula` or `do_not_translate`,
+whose target must equal its source) and `verification` (`verified`, `unverified`,
+`coined`, or not stated). Both are optional on `glossary_propose` and on owner
+edits; an edit that omits them keeps the current values. A request without them
+fingerprints as before, so earlier exact retries still replay. Entries, packet
+terminology and locked constraints carry `kind` when it is not `term` and
+`verification` when stated. `glossary_get` reports `summary.by_verification` for
+the whole glossary and filters with `verification` (`unstated` for entries that
+state nothing). The workspace glossary sets both, can show unverified entries
+only, and the export dialog lists unverified entries before export. v1 and v2
+payloads are unchanged and read as `term` with no stated verification.
+
 Newly prepared windows select bounded relevant model terminology. Already prepared
 or leased windows, including retries, reuse their retained lexical snapshot.
 Human-locked constraints remain authoritative; a model cannot overwrite or fabricate
@@ -1443,13 +1455,51 @@ evidence for review and none a verdict:
 
 None of the checks compares negation, modality or meaning.
 
+A finding can be dismissed as a `false_positive` or as `intended`, with a
+reason of up to 500 characters, through `carlina_translator_qa_disposition_set`
+or the QA dialog; `reopen` withdraws the dismissal. Decisions are an encrypted,
+append-only event log in `translation_qa_disposition`, fenced on
+`expected_sequence` (0 for a finding never decided) and checked against a fresh
+scan of the block, so only a finding that exists on the current target can be
+decided. Finding ids hash the ruleset, plan, block, target version, code, spans
+and evidence: when the target or the ruleset changes, a recurring problem gets a
+new id and shows again, and the old decision simply lapses. QA lists open
+findings by default; `dispositions` selects `dismissed` or `all`, matching
+findings carry their `disposition`, and `summary.dismissed_total` counts
+dismissed findings in the scan, so a clean run says how much was set aside.
+
+## Translator flags
+
+Flags hold what a translator or reviewer knows but the text does not show: an
+`assumption` (a reading the text does not settle), a `source_defect`, an
+`unverified` name, date or quotation, a deliberate `departure` and a point to
+`revisit`. Each flag is anchored to one block, records the active target version
+when opened, and carries a body of up to 1,000 characters and an optional
+source or target excerpt of up to 300. Its origin is `agent` (MCP), `human` (the
+workspace) or `translation`. Flags are an encrypted, append-only event log in
+`translation_review_flag_event`: `open` is always sequence 1, then `resolve` or
+`dismiss` (each with a note) and `reopen`, each fenced on the flag's current
+`sequence`. The tools are `carlina_translator_flag_create`,
+`carlina_translator_flag_update` and `carlina_translator_flag_list` (open flags
+in document order by default, filterable by state, kind and block, with counts).
+Bilingual `review_fetch` shows a block's open flags; the target-only view omits
+them, since they can quote the source. The workspace lists flags in a dialog,
+shows a count on each flagged block, and lets owners and reviewers add, resolve,
+dismiss and reopen them. Flags never enter exported text.
+
 Source now also provides
 `carlina_translator_target_update`: it accepts one block candidate, the expected
 active target version, and a required idempotency key. Its encrypted,
 actor-scoped receipt binds the canonical request and retains the original safe
 block projection, so an exact retry returns the same result even after a later
-edit while different reuse fails closed. A freshly started external client must
-accept the current tool catalog. Target editing and source-plan
+edit while different reuse fails closed. The MCP tool also requires `reason`,
+`{"defect", "note"}`: the defect the change removes (`meaning`, `omission`,
+`addition`, `language`, `terminology`, `consistency`, `brief`, `misreading` or
+`formatting`) and one line on what was wrong. The reason is stored encrypted in
+`translation_target_edit_reason` beside the new revision, so revision hashes are
+unchanged; it joins the receipt's canonical request, and review projections show
+it as `target.provenance.edit_reason`. Owner edits in the workspace may omit it.
+A freshly started external client must accept the current tool catalog. Target editing and source-plan
 correction take the same active-plan pointer lock: the edit is either visible to
 the correction's target carry-forward or fails as stale, never reporting success
 for a newly superseded plan.

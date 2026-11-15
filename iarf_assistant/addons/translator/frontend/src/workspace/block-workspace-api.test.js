@@ -63,6 +63,62 @@ describe("QA diagnostics API", () => {
   });
 });
 
+describe("review records API", () => {
+  it("sends QA decisions and flag transitions with idempotency keys", async () => {
+    const fetchJson = vi.fn().mockResolvedValue({});
+    const client = createBlockWorkspaceClient({ fetchJson }, "project/1");
+
+    await client.loadQaDiagnostics({ dispositions: "dismissed" });
+    expect(new URL(fetchJson.mock.calls[0][0], "https://example.test").searchParams.get("dispositions")).toBe("dismissed");
+    await client.loadQaDiagnostics();
+    expect(new URL(fetchJson.mock.calls[1][0], "https://example.test").searchParams.has("dispositions")).toBe(false);
+
+    await client.setQaDisposition({ blockId: "b-1", findingId: "f-1", action: "dismiss", expectedSequence: 0, basis: "intended", reason: "Kept." });
+    let [url, options] = fetchJson.mock.calls[2];
+    expect(url).toBe("/addons/translator/api/projects/project%2F1/qa-dispositions");
+    expect(options.headers["Idempotency-Key"]).toBeTruthy();
+    expect(JSON.parse(options.body)).toEqual({ block_id: "b-1", finding_id: "f-1", action: "dismiss", expected_sequence: 0, basis: "intended", reason: "Kept." });
+    await client.setQaDisposition({ blockId: "b-1", findingId: "f-1", action: "reopen", expectedSequence: 1 });
+    expect(JSON.parse(fetchJson.mock.calls[3][1].body)).toEqual({ block_id: "b-1", finding_id: "f-1", action: "reopen", expected_sequence: 1 });
+
+    await client.loadReviewFlags({ states: ["open", "resolved"], blockIds: ["b/2"], offset: 50, limit: 50 });
+    const flags = new URL(fetchJson.mock.calls[4][0], "https://example.test");
+    expect(flags.pathname).toBe("/addons/translator/api/projects/project%2F1/review-flags");
+    expect(flags.searchParams.getAll("state")).toEqual(["open", "resolved"]);
+    expect(flags.searchParams.getAll("block_id")).toEqual(["b/2"]);
+    expect(flags.searchParams.get("offset")).toBe("50");
+
+    await client.createReviewFlag("b/2", { kind: "revisit", body: "Check later." });
+    [url, options] = fetchJson.mock.calls[5];
+    expect(url).toBe("/addons/translator/api/projects/project%2F1/blocks/b%2F2/review-flags");
+    expect(JSON.parse(options.body)).toEqual({ kind: "revisit", body: "Check later." });
+
+    await client.transitionReviewFlag("flag/1", "reopen", 2);
+    [url, options] = fetchJson.mock.calls[6];
+    expect(url).toBe("/addons/translator/api/projects/project%2F1/review-flags/flag%2F1/state");
+    expect(JSON.parse(options.body)).toEqual({ action: "reopen", expected_sequence: 2 });
+  });
+});
+
+describe("glossary classification", () => {
+  it("accepts kind and verification in usage and sends them when saving", async () => {
+    const usage = { sense: "", match_policy: "exact", source_forms: ["Zeitung"], observations: [], provenance: "human-owner", kind: "title", verification: null };
+    const entry = { concept_id: "c-1", active_version: 1, source_term: "Zeitung", target_term: "Zeitung", notes: null, scope: "document", updated_at: null, usage };
+    const glossary = { contract: "translator-block-glossary-v3", project_id: "p", source_plan_id: "plan", entries: [entry], proposals: [], suggestions: [] };
+    expect(validateBlockGlossaryPayload(glossary).entries[0].usage.kind).toBe("title");
+    expect(() => validateBlockGlossaryPayload({ ...glossary, entries: [{ ...entry, usage: { ...usage, kind: "brand" } }] })).toThrow(/usage/);
+    expect(() => validateBlockGlossaryPayload({ ...glossary, entries: [{ ...entry, usage: { ...usage, extra: 1 } }] })).toThrow(/usage/);
+
+    const fetchJson = vi.fn().mockResolvedValue(glossary);
+    const client = createBlockWorkspaceClient({ fetchJson }, "p");
+    await client.saveGlossaryEntry({ ...entry, kind: "name", verification: "coined" });
+    expect(JSON.parse(fetchJson.mock.calls[0][1].body)).toEqual(expect.objectContaining({ kind: "name", verification: "coined" }));
+    await client.saveGlossaryEntry({ ...entry, kind: undefined, verification: "" });
+    const body = JSON.parse(fetchJson.mock.calls[1][1].body);
+    expect("kind" in body || "verification" in body).toBe(false);
+  });
+});
+
 describe("block workspace API boundary", () => {
   it("sends source and edition CAS witnesses with reusable EPUB choices", async () => {
     const fetchJson = vi.fn().mockResolvedValue({});

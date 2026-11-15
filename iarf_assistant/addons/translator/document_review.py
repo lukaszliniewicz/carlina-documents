@@ -47,7 +47,9 @@ from .models import (
     TranslationTargetBlockActive,
     TranslationTargetBlockRevision,
 )
+from .review_records import edit_reasons, open_flags_by_block
 from .scholarly_review import (
+    ScholarlyReviewError,
     get_research_dossier,
     list_research_dossiers,
 )
@@ -984,6 +986,8 @@ class _ReviewContext:
     dossier_summary: dict[str, Any] | None
     dossier_payload: Mapping[str, Any] | None
     include_alignment: bool
+    edit_reasons: dict[str, dict[str, str]]
+    flags: dict[str, list[dict[str, Any]]]
 
 
 def _load_workspace_plan(project: Any) -> WorkspacePlan:
@@ -1006,6 +1010,7 @@ def _load_context(
     include_proposals: bool = False,
     include_research: bool = False,
     include_alignment: bool = False,
+    include_flags: bool = False,
 ) -> _ReviewContext:
     if workspace_plan is None:
         workspace_plan = _load_workspace_plan(project)
@@ -1085,6 +1090,26 @@ def _load_context(
             for pointer in pointers
             if pointer.revision_id in by_id
         }
+    try:
+        reasons = edit_reasons(
+            workspace_plan.record.id,
+            [
+                revision.id
+                for block_id, revision in revisions.items()
+                if block_id in selected_id_set
+            ],
+        )
+        flags = (
+            open_flags_by_block(
+                project,
+                workspace_plan.record.id,
+                [block for block in blocks if block.id in selected_id_set],
+            )
+            if include_flags
+            else {}
+        )
+    except ScholarlyReviewError as exc:
+        raise _error(exc.code) from exc
     return _ReviewContext(
         project=project,
         workspace_plan=workspace_plan,
@@ -1098,6 +1123,8 @@ def _load_context(
         dossier_summary=dossier_summary,
         dossier_payload=dossier_payload,
         include_alignment=include_alignment,
+        edit_reasons=reasons,
+        flags=flags,
     )
 
 
@@ -1185,6 +1212,9 @@ def _block_item(
                 "author_type": _safe_text(revision.author_type, maximum=32),
                 "created_at": _safe_timestamp(revision.created_at),
             }
+            reason = context.edit_reasons.get(str(revision.id))
+            if reason is not None:
+                target["provenance"]["edit_reason"] = dict(reason)
         if context.include_alignment:
             alignment = target_projection.get("alignment")
             if isinstance(alignment, Mapping):
@@ -1213,6 +1243,7 @@ def _block_item(
         "source": {"editor": compact_source_projection(block)},
         "target": target,
         "reader_notes": reader_notes,
+        "flags": context.flags.get(block.id, []),
         "glossary": context.glossary.get(block.id, []),
         "review": context.reviews.get(block.id),
     }
@@ -1434,6 +1465,7 @@ def review_fetch(
         include_proposals=include_proposals,
         include_research=include_research,
         include_alignment=include_alignment,
+        include_flags=not target_only,
     )
     result: dict[str, Any] = {
         "contract": REVIEW_CONTRACT,

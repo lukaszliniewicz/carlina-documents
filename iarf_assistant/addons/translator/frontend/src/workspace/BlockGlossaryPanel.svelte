@@ -13,6 +13,38 @@
   export let focusConceptId = "";
   let editing = null;
   let focusedConceptId = "";
+  let unverifiedOnly = false;
+
+  const KIND_LABELS = {
+    term: "Term",
+    name: "Name",
+    title: "Title of a work",
+    formula: "Fixed formula",
+    do_not_translate: "Do not translate"
+  };
+  const VERIFICATION_LABELS = {
+    verified: "Verified",
+    unverified: "Unverified",
+    coined: "Coined"
+  };
+
+  function unverified(item) {
+    return item?.usage?.verification === "unverified";
+  }
+
+  function classification(item) {
+    const parts = [];
+    const kind = item?.usage?.kind;
+    if (kind && kind !== "term") parts.push(KIND_LABELS[kind] || kind);
+    const verification = item?.usage?.verification;
+    if (verification) parts.push(VERIFICATION_LABELS[verification] || verification);
+    return parts.join(" · ");
+  }
+
+  $: unverifiedCount = [...entries, ...proposals].filter(unverified).length;
+  $: if (!unverifiedCount) unverifiedOnly = false;
+  $: shownEntries = unverifiedOnly ? entries.filter(unverified) : entries;
+  $: shownProposals = unverifiedOnly ? proposals.filter(unverified) : proposals;
 
   $: canLock = !readOnly && accessRole === "owner";
   $: canSuggest = !readOnly && accessRole === "reviewer";
@@ -43,7 +75,9 @@
       source_term: "",
       target_term: "",
       accepted_target_forms_text: "",
-      notes: ""
+      notes: "",
+      kind: "term",
+      verification: ""
     };
   }
 
@@ -57,7 +91,9 @@
       source_term: suggestion.source_term,
       target_term: suggestion.target_term,
       accepted_target_forms_text: "",
-      notes: suggestion.notes || ""
+      notes: suggestion.notes || "",
+      kind: "term",
+      verification: ""
     };
   }
 
@@ -69,7 +105,9 @@
       source_term: entry.source_term,
       target_term: entry.target_term,
       accepted_target_forms_text: (entry.usage?.accepted_target_forms || []).join("\n"),
-      notes: entry.notes || ""
+      notes: entry.notes || "",
+      kind: entry.usage?.kind || "term",
+      verification: entry.usage?.verification || ""
     };
   }
 
@@ -81,7 +119,9 @@
       source_term: proposal.source_term,
       target_term: proposal.target_term,
       accepted_target_forms_text: (proposal.usage?.accepted_target_forms || []).join("\n"),
-      notes: proposal.notes || ""
+      notes: proposal.notes || "",
+      kind: proposal.usage?.kind || "term",
+      verification: proposal.usage?.verification || ""
     };
   }
 
@@ -98,7 +138,9 @@
             .map((item) => item.trim())
             .filter(Boolean)
         : [],
-      notes: editing.notes.trim() || null
+      notes: editing.notes.trim() || null,
+      kind: canLock ? editing.kind : undefined,
+      verification: canLock && editing.verification ? editing.verification : undefined
     };
     const saved = editing.suggestion_id
       ? await onResolveSuggestion(editing.suggestion_id, "approve", payload)
@@ -112,7 +154,7 @@
 <section class="glossary-panel" aria-label="Document terminology">
       <p class="panel-meta" role="status">
         {#if loaded}
-          {entries.length} locked{#if proposals.length + suggestions.length} · {proposals.length + suggestions.length} suggested{/if}
+          {entries.length} locked{#if proposals.length + suggestions.length} · {proposals.length + suggestions.length} suggested{/if}{#if unverifiedCount} · {unverifiedCount} unverified{/if}
         {:else}
           {busy ? "Loading terminology…" : "Terminology has not loaded yet."}
         {/if}
@@ -126,6 +168,13 @@
       </div>
 
       {#if error}<p class="panel-error" role="alert">{error}</p>{/if}
+
+      {#if unverifiedCount}
+        <label class="filter-toggle">
+          <input type="checkbox" bind:checked={unverifiedOnly} />
+          <span>Show only unverified entries ({unverifiedCount})</span>
+        </label>
+      {/if}
 
       {#if editing && (canLock || canSuggest)}
         <form class="glossary-form" on:submit={submit}>
@@ -144,6 +193,24 @@
             <input bind:value={editing.target_term} required maxlength="4096" disabled={busy} />
           </label>
           {#if canLock}
+            <label>
+              <span>Kind</span>
+              <select bind:value={editing.kind} disabled={busy}>
+                {#each Object.entries(KIND_LABELS) as [value, label]}<option {value}>{label}</option>{/each}
+              </select>
+            </label>
+            <label>
+              <span>Verification</span>
+              <select bind:value={editing.verification} disabled={busy}>
+                <option value="">Not stated</option>
+                <option value="verified">Verified against a reference</option>
+                <option value="unverified">Unverified, check before export</option>
+                <option value="coined">Coined, no established rendering</option>
+              </select>
+            </label>
+            {#if editing.kind === "do_not_translate" && editing.source_term.trim() !== editing.target_term.trim()}
+              <p class="form-hint">An entry kept untranslated uses the source term as its translation.</p>
+            {/if}
             <label class="variants-field">
               <span>Accepted contextual variants <small>Optional; one rendering per line</small></span>
               <textarea bind:value={editing.accepted_target_forms_text} rows="2" maxlength="16384" disabled={busy}></textarea>
@@ -155,7 +222,7 @@
           </label>
           <div class="form-actions">
             <button type="button" class="btn secondary" disabled={busy} on:click={() => (editing = null)}>Cancel</button>
-            <button type="submit" class="btn primary" disabled={busy || !editing.source_term.trim() || !editing.target_term.trim()}>{busy ? "Saving…" : editing.suggestion_id || editing.proposal_id ? "Approve for next run" : canLock ? "Save for next run" : "Send suggestion"}</button>
+            <button type="submit" class="btn primary" disabled={busy || !editing.source_term.trim() || !editing.target_term.trim() || (canLock && editing.kind === "do_not_translate" && editing.source_term.trim() !== editing.target_term.trim())}>{busy ? "Saving…" : editing.suggestion_id || editing.proposal_id ? "Approve for next run" : canLock ? "Save for next run" : "Send suggestion"}</button>
           </div>
         </form>
       {/if}
@@ -199,10 +266,11 @@
             <span>{proposals.length}</span>
           </div>
           <div class="term-list suggestion-list">
-            {#each proposals as proposal (proposal.proposal_id)}
+            {#each shownProposals as proposal (proposal.proposal_id)}
               <article class="term-row suggestion-row">
                 <div class="term-copy">
                   <p><strong>{proposal.source_term}</strong><span aria-hidden="true">→</span><strong>{proposal.target_term}</strong></p>
+                  {#if classification(proposal)}<p class="term-class" class:attention={unverified(proposal)}>{classification(proposal)}</p>{/if}
                   {#if proposal.notes}<p class="term-notes">{proposal.notes}</p>{/if}
                   {#if proposal.usage}
                     <p class="term-notes">{proposal.usage.sense || "General sense"} · {proposal.usage.match_policy === "exact" ? "Fixed spelling" : "Inflect grammatically"}</p>
@@ -228,10 +296,11 @@
             <span>{entries.length}</span>
           </div>
           <div class="term-list">
-            {#each entries as entry (entry.concept_id)}
+            {#each shownEntries as entry (entry.concept_id)}
               <article class="term-row">
                 <div class="term-copy">
                   <p><strong>{entry.source_term}</strong><span aria-hidden="true">→</span><strong>{entry.target_term}</strong></p>
+                  {#if classification(entry)}<p class="term-class" class:attention={unverified(entry)}>{classification(entry)}</p>{/if}
                   {#if entry.notes}<p class="term-notes">{entry.notes}</p>{/if}
                   {#if entry.usage}
                     <p class="term-notes">{entry.usage.sense || "General sense"} · {entry.usage.match_policy === "exact" ? "Fixed spelling" : "Inflect grammatically"}</p>
@@ -292,6 +361,12 @@
   .edit-button, .review-button { border:0; padding:.2rem; background:transparent; color:var(--color-clay,#7c6053); cursor:pointer; font:inherit; font-size:.72rem; font-weight:700; }
   .review-button { border-bottom:1px solid currentColor; }
   .suggestion-actions { display:flex; align-items:center; gap:.45rem; }
+  .term-copy .term-class { display:block; margin-top:.24rem; color:var(--color-ink-soft,#4d4842); font-size:.66rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+  .term-copy .term-class.attention { color:var(--color-warning,#9a6a00); }
+  .filter-toggle { display:flex; align-items:center; gap:.45rem; font-weight:600; }
+  .filter-toggle input { width:auto; }
+  select { width:100%; box-sizing:border-box; border:1px solid var(--color-rule-strong,#968b7d); padding:.55rem .6rem; background:var(--color-surface,#faf8f3); color:var(--color-ink,#302d29); font:inherit; font-size:.82rem; }
+  .form-hint { grid-column:1/-1; margin:0; color:var(--color-warning,#9a6a00); font-size:.74rem; }
   .reject-button { border:0; padding:.2rem; background:transparent; color:var(--color-danger,#a33); cursor:pointer; font:inherit; font-size:.69rem; }
   @media (max-width:650px) { .panel-intro { flex-direction:column; } .glossary-form { grid-template-columns:1fr; } .form-heading, .variants-field, .notes-field, .form-actions { grid-column:1; } }
 </style>

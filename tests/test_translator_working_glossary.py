@@ -18,6 +18,7 @@ from test_translator_block_translation import (
 from iarf_assistant.addons.translator.analysis_contract import (
     GlossaryPayload,
     glossary_prompt_mapping,
+    private_witness,
 )
 from iarf_assistant.addons.translator.api_client import TranslatorClient
 from iarf_assistant.addons.translator.block_contract import BlockContractError
@@ -781,3 +782,68 @@ def test_myanmar_extension_ranges_exclude_bamum():
     assert _has_unspaced_script(chr(0xA9E0))
     assert not _has_unspaced_script(chr(0xA6E0))
     assert not _has_unspaced_script("Rat")
+
+
+def test_kind_and_verification_are_stored_filtered_and_carried_into_packets(app):
+    project, plan, record, operation, client = _setup()
+    plain = _save(client, project, record, [_term()], key="plain")["items"][0]
+    assert (plain["kind"], plain["verification"]) == ("term", None)
+    stored = rehydrate_glossary_revision(
+        db.session.get(TranslationGlossaryRevision, plain["revision_id"]), record
+    ).usage
+    # The request shape before usage v3: earlier retries must still match it.
+    legacy_entry = {
+        **_term(), "notes": None, "match_policy": "preferred", "concept_id": None,
+        "expected_revision": 0, "source_forms": None, "accepted_target_forms": None,
+        "occurrences": [],
+    }
+    assert stored["request_fingerprint"] == private_witness(
+        {"source_plan_id": record.id, "entries": [legacy_entry], "provenance": "passive-executor"},
+        purpose="translator-working-glossary-request-v1",
+    )
+
+    name = _save(client, project, record, [{
+        "source_term": "Bleibt", "target_term": "Bleibt", "kind": "do_not_translate",
+        "verification": "unverified",
+    }], key="name")["items"][0]
+    assert (name["kind"], name["verification"]) == ("do_not_translate", "unverified")
+    with pytest.raises(BlockContractError, match="glossary-proposal-shape"):
+        _save(client, project, record, [{
+            "source_term": "Die", "target_term": "The", "kind": "do_not_translate",
+        }], key="bad-kind")
+
+    edited = _save(client, project, record, [_term(
+        concept_id=plain["concept_id"], expected_revision=1, kind="title",
+        verification="coined",
+    )], key="classify")["items"][0]
+    kept = _save(client, project, record, [_term(
+        concept_id=plain["concept_id"], expected_revision=2,
+        target_term="parish congregation",
+    )], key="retarget")["items"][0]
+    assert (edited["kind"], edited["verification"]) == ("title", "coined")
+    assert (kept["kind"], kept["verification"]) == ("title", "coined")
+
+    everything = client.glossary_get(project.id)
+    assert everything["summary"]["by_verification"] == {
+        "verified": 0, "unverified": 1, "coined": 1, "unstated": 0,
+    }
+    unverified = client.glossary_get(project.id, verification="unverified")
+    assert [item["source_term"] for item in unverified["items"]] == ["Bleibt"]
+    assert unverified["pagination"]["total"] == 1
+    with pytest.raises(BlockContractError, match="glossary-read-parameters"):
+        client.glossary_get(project.id, verification="maybe")
+
+    slot = glossary_slot_for_window(operation, record, plan, _window(plan, order=2, start=1))
+    terms = {term["source_term"]: term for term in json.loads(slot.content)["terms"]}
+    assert terms["Gemeinde"]["kind"] == "title"
+    assert terms["Gemeinde"]["verification"] == "coined"
+    assert terms["Bleibt"]["kind"] == "do_not_translate"
+    payload = GlossaryPayload("Gemeinde", "congregation", usage={
+        **stored, "schema_version": "translator-glossary-usage-v3", "kind": "name",
+        "verification": "verified",
+    })
+    mapping = glossary_prompt_mapping(payload)
+    assert (mapping["kind"], mapping["verification"]) == ("name", "verified")
+    assert "kind" not in glossary_prompt_mapping(
+        GlossaryPayload("Gemeinde", "congregation", usage=stored)
+    )
