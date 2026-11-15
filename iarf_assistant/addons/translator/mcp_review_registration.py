@@ -181,7 +181,9 @@ def register_review_tools(
         description=(
             "Run deterministic post-translation QA over active target revisions without changing targets "
             "or human review decisions. Detects structural evidence, missing/mutated/added citation keys, "
-            "repeated punctuation, script-aware source/target length anomalies, glossary divergence including "
+            "repeated punctuation, numbers present on one side only, unpaired brackets and "
+            "quotation marks, script-aware source/target length anomalies including sentence "
+            "groups much shorter than the rest of their block, glossary divergence including "
             "accepted contextual target variants, split/joined tokens, source-language leakage and spelling "
             "suspicions when an Enchant dictionary is available. include_spelling=false disables spelling "
             "advisories only. Filter by category/severity or block IDs, paginate with cursor, and inspect "

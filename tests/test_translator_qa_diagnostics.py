@@ -32,9 +32,12 @@ plan_document_blocks = _block_planner.plan_document_blocks
 persist_manual_candidate = _block_workspace.persist_manual_candidate
 TranslationProject = _models.TranslationProject
 _GlossaryIndex = _qa._GlossaryIndex
+_alignment_coverage_findings = _qa._alignment_coverage_findings
 _citation_findings = _qa._citation_findings
 _length_findings = _qa._length_findings
 _linguistic_findings = _qa._linguistic_findings
+_number_findings = _qa._number_findings
+_pairing_findings = _qa._pairing_findings
 _prepare_glossary_entries = _qa._prepare_glossary_entries
 _punctuation_findings = _qa._punctuation_findings
 _terminology_findings = _qa._terminology_findings
@@ -835,3 +838,371 @@ def test_group_id_validation_and_lookup_are_controlled(app, monkeypatch):
     with pytest.raises(_qa.QaDiagnosticsError) as raised:
         qa_diagnostics(project, group_id="f" * 24)
     assert raised.value.code == "qa-group-id-invalid"
+
+
+def _qa_block_context():
+    workspace = SimpleNamespace(record=SimpleNamespace(id="plan-1"))
+    block = SimpleNamespace(id="block-1", order=1, role="paragraph")
+    return {
+        "workspace": workspace,
+        "block": block,
+        "pages": {"block-1": [1]},
+        "target_version": 1,
+    }
+
+
+def test_number_mismatch_reports_a_changed_value_on_both_sides():
+    findings = _number_findings(
+        **_qa_block_context(),
+        source_text="In 2024, about 15% of incidents involved cards.",
+        target_text="W 2024 roku około 50% incydentów dotyczyło kart.",
+    )
+
+    assert [
+        (item["evidence"]["side"], item["evidence"]["number"], item["severity"])
+        for item in findings
+    ] == [("source_only", "15", "warning"), ("target_only", "50", "warning")]
+    assert {item["code"] for item in findings} == {"number-mismatch"}
+    assert {item["category"] for item in findings} == {"content"}
+    assert findings[0]["source"]["match"] == "15"
+    assert findings[1]["target"]["match"] == "50"
+
+
+def test_number_mismatch_reports_a_dropped_year_as_advisory():
+    findings = _number_findings(
+        **_qa_block_context(),
+        source_text="Founded in 1887.",
+        target_text="Gegründet.",
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["evidence"] == {
+        "number": "1887",
+        "normalized": "1887",
+        "side": "source_only",
+        "possibly_spelled_out": False,
+    }
+    assert findings[0]["severity"] == "advisory"
+
+
+def test_number_mismatch_tolerates_regrouped_dates():
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="Invoice date: 03/04/2025.",
+            target_text="Rechnungsdatum: 04.03.2025.",
+        )
+        == []
+    )
+
+
+def test_number_mismatch_tolerates_thousands_separators_and_decimals():
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="Total: $1,250.50.",
+            target_text="Gesamt: 1.250,50 $.",
+        )
+        == []
+    )
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="10 000 copies",
+            target_text="10,000 copies",
+        )
+        == []
+    )
+
+
+def test_number_mismatch_marks_small_spelled_out_numbers():
+    added = _number_findings(
+        **_qa_block_context(),
+        source_text="We met three times.",
+        target_text="We met 3 times.",
+    )
+    assert len(added) == 1
+    assert added[0]["evidence"]["side"] == "target_only"
+    assert added[0]["evidence"]["number"] == "3"
+    assert added[0]["severity"] == "advisory"
+
+    spelled = _number_findings(
+        **_qa_block_context(),
+        source_text="Item 3 is ready.",
+        target_text="Punkt trzeci jest gotowy.",
+    )
+    assert len(spelled) == 1
+    assert spelled[0]["evidence"]["side"] == "source_only"
+    assert spelled[0]["evidence"]["possibly_spelled_out"] is True
+    assert spelled[0]["severity"] == "advisory"
+
+
+def test_number_mismatch_ignores_urls_and_citation_keys():
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="See https://example.org/page/2024 now.",
+            target_text="Zob. https://example.org/page/2024 teraz.",
+        )
+        == []
+    )
+    assert (
+        _number_findings(
+            **_qa_block_context(),
+            source_text="See [Smith, 1999] for details.",
+            target_text="Zob. szczegóły.",
+        )
+        == []
+    )
+
+
+def test_pairing_mismatch_reports_unclosed_target_bracket():
+    findings = _pairing_findings(
+        **_qa_block_context(),
+        source_text="He said (quietly) no.",
+        target_text="Er sagte (leise nein.",
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["code"] == "pairing-mismatch"
+    assert findings[0]["severity"] == "warning"
+    assert findings[0]["evidence"] == {"mark": "(", "problem": "unclosed"}
+    assert findings[0]["target"]["match"] == "("
+
+
+def test_pairing_mismatch_requires_a_balanced_source():
+    assert (
+        _pairing_findings(
+            **_qa_block_context(),
+            source_text="a) first",
+            target_text="a) erstes",
+        )
+        == []
+    )
+    unopened = _pairing_findings(
+        **_qa_block_context(),
+        source_text="(a) first",
+        target_text="a) erstes",
+    )
+    assert len(unopened) == 1
+    assert unopened[0]["evidence"] == {"mark": ")", "problem": "unopened"}
+    assert unopened[0]["severity"] == "advisory"
+
+
+def test_pairing_mismatch_reports_an_odd_quotation_count():
+    findings = _pairing_findings(
+        **_qa_block_context(),
+        source_text="“Yes,” she said.",
+        target_text="„Ja“, sagte sie, „nein.",
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["severity"] == "advisory"
+    assert findings[0]["message"] == "The target has an unpaired quotation mark."
+    assert findings[0]["evidence"] == {
+        "mark": "„",
+        "problem": "odd_quote_count",
+        "source_count": 2,
+        "target_count": 3,
+    }
+    assert findings[0]["target"]["match"] == "„"
+
+
+def test_pairing_mismatch_handles_cjk_brackets():
+    findings = _pairing_findings(
+        **_qa_block_context(),
+        source_text="「はい」と言った。",
+        target_text="「Yes, she said.",
+    )
+
+    assert len(findings) == 1
+    assert findings[0]["evidence"] == {"mark": "「", "problem": "unclosed"}
+    assert findings[0]["severity"] == "warning"
+
+
+def _alignment_group(
+    order: int, kind: str, source_sentences: list[str], target_sentences: list[str]
+) -> dict[str, object]:
+    return {
+        "order": order,
+        "kind": kind,
+        "source_sentences": [
+            {"order": index, "text": text}
+            for index, text in enumerate(source_sentences, start=1)
+        ],
+        "target_sentences": [
+            {"order": index, "text": text}
+            for index, text in enumerate(target_sentences, start=1)
+        ],
+    }
+
+
+_SOURCE_ONE = "The committee reviewed the draft proposal during its morning session."
+_SOURCE_TWO = "Members asked several questions about the timetable for the coming year."
+_SOURCE_THREE = "The chair promised a written answer before the next plenary sitting."
+_MERGED_TARGET = "The board examined the draft and members asked about the timetable."
+
+
+def test_alignment_coverage_flags_a_compressed_merge_group():
+    alignment = {
+        "groups": [
+            _alignment_group(
+                1,
+                "one_to_one",
+                [_SOURCE_ONE],
+                ["The board examined the draft submission during its morning session."],
+            ),
+            _alignment_group(
+                2,
+                "one_to_one",
+                [_SOURCE_TWO],
+                ["Members asked several questions about the timetable for next year."],
+            ),
+            _alignment_group(3, "one_to_one", [_SOURCE_THREE], [_SOURCE_THREE]),
+            _alignment_group(
+                4,
+                "merge",
+                [_SOURCE_ONE, _SOURCE_TWO],
+                [_MERGED_TARGET],
+            ),
+        ]
+    }
+    findings = _alignment_coverage_findings(
+        **_qa_block_context(),
+        source_text=f"{_SOURCE_ONE} {_SOURCE_TWO}",
+        target_text=_MERGED_TARGET,
+        alignment=alignment,
+    )
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding["code"] == "alignment-coverage"
+    assert finding["category"] == "length"
+    assert finding["severity"] == "advisory"
+    assert finding["evidence"]["group_order"] == 4
+    assert finding["evidence"]["kind"] == "merge"
+    assert finding["evidence"]["source_sentence_count"] == 2
+    assert finding["evidence"]["target_sentence_count"] == 1
+    assert finding["evidence"]["ratio"] == 0.467
+    assert finding["evidence"]["reference_ratio"] == 0.967
+    assert finding["_qa_location"] == {
+        "source": {"start": 0, "end": len(f"{_SOURCE_ONE} {_SOURCE_TWO}")},
+        "target": {"start": 0, "end": len(_MERGED_TARGET)},
+    }
+    assert finding["source"]["match"] == f"{_SOURCE_ONE} {_SOURCE_TWO}"
+
+
+def test_alignment_coverage_accepts_natural_length_variation():
+    alignment = {
+        "groups": [
+            _alignment_group(
+                1,
+                "one_to_one",
+                [_SOURCE_ONE],
+                ["The committee reviewed the draft during its morning session."],
+            ),
+            _alignment_group(
+                2,
+                "one_to_one",
+                [_SOURCE_TWO],
+                [
+                    "Members asked several questions about the provisional timetable"
+                    " for next year."
+                ],
+            ),
+            _alignment_group(
+                3,
+                "one_to_one",
+                [_SOURCE_THREE],
+                [
+                    "The chair promised a full written answer before the next plenary"
+                    " sitting in the chamber."
+                ],
+            ),
+        ]
+    }
+    ratios = [
+        len("".join(group["target_sentences"][0]["text"].split()))
+        / len("".join(group["source_sentences"][0]["text"].split()))
+        for group in alignment["groups"]
+    ]
+    assert 0.8 <= ratios[0] < 0.95
+    assert 1.0 < ratios[1] <= 1.2
+    assert 1.2 < ratios[2] <= 1.35
+
+    assert (
+        _alignment_coverage_findings(
+            **_qa_block_context(),
+            source_text=f"{_SOURCE_ONE} {_SOURCE_TWO} {_SOURCE_THREE}",
+            target_text="A target that is not used for the ratio arithmetic.",
+            alignment=alignment,
+        )
+        == []
+    )
+
+
+def test_alignment_coverage_needs_at_least_two_groups():
+    single = {"groups": [_alignment_group(1, "one_to_one", [_SOURCE_ONE], ["Kurz."])]}
+    assert (
+        _alignment_coverage_findings(
+            **_qa_block_context(),
+            source_text=_SOURCE_ONE,
+            target_text="Kurz.",
+            alignment=single,
+        )
+        == []
+    )
+    assert (
+        _alignment_coverage_findings(
+            **_qa_block_context(),
+            source_text=_SOURCE_ONE,
+            target_text="Kurz.",
+            alignment=None,
+        )
+        == []
+    )
+
+
+def test_qa_ruleset_and_categories_expose_the_content_lane():
+    assert _qa.QA_RULESET == "translator-qa-rules-v2"
+    assert "content" in _qa._CATEGORIES
+    assert _qa._CATEGORIES.index("content") == 1
+
+
+def test_number_mismatch_compares_parts_not_whole_dotted_numerals():
+    # A dotted date next to a genuinely changed amount: only the amount is
+    # reported, not the date, whichever date order each language uses.
+    findings = _number_findings(
+        **_qa_block_context(),
+        source_text="Invoice date: 03/04/2025. Total: $1,250.50.",
+        target_text="Rechnungsdatum: 04.03.2025. Gesamt: 1.250,60 $.",
+    )
+    assert [(item["evidence"]["side"], item["evidence"]["number"]) for item in findings] == [
+        ("source_only", "50"),
+        ("target_only", "60"),
+    ]
+    assert {item["severity"] for item in findings} == {"warning"}
+
+
+def test_number_mismatch_accepts_grouped_and_ungrouped_thousands():
+    for source, target in (
+        ("Founded in 2000 with 12 345 members.", "Założona w 2000 r., 12345 członków."),
+        ("It cost 2,000 euros.", "Kosztowało 2000 euro."),
+        ("Pi is 3.14.", "Pi wynosi 3,14."),
+    ):
+        assert _number_findings(
+            **_qa_block_context(), source_text=source, target_text=target
+        ) == [], (source, target)
+
+
+def test_number_mismatch_reports_repeated_values_beyond_the_other_side():
+    findings = _number_findings(
+        **_qa_block_context(),
+        source_text="Rooms 4 and 4 were closed; 7 stayed open.",
+        target_text="Sale 4 były zamknięte; 7 pozostało otwartych.",
+    )
+    assert [(item["evidence"]["number"], item["source"]["match"]) for item in findings] == [
+        ("4", "4")
+    ]
+    # The unpaired occurrence is the second one, after the first is paired.
+    assert findings[0]["_qa_location"]["source"]["start"] == 12

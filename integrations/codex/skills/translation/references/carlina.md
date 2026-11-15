@@ -19,7 +19,7 @@ November 2026 and packets can carry an older frozen contract.
 | Glossary | Project glossary: human-locked rows are binding; rows you propose are advice to later packets. |
 | State across blocks | Packet context: preceding excerpt, exact and sentence precedents, linked notes, glossary selection. |
 | Flags, assumptions, source defects | **No field for them in the translation response.** See section 4. |
-| Completeness, numbers, names, meaning | Not checked by Carlina. See section 5. |
+| Completeness, numbers, names, meaning | Numbers, bracket and quotation pairing and (with aligned sentences) short sentence groups are checked by QA; names and meaning are not. See section 5. |
 | Two review readings | Review tools plus coverage records (`target_reading`, `bilingual`). |
 
 ## 2. Before the first window (passive mode)
@@ -114,15 +114,19 @@ Do not resolve a doubt silently because there was nowhere to put it.
 ## 5. After the last window
 
 - **Know what the QA diagnostics cover.** They are deterministic checks of structure,
-  citation keys, repeated punctuation, abnormal length ratio, glossary terms missing or
-  diverging, spelling, joined and split tokens, and runs of source-language words. They do
-  not compare numbers, dates or names with the source, do not detect an omission that stays
-  within the length bounds, and say nothing about meaning. A clean diagnostics run is not a
-  review, and a finding is evidence to look at, not a verdict.
-- **Do the checks they leave out** with review search and fetch: numbers, dates and names
-  against the source; each recurring term with every form used for it; form of address;
-  passages that recur verbatim in the source; the headings you listed; parked items in your
-  log.
+  citation keys, repeated punctuation, unpaired brackets and quotation marks, abnormal
+  length ratio, glossary terms missing or diverging, spelling, joined and split tokens, runs
+  of source-language words, and (ruleset `translator-qa-rules-v2` and later) numbers present
+  on one side only. In aligned-sentence projects they also report a sentence group much
+  shorter than the rest of its block; `summary.alignment_coverage` says whether that check
+  ran. They do not compare names with the source, do not see an omission inside a sentence
+  group of normal length, and say nothing about negation, modality or meaning. A clean
+  diagnostics run is not a review, and a finding is evidence to look at, not a verdict.
+- **Do the checks they leave out** with review search and fetch: names against the source;
+  numbers QA marks `possibly_spelled_out`; each recurring term with every form used for it;
+  form of address; passages that recur verbatim in the source; the headings you listed;
+  parked items in your log. If the ruleset is older than v2, compare numbers and dates
+  yourself as well.
 - **Record coverage honestly, by kind.** The target-alone reading of `revision.md` is
   `target_reading`; the comparison with the source is `bilingual`. A sample covers the
   anchors sampled. Neither diagnostics nor a heading check amounts to bilingual review of

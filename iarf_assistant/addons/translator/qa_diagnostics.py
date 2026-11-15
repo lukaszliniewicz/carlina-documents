@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import statistics
 import unicodedata
 from collections import Counter, OrderedDict
 from collections.abc import Mapping, Sequence
@@ -28,7 +29,7 @@ from .block_workspace_api import (
 from .working_glossary import snapshot_current_glossary_entries
 
 QA_CONTRACT = "translator-qa-diagnostics-v1"
-QA_RULESET = "translator-qa-rules-v1"
+QA_RULESET = "translator-qa-rules-v2"
 MAX_QA_LIMIT = 200
 MAX_QA_FINDINGS_BY_SEVERITY = {
     "integrity": 6_000,
@@ -39,10 +40,14 @@ MAX_QA_FINDINGS = sum(MAX_QA_FINDINGS_BY_SEVERITY.values())
 MAX_SPELL_FINDINGS_PER_BLOCK = 6
 MAX_JOINED_FINDINGS_PER_BLOCK = 12
 MAX_SPLIT_FINDINGS_PER_BLOCK = 12
+MAX_NUMBER_FINDINGS_PER_BLOCK = 12
+MAX_PAIRING_FINDINGS_PER_BLOCK = 6
+MAX_ALIGNMENT_FINDINGS_PER_BLOCK = 6
 MAX_SUGGESTIONS = 5
 
 _CATEGORIES = (
     "integrity",
+    "content",
     "references",
     "punctuation",
     "length",
@@ -67,6 +72,25 @@ _CJK_RE = regex.compile(
 )
 _URL_RE = regex.compile(r"https?://\S+", regex.IGNORECASE)
 _DOI_RE = regex.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+", regex.IGNORECASE)
+_NUMBER_RE = regex.compile(
+    r"\p{Nd}+(?:[.,]\p{Nd}+|[ \u00a0\u2009\u202f'’]\p{Nd}{3}(?!\p{Nd}))*"
+)
+_DIGIT_RUN_RE = regex.compile(r"\p{Nd}+")
+_BRACKET_PAIRS = {
+    "(": ")",
+    "[": "]",
+    "{": "}",
+    "（": "）",
+    "［": "］",
+    "【": "】",
+    "「": "」",
+    "『": "』",
+    "《": "》",
+    "〈": "〉",
+}
+_CLOSING_BRACKETS = {closer: opener for opener, closer in _BRACKET_PAIRS.items()}
+_DOUBLE_QUOTES = frozenset('"“”„‟«»＂〝〞〟❝❞')
+
 _LANGUAGE_DEFAULTS = {
     "en": ("en_US", "en_GB"),
     "de": ("de_DE", "de_AT", "de_CH"),
@@ -719,6 +743,222 @@ def _punctuation_findings(
     ]
 
 
+def _unbalanced_brackets(value: str) -> list[tuple[int, str, str]]:
+    """Report brackets that never pair, ignoring reference-only text."""
+
+    spans = _reference_spans(value)
+    stack: list[tuple[int, str]] = []
+    problems: list[tuple[int, str, str]] = []
+    for index, character in enumerate(value):
+        if character not in _BRACKET_PAIRS and character not in _CLOSING_BRACKETS:
+            continue
+        if _inside_any_span(index, index + 1, spans):
+            continue
+        if character in _BRACKET_PAIRS:
+            stack.append((index, character))
+            continue
+        if stack and _BRACKET_PAIRS[stack[-1][1]] == character:
+            stack.pop()
+            continue
+        problems.append((index, character, "unopened"))
+    problems.extend((index, character, "unclosed") for index, character in stack)
+    problems.sort()
+    return problems
+
+
+def _pairing_findings(
+    *,
+    workspace: Any,
+    pages: Mapping[str, list[int]],
+    block: Any,
+    target_version: int | None,
+    source_text: str,
+    target_text: str,
+) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    if not _unbalanced_brackets(source_text):
+        for index, character, problem in _unbalanced_brackets(target_text):
+            findings.append(
+                _finding(
+                    workspace=workspace,
+                    pages=pages,
+                    block=block,
+                    target_version=target_version,
+                    code="pairing-mismatch",
+                    category="punctuation",
+                    severity="warning" if problem == "unclosed" else "advisory",
+                    message=(
+                        "The target has an unclosed bracket."
+                        if problem == "unclosed"
+                        else "The target has a closing bracket without an opening one."
+                    ),
+                    source_text=source_text,
+                    target_text=target_text,
+                    target_span=(index, index + 1),
+                    evidence={"mark": character, "problem": problem},
+                )
+            )
+    source_quotes = [
+        character for character in source_text if character in _DOUBLE_QUOTES
+    ]
+    target_quotes = [
+        (index, character)
+        for index, character in enumerate(target_text)
+        if character in _DOUBLE_QUOTES
+    ]
+    if len(source_quotes) % 2 == 0 and len(target_quotes) % 2 == 1:
+        index, character = target_quotes[-1]
+        findings.append(
+            _finding(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                code="pairing-mismatch",
+                category="punctuation",
+                severity="advisory",
+                message="The target has an unpaired quotation mark.",
+                source_text=source_text,
+                target_text=target_text,
+                target_span=(index, index + 1),
+                evidence={
+                    "mark": character,
+                    "problem": "odd_quote_count",
+                    "source_count": len(source_quotes),
+                    "target_count": len(target_quotes),
+                },
+            )
+        )
+    return findings[:MAX_PAIRING_FINDINGS_PER_BLOCK]
+
+
+def _number_key(digits: str) -> str:
+    """Return comparable ASCII digits without leading zeros."""
+
+    ascii_digits = "".join(
+        str(digit)
+        for character in digits
+        if (digit := unicodedata.digit(character, None)) is not None
+    )
+    return ascii_digits.lstrip("0") or "0"
+
+
+def _number_items(value: str) -> list[tuple[str, str, tuple[int, int]]]:
+    """Split printed numerals into comparable values: (text, key, span).
+
+    A separator followed by exactly three digits groups thousands; any other
+    separator ends one value and starts the next. Decimals, ranges and dotted
+    dates are therefore compared part by part, whichever convention each
+    language uses, and US and German date orders yield the same values.
+    """
+
+    spans = _reference_spans(value)
+    items: list[tuple[str, str, tuple[int, int]]] = []
+    for match in _NUMBER_RE.finditer(value):
+        if _inside_any_span(match.start(), match.end(), spans):
+            continue
+        parts = list(_DIGIT_RUN_RE.finditer(value, match.start(), match.end()))
+        start, end = parts[0].start(), parts[0].end()
+        digits = parts[0].group()
+        for part in parts[1:]:
+            if len(part.group()) == 3:
+                digits += part.group()
+                end = part.end()
+                continue
+            items.append((value[start:end], _number_key(digits), (start, end)))
+            start, end, digits = part.start(), part.end(), part.group()
+        items.append((value[start:end], _number_key(digits), (start, end)))
+    return items
+
+
+def _surplus_numbers(
+    items: Sequence[tuple[str, str, tuple[int, int]]],
+    other_side: Mapping[str, int],
+) -> list[tuple[str, str, tuple[int, int]]]:
+    """Pair occurrences with the other side's count first; return the rest."""
+
+    paired: Counter[str] = Counter()
+    result: list[tuple[str, str, tuple[int, int]]] = []
+    for item in items:
+        key = item[1]
+        if paired[key] < other_side.get(key, 0):
+            paired[key] += 1
+            continue
+        result.append(item)
+    return result
+
+
+def _number_findings(
+    *,
+    workspace: Any,
+    pages: Mapping[str, list[int]],
+    block: Any,
+    target_version: int | None,
+    source_text: str,
+    target_text: str,
+) -> list[dict[str, Any]]:
+    source_items = _number_items(source_text)
+    target_items = _number_items(target_text)
+    source_counter = Counter(item[1] for item in source_items)
+    target_counter = Counter(item[1] for item in target_items)
+    if source_counter == target_counter:
+        return []
+    missing = _surplus_numbers(source_items, target_counter)
+    added = _surplus_numbers(target_items, source_counter)
+    changed_value = bool(missing) and bool(added)
+    findings: list[dict[str, Any]] = []
+    for matched_text, key, span in missing:
+        spelled_out = (
+            len(matched_text) <= 2
+            and matched_text.isdigit()
+            and int(matched_text) <= 12
+        )
+        findings.append(
+            _finding(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                code="number-mismatch",
+                category="content",
+                severity="advisory" if spelled_out or not changed_value else "warning",
+                message="A number in the source does not appear in the target.",
+                source_text=source_text,
+                target_text=target_text,
+                source_span=span,
+                evidence={
+                    "number": matched_text,
+                    "normalized": key,
+                    "side": "source_only",
+                    "possibly_spelled_out": spelled_out,
+                },
+            )
+        )
+    for matched_text, key, span in added:
+        findings.append(
+            _finding(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                code="number-mismatch",
+                category="content",
+                severity="warning" if changed_value else "advisory",
+                message="A number in the target does not appear in the source.",
+                source_text=source_text,
+                target_text=target_text,
+                target_span=span,
+                evidence={
+                    "number": matched_text,
+                    "normalized": key,
+                    "side": "target_only",
+                    "possibly_spelled_out": False,
+                },
+            )
+        )
+    return findings[:MAX_NUMBER_FINDINGS_PER_BLOCK]
+
+
 def _length_findings(
     *,
     workspace: Any,
@@ -766,6 +1006,122 @@ def _length_findings(
             },
         )
     ]
+
+
+def _sentence_texts(value: Any) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        return []
+    texts: list[str] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        text = item.get("text")
+        if isinstance(text, str):
+            texts.append(text)
+    return texts
+
+
+def _sentence_span(texts: Sequence[str], haystack: str) -> tuple[int, int] | None:
+    if not texts:
+        return None
+    start = haystack.find(texts[0])
+    if start < 0:
+        return None
+    last_start = haystack.find(texts[-1], start)
+    if last_start < 0:
+        return (start, start + len(texts[0]))
+    return (start, last_start + len(texts[-1]))
+
+
+def _alignment_coverage_findings(
+    *,
+    workspace: Any,
+    pages: Mapping[str, list[int]],
+    block: Any,
+    target_version: int | None,
+    source_text: str,
+    target_text: str,
+    alignment: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    groups = alignment.get("groups") if isinstance(alignment, Mapping) else None
+    if not isinstance(groups, list) or len(groups) < 2:
+        return []
+    measured: list[
+        tuple[Mapping[str, Any], list[str], list[str], int, int, float | None]
+    ] = []
+    for group in groups:
+        if not isinstance(group, Mapping):
+            continue
+        source_sentences = _sentence_texts(group.get("source_sentences"))
+        target_sentences = _sentence_texts(group.get("target_sentences"))
+        source_chars = len("".join(" ".join(source_sentences).split()))
+        target_chars = len("".join(" ".join(target_sentences).split()))
+        ratio = target_chars / source_chars if source_chars > 0 else None
+        measured.append(
+            (
+                group,
+                source_sentences,
+                target_sentences,
+                source_chars,
+                target_chars,
+                ratio,
+            )
+        )
+    findings: list[dict[str, Any]] = []
+    for index, (
+        group,
+        source_sentences,
+        target_sentences,
+        source_chars,
+        target_chars,
+        ratio,
+    ) in enumerate(measured):
+        if ratio is None or source_chars < 40:
+            continue
+        reference_ratios: list[float] = []
+        for position, other in enumerate(measured):
+            if position == index or other[3] < 12:
+                continue
+            other_ratio = other[5]
+            if other_ratio is not None:
+                reference_ratios.append(other_ratio)
+        if not reference_ratios:
+            continue
+        reference = statistics.median(reference_ratios)
+        if ratio >= 0.6 * reference:
+            continue
+        findings.append(
+            _finding(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                code="alignment-coverage",
+                category="length",
+                severity="advisory",
+                message=(
+                    "A sentence group is much shorter than the rest of its block;"
+                    " check it for omitted content."
+                ),
+                source_text=source_text,
+                target_text=target_text,
+                source_span=_sentence_span(source_sentences, source_text),
+                target_span=_sentence_span(target_sentences, target_text),
+                evidence={
+                    "group_order": group.get("order"),
+                    "kind": group.get("kind"),
+                    "source_sentence_count": len(source_sentences),
+                    "target_sentence_count": len(target_sentences),
+                    "source_nonspace_chars": source_chars,
+                    "target_nonspace_chars": target_chars,
+                    "ratio": round(ratio, 3),
+                    "reference_ratio": round(reference, 3),
+                },
+            )
+        )
+        if len(findings) >= MAX_ALIGNMENT_FINDINGS_PER_BLOCK:
+            break
+    return findings
 
 
 def _validation_findings(
@@ -1024,9 +1380,30 @@ def _diagnose_block(
                 target_text=target_text,
             )
         )
+    if "content" in enabled_categories:
+        findings.extend(
+            _number_findings(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                source_text=source_text,
+                target_text=target_text,
+            )
+        )
     if "punctuation" in enabled_categories:
         findings.extend(
             _punctuation_findings(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                source_text=source_text,
+                target_text=target_text,
+            )
+        )
+        findings.extend(
+            _pairing_findings(
                 workspace=workspace,
                 pages=pages,
                 block=block,
@@ -1044,6 +1421,17 @@ def _diagnose_block(
                 target_version=target_version,
                 source_text=source_text,
                 target_text=target_text,
+            )
+        )
+        findings.extend(
+            _alignment_coverage_findings(
+                workspace=workspace,
+                pages=pages,
+                block=block,
+                target_version=target_version,
+                source_text=source_text,
+                target_text=target_text,
+                alignment=target_projection.get("alignment"),
             )
         )
     if "terminology" in enabled_categories:
@@ -1276,10 +1664,20 @@ def qa_diagnostics(
     if not isinstance(include_spelling, bool):
         raise _error("qa-spelling-flag-invalid")
     enabled_categories = set(canonical_categories) or set(_CATEGORIES)
+    include_alignment = "length" in enabled_categories
 
     try:
         workspace = load_block_source_plan(project)
-        pointers, targets = _rehydrate_workspace_objects(workspace)
+        try:
+            pointers, targets = _rehydrate_workspace_objects(
+                workspace, include_alignment=include_alignment
+            )
+            alignment_available = include_alignment
+        except BlockWorkspaceIntegrityError:
+            if not include_alignment:
+                raise
+            pointers, targets = _rehydrate_workspace_objects(workspace)
+            alignment_available = False
     except BlockWorkspaceIntegrityError as exc:
         raise _error(getattr(exc, "code", "qa-source-invalid")) from exc
     blocks = list(workspace.plan.blocks)
@@ -1337,6 +1735,7 @@ def qa_diagnostics(
             workspace.active_version,
             str(block.id),
             target_version,
+            alignment_available,
             detector_profile,
         )
         block_findings = _qa_block_cache_get(cache_key)
@@ -1520,6 +1919,13 @@ def qa_diagnostics(
             "unique_token_count": unique_token_count,
             "preview_omitted_occurrences": preview_omitted,
             "omissions_scope": "scan",
+            "alignment_coverage": (
+                "checked"
+                if alignment_available
+                else "unavailable"
+                if include_alignment
+                else "disabled"
+            ),
             "by_severity": {key: severity_counts[key] for key in _SEVERITIES},
             "by_category": {key: category_counts[key] for key in _CATEGORIES},
             "truncated": bool(omitted_by_severity),

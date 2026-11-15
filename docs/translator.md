@@ -1403,6 +1403,30 @@ so ordinary terminology QA scales with plausible local candidates rather than
 every document term. Accepted contextual target variants remain subordinate to
 the preferred glossary rendering and may be edited by the owner.
 
+Ruleset `translator-qa-rules-v2` adds three source-against-target checks, all
+evidence for review and none a verdict:
+
+- `number-mismatch` (category `content`) compares the numbers in each block
+  after normalising digit scripts, grouping and decimal separators and leading
+  zeros, ignoring URLs, DOIs and citation keys. A number on one side only is
+  advisory; when both sides have unmatched numbers (a changed value) the
+  findings are warnings. A missing source number of one or two digits up to 12
+  is marked `possibly_spelled_out`. Reordering, such as US to German date order,
+  produces no finding.
+- `pairing-mismatch` (category `punctuation`) reports a bracket left open in the
+  target (warning) or closed without an opener (advisory), only where the source
+  block is itself balanced, and an odd number of double quotation marks where
+  the source has an even number.
+- `alignment-coverage` (category `length`) compares each sentence-alignment group
+  with the median ratio of the other groups in its block and reports a group
+  under 60% of it, so one sentence dropped inside a paragraph shows even when
+  the block's overall length ratio looks normal. Blocks with fewer than two
+  groups are skipped. `summary.alignment_coverage` states whether alignment was
+  `checked`, `unavailable` (alignment could not be rehydrated, other checks
+  still ran) or `disabled` (the `length` category was not requested).
+
+None of the checks compares negation, modality or meaning.
+
 Source now also provides
 `carlina_translator_target_update`: it accepts one block candidate, the expected
 active target version, and a required idempotency key. Its encrypted,
