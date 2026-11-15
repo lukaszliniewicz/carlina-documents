@@ -16,7 +16,7 @@ from collections.abc import Mapping, Sequence
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as package_version
 from threading import RLock
-from typing import Any
+from typing import Any, NamedTuple
 
 import regex
 
@@ -43,6 +43,16 @@ MAX_SPLIT_FINDINGS_PER_BLOCK = 12
 MAX_NUMBER_FINDINGS_PER_BLOCK = 12
 MAX_PAIRING_FINDINGS_PER_BLOCK = 6
 MAX_ALIGNMENT_FINDINGS_PER_BLOCK = 6
+# Digits after a separator that make a thousands group (1,000 / 1.000 / 1 000).
+_THOUSANDS_GROUP_DIGITS = 3
+# A missing number up to this value may have been written out in words.
+_SPELLED_OUT_MAX = 12
+# A sentence group is flagged when its target/source length ratio falls below
+# this share of the median ratio of the block's other groups. Groups shorter
+# than the minimums are too noisy to judge or to serve as the reference.
+_ALIGNMENT_SHORT_SHARE = 0.6
+_ALIGNMENT_MIN_SOURCE_CHARS = 40
+_ALIGNMENT_MIN_REFERENCE_CHARS = 12
 MAX_SUGGESTIONS = 5
 
 _CATEGORIES = (
@@ -861,7 +871,7 @@ def _number_items(value: str) -> list[tuple[str, str, tuple[int, int]]]:
         start, end = parts[0].start(), parts[0].end()
         digits = parts[0].group()
         for part in parts[1:]:
-            if len(part.group()) == 3:
+            if len(part.group()) == _THOUSANDS_GROUP_DIGITS:
                 digits += part.group()
                 end = part.end()
                 continue
@@ -909,9 +919,9 @@ def _number_findings(
     findings: list[dict[str, Any]] = []
     for matched_text, key, span in missing:
         spelled_out = (
-            len(matched_text) <= 2
-            and matched_text.isdigit()
-            and int(matched_text) <= 12
+            matched_text.isdigit()
+            and len(matched_text) <= len(str(_SPELLED_OUT_MAX))
+            and int(matched_text) <= _SPELLED_OUT_MAX
         )
         findings.append(
             _finding(
@@ -1033,6 +1043,30 @@ def _sentence_span(texts: Sequence[str], haystack: str) -> tuple[int, int] | Non
     return (start, last_start + len(texts[-1]))
 
 
+class _GroupMeasure(NamedTuple):
+    group: Mapping[str, Any]
+    source_sentences: list[str]
+    target_sentences: list[str]
+    source_chars: int
+    target_chars: int
+    ratio: float | None
+
+
+def _measure_group(group: Mapping[str, Any]) -> _GroupMeasure:
+    source_sentences = _sentence_texts(group.get("source_sentences"))
+    target_sentences = _sentence_texts(group.get("target_sentences"))
+    source_chars = len("".join(" ".join(source_sentences).split()))
+    target_chars = len("".join(" ".join(target_sentences).split()))
+    return _GroupMeasure(
+        group,
+        source_sentences,
+        target_sentences,
+        source_chars,
+        target_chars,
+        target_chars / source_chars if source_chars > 0 else None,
+    )
+
+
 def _alignment_coverage_findings(
     *,
     workspace: Any,
@@ -1046,49 +1080,23 @@ def _alignment_coverage_findings(
     groups = alignment.get("groups") if isinstance(alignment, Mapping) else None
     if not isinstance(groups, list) or len(groups) < 2:
         return []
-    measured: list[
-        tuple[Mapping[str, Any], list[str], list[str], int, int, float | None]
-    ] = []
-    for group in groups:
-        if not isinstance(group, Mapping):
-            continue
-        source_sentences = _sentence_texts(group.get("source_sentences"))
-        target_sentences = _sentence_texts(group.get("target_sentences"))
-        source_chars = len("".join(" ".join(source_sentences).split()))
-        target_chars = len("".join(" ".join(target_sentences).split()))
-        ratio = target_chars / source_chars if source_chars > 0 else None
-        measured.append(
-            (
-                group,
-                source_sentences,
-                target_sentences,
-                source_chars,
-                target_chars,
-                ratio,
-            )
-        )
+    measured = [_measure_group(group) for group in groups if isinstance(group, Mapping)]
     findings: list[dict[str, Any]] = []
-    for index, (
-        group,
-        source_sentences,
-        target_sentences,
-        source_chars,
-        target_chars,
-        ratio,
-    ) in enumerate(measured):
-        if ratio is None or source_chars < 40:
+    for index, measure in enumerate(measured):
+        ratio = measure.ratio
+        if ratio is None or measure.source_chars < _ALIGNMENT_MIN_SOURCE_CHARS:
             continue
-        reference_ratios: list[float] = []
-        for position, other in enumerate(measured):
-            if position == index or other[3] < 12:
-                continue
-            other_ratio = other[5]
-            if other_ratio is not None:
-                reference_ratios.append(other_ratio)
+        reference_ratios = [
+            other.ratio
+            for position, other in enumerate(measured)
+            if position != index
+            and other.ratio is not None
+            and other.source_chars >= _ALIGNMENT_MIN_REFERENCE_CHARS
+        ]
         if not reference_ratios:
             continue
         reference = statistics.median(reference_ratios)
-        if ratio >= 0.6 * reference:
+        if ratio >= _ALIGNMENT_SHORT_SHARE * reference:
             continue
         findings.append(
             _finding(
@@ -1105,15 +1113,15 @@ def _alignment_coverage_findings(
                 ),
                 source_text=source_text,
                 target_text=target_text,
-                source_span=_sentence_span(source_sentences, source_text),
-                target_span=_sentence_span(target_sentences, target_text),
+                source_span=_sentence_span(measure.source_sentences, source_text),
+                target_span=_sentence_span(measure.target_sentences, target_text),
                 evidence={
-                    "group_order": group.get("order"),
-                    "kind": group.get("kind"),
-                    "source_sentence_count": len(source_sentences),
-                    "target_sentence_count": len(target_sentences),
-                    "source_nonspace_chars": source_chars,
-                    "target_nonspace_chars": target_chars,
+                    "group_order": measure.group.get("order"),
+                    "kind": measure.group.get("kind"),
+                    "source_sentence_count": len(measure.source_sentences),
+                    "target_sentence_count": len(measure.target_sentences),
+                    "source_nonspace_chars": measure.source_chars,
+                    "target_nonspace_chars": measure.target_chars,
                     "ratio": round(ratio, 3),
                     "reference_ratio": round(reference, 3),
                 },
