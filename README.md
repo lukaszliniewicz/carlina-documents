@@ -21,17 +21,20 @@ explains the checks and how to require EPUBCheck for the final edition.
   Preview the result, edit text and structure, review linked notes, and adjust
   extracted image crops afterwards.
 - **Translate with the original alongside.** Work by hand or with AI in a
-  side-by-side editor. Translate document blocks or use local sentence splitting
-  for sentence alignment, with a glossary, nearby passages and earlier
-  source–translation matches supplying context.
+  side-by-side editor. Translate whole document blocks or split them into
+  aligned sentences locally. A glossary, nearby passages and earlier translations
+  of similar wording supply context.
+- **Review with checks, not just by eye.** Quality checks catch missing numbers,
+  unbalanced brackets and dropped sentences. Translators can flag assumptions and
+  doubts on a passage, and a hand-back report lists what is still open.
 - **Keep long jobs manageable.** Runs, batches and queued work track progress and
   accepted results. An MCP client can work through a book in smaller batches and
   continue from saved progress across many model calls.
 - **Prepare an edition.** Review covers, metadata, navigation, notes, tables and
   image descriptions, then export the original-language text or its translation.
 
-The three tools—Document Processor, Translator and Sentence Segmenter—share one
-browser interface. The application and sentence splitting run locally; your
+Document Processor, Translator and Sentence Segmenter share one browser
+interface. The application and sentence splitting run locally; your
 chosen AI provider may process document content remotely.
 
 ## Choosing AI and managing cost
@@ -82,9 +85,9 @@ flowchart TD
     Export["Prepare an edition and export<br/>Metadata · cover · layout<br/>EPUB 3 · DOCX · HTML · PDF"]
 ```
 
-Earlier matches bring previous source–translation pairs into context. Exact and
-similar-wording matches offer guidance while allowing a different translation
-when the passage needs it.
+Earlier matches bring previously translated sentences into context. Exact and
+similar matches guide the translation but leave room for a different rendering
+when a passage needs it.
 
 ## Download
 
@@ -194,11 +197,10 @@ pixi run --locked start
 Setup creates your administrator account and prepares the three document tools;
 start opens the application in your browser. Keep the same terminal open for
 later commands, and use different ports if these are already taken. The dedicated
-data folder keeps this checkout
-separate from any existing installation.
+data folder keeps this checkout separate from any existing installation.
 
-Configure a model connection in Settings, or choose **Connect AI
-client** on the home page to use MCP. Follow the
+Configure a model connection in Settings, or choose **Connect AI client** on the
+home page to use MCP. Follow the
 [model preparation step](docs/documents-application.md#prepare-sentence-segmentation)
 before sentence splitting or aligned sentence translation.
 

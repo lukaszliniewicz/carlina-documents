@@ -92,7 +92,6 @@
         "pyrightconfig.documents.json",
         "eslint.config.mjs",
         "run_waitress.py",
-        "AGENTS.md",
         ".gitleaks.toml",
         "source-ownership.json"
       ]
@@ -108,7 +107,7 @@
         "historical_contracts": 41,
         "legacy_implementation": 815,
         "verification_and_tooling": 1753,
-        "root_configuration": 616
+        "root_configuration": 615
       }
     },
     {

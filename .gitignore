@@ -5,6 +5,9 @@
 .cecli/
 .antigravitycli/
 .codex/
+.claude/
+/AGENTS.md
+/CLAUDE.md
 
 # ==========================================
 # Python Caches, Environments & Build Files
