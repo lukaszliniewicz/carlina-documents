@@ -58,16 +58,17 @@ REQUIRED_CORE_ARTIFACT_MEMBERS = (
     "iarf_assistant/templates/public_layout.html",
 )
 CORE_FRONTEND_MANIFEST_MEMBER = "iarf_assistant/static/frontend/manifest.json"
-# The dev23 bilingual export and separately versioned add-on metadata produce
-# 1,276 wheel members and 2,285 source members. Keep a narrowly measured bound.
-MAX_WHEEL_FILES = 1_280
-MAX_SDIST_FILES = 2_290
+# The dev26 Workbench candidate with Translator 2.12.0 (review records,
+# flags, reports and passive pre-analysis) produces 1,282 wheel members and
+# 2,295 source members. Keep a narrowly measured bound.
+MAX_WHEEL_FILES = 1_286
+MAX_SDIST_FILES = 2_300
 MAX_FILES = {"wheel": MAX_WHEEL_FILES, "sdist": MAX_SDIST_FILES}
-# Reviewed dev23 candidate measures 26,782,308 wheel / 44,690,788 sdist
+# Reviewed dev26 candidate measures 26,991,263 wheel / 44,936,568 sdist
 # bytes before this ratchet-only source edit. Keep expansion budgets unchanged.
 MAX_ARCHIVE_BYTES = {
-    "wheel": 26_800_000,
-    "sdist": 44_710_000,
+    "wheel": 27_010_000,
+    "sdist": 44_960_000,
 }
 MAX_EXPANDED_BYTES = {
     "wheel": 80 * 1024 * 1024,
