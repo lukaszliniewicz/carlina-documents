@@ -882,8 +882,8 @@ def test_epub_edition_migrations_upgrade_retry_and_downgrade(tmp_path: Path) -> 
         revision="028_review_coverage",
     )
     with app.app_context():
-        command.upgrade(translator_config, "head")
-        command.upgrade(translator_config, "head")
+        command.upgrade(translator_config, "029_epub_editions")
+        command.upgrade(translator_config, "029_epub_editions")
         with sqlite3.connect(translator_db) as connection:
             assert connection.execute(
                 "SELECT version_num FROM alembic_version_translator"
