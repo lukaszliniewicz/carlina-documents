@@ -1,12 +1,12 @@
 {
   "addon_id": "translator",
-  "addon_version": "2.12.0",
+  "addon_version": "2.12.1",
   "build_command": [
     "npm",
     "run",
     "build"
   ],
-  "built_at": "2026-11-16T00:29:30Z",
+  "built_at": "2026-11-20T04:22:35Z",
   "frontend_api_range": "^1.0",
   "lockfile_hash": "4d9f71c349b8583611052cc777786eb1ee0048cf5cc42e31d761a753525f7b46",
   "lockfile_paths": [
