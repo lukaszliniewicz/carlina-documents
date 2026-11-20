@@ -88,7 +88,7 @@ def register_review_tools(
 
     @server.tool(
         name="carlina_document_review_search",
-        description="Search current extraction for literal text (not regex), with strict boolean case_sensitive and optional Unicode whole_word matching. Scope/page filters restrict hits, not neighboring context. Returns effective search options, actual matched text and heading ancestry. total_matches counts matching elements, not occurrences. include_html adds bounded complete markup or html_omitted. Follow next_offset with expected_revision.",
+        description="Search current extraction for literal text (not regex), with strict boolean case_sensitive and optional Unicode whole_word matching. Scope/page filters restrict hits, not neighboring context. Returns the actual matched text and heading ancestry. total_matches counts matching elements, not occurrences. include_html adds bounded complete markup or html_omitted. Follow next_offset with expected_revision.",
     )
     async def document_review_search(
         document_id: str,
