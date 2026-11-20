@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import errno
 import os
 import re
 import select
@@ -709,6 +710,11 @@ def _cgroup_populated(workspace: _Workspace) -> str | None:
         content = path.read_text(encoding="ascii")
     except FileNotFoundError:
         return None
+    except OSError as error:
+        # A cgroup removed between open and read answers ENODEV: it is gone.
+        if error.errno == errno.ENODEV:
+            return None
+        raise
     for line in content.splitlines():
         key, value = line.split()
         if key == "populated":
