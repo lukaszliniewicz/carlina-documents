@@ -3243,8 +3243,8 @@ def test_review_workflow_new_operations_and_error_diagnostics_through_sdk(
                         },
                     )
                 ).structured_content
+                # A lower-case hit under case_sensitive proves the flag applied.
                 assert found["items"][0]["matched_text"] == "vernunft"
-                assert found["search_options"]["case_sensitive"] is True
                 args = {
                     "document_id": "workflow-0",
                     "expected_revision": found["revision"],
@@ -3404,8 +3404,43 @@ def test_parallel_same_tool_reads_keep_response_identity_and_matching_options(
                     assert not result.is_error, result
                     data = result.structured_content
                     assert data["document_id"] == f"workflow-{index}"
-                    assert data["search_options"]["query"] == f"marker{index}"
                     assert data["items"][0]["matched_text"] == f"marker{index}"
                 assert len({r.structured_content["revision"] for r in results}) == 3
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("mode", ["2026-07-28", "legacy"])
+def test_listing_and_results_carry_no_generated_bloat(gateway, mode):
+    tools, _resources, _prompts, status = asyncio.run(
+        _catalog(gateway.endpoint, gateway.token, mode)
+    )
+
+    def schema_titles(node, *, in_map=False):
+        if isinstance(node, list):
+            return sum(schema_titles(item) for item in node)
+        if not isinstance(node, dict):
+            return 0
+        found = 0 if in_map else int(isinstance(node.get("title"), str))
+        for key, value in node.items():
+            if key in {"default", "enum", "const", "examples"}:
+                continue
+            found += schema_titles(
+                value, in_map=key in {"properties", "$defs", "patternProperties"}
+            )
+        return found
+
+    assert sum(schema_titles(tool.input_schema) for tool in tools) == 0
+    assert all(
+        tool.output_schema != {"additionalProperties": True, "type": "object"}
+        for tool in tools
+    )
+    issues = next(tool for tool in tools if tool.name == "carlina_document_issues_list")
+    assert "query" in issues.input_schema["properties"]
+    boundaries = next(
+        tool for tool in tools if tool.name == "carlina_document_review_boundaries"
+    )
+    limit = boundaries.input_schema["properties"]["limit"]
+    assert (limit["minimum"], limit["maximum"]) == (1, 50)
+    text = status.content[0].text
+    assert "\n" not in text and json.loads(text) == status.structured_content

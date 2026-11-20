@@ -97,6 +97,7 @@ def recovery(tmp_path, request):
             "mcp_batch_plan": plan,
             "mcp_last_execution_id": "source-run",
             "mcp_page_blank_policy": "explicit-v1",
+            "assembly_report": {"version": 1, "joins": {"space": 1}},
             "pdf_options": {"toc_handling": "omit"},
             "pdf_state": {"html_parts": [normalize_extracted_page_html(PAGE_ONE), None],
                           "boundary_flags": {}},
@@ -167,6 +168,7 @@ def test_recovery_assembles_without_altering_original_evidence(recovery):
     assert "four" in document.output_markdown
     assert "beta" in document.output_markdown  # accepted response without final checkpoint
     assert "pdf_state" not in document.settings
+    assert "assembly_report" not in document.settings
     assert document.settings["mcp_last_execution_id"] == applied["new_execution_id"]
     encoded_audit = document.settings["mcp_assembly_recovery_audit"]
     policy = service.documents.context.application.extensions[

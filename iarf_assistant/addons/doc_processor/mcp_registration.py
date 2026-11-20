@@ -162,12 +162,13 @@ def register_document_tools(
 
     @server.tool(
         name="carlina_document_get",
-        description="Read one owner-scoped document and optional current semantic output. Completed output includes its review revision; use expected_revision to reject stale snapshots. After edits, fetch anew rather than reusing a cached export or tool result.",
+        description="Read one owner-scoped document and optional current semantic output. include_output returns the semantic HTML (output_format=markdown or both on request). Completed output includes its review revision; use expected_revision to reject stale snapshots. After edits, fetch anew rather than reusing a cached export or tool result.",
     )
     async def document_get(
         document_id: str,
         include_output: bool = False,
         expected_revision: str | None = None,
+        output_format: Literal["html", "markdown", "both"] = "html",
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.doc_processor")
         try:
@@ -176,6 +177,7 @@ def register_document_tools(
                     document_id,
                     include_output=include_output,
                     expected_revision=expected_revision,
+                    output_format=output_format,
                 )
             )
         except BaseException as exc:

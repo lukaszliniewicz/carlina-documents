@@ -31,6 +31,7 @@ from carlina.core.semantic_images import diagnose_image_descriptions
 
 from ...core.upload_paths import resolve_upload_reference, uploads_root
 from .parsers.semantic_validation import diagnose_source_toc_blocks
+from .ruby import normalize_ruby, text_without_readings
 
 MAX_SEMANTIC_DIAGNOSTICS = 64
 MAX_DIAGNOSTIC_VALUE_BYTES = 256
@@ -546,6 +547,8 @@ def canonicalize_document_html(
                 )
             )
 
+    normalize_ruby(soup, lambda code: _diagnostic(diagnostics, "warning", code))
+
     ids: dict[str, Tag] = {}
     for tag in soup.find_all(id=True):
         identifier = str(tag.get("id") or "")
@@ -557,7 +560,7 @@ def canonicalize_document_html(
     for heading in soup.find_all(_HEADING_RE):
         if not heading.get("id"):
             heading["id"] = _slugify_heading_id(
-                heading.get_text(" ", strip=True), seen_ids
+                text_without_readings(heading, " ", strip=True), seen_ids
             )
             ids[str(heading["id"])] = heading
 

@@ -360,6 +360,7 @@ def render_target_block_fragment(
         end = max(item[1] for item in non_attribute)
         if not (render_start <= start < end <= render_end):
             raise BlockContractError("target-render-core-span")
+        start, end = _cover_ruby_elements(fragment, start, end, render_start)
         core = _target_core(
             block,
             candidate,
@@ -397,6 +398,28 @@ def render_target_block_fragment(
         )
     rendered = _apply_replacements(fragment, replacements)
     return _derive_outer_language(rendered, target_language)
+
+
+def _cover_ruby_elements(
+    fragment: str, start: int, end: int, offset: int
+) -> tuple[int, int]:
+    """Widen a core span to whole ruby elements.
+
+    Ruby readings are excluded from translation, so a reading at the edge of
+    a block lies outside the translated span. Replacing the whole element
+    keeps the target well formed and leaves the source reading out of it.
+    """
+
+    if "<ruby" not in fragment.casefold():
+        return start, end
+    roots, _texts = _LosslessParser(fragment).parse()
+    for node in _nodes(roots):
+        if node.tag != "ruby" or node.end is None:
+            continue
+        node_start, node_end = node.start + offset, node.end + offset
+        if node_start < end and start < node_end:
+            start, end = min(start, node_start), max(end, node_end)
+    return start, end
 
 
 def _nodes(roots: Sequence[_Node | object]) -> list[_Node]:

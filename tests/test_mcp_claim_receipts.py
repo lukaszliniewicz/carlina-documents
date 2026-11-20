@@ -22,6 +22,7 @@ from iarf_assistant.core.mcp_jobs import (
     create_execution,
     get_or_create_work,
     issue_access_key,
+    prior_attempt_note,
     release_work,
     resolve_access_key,
     submit_work,
@@ -587,3 +588,48 @@ def test_claim_receipt_migration_is_additive_and_reversible(tmp_path: Path):
             assert after == before
     finally:
         database.dispose()
+
+
+def _page_batch_work(execution_id: str, text: str):
+    return get_or_create_work(
+        execution_id,
+        {
+            "source": "doc_processor_pdf_batch",
+            "messages": [{"role": "user", "content": text}],
+            "dispatch": {
+                "batch_id": "batch-0001",
+                "phase": "page_extraction",
+                "unit_index": 6,
+            },
+        },
+    )
+
+
+def test_a_reoffered_unit_says_it_was_offered_before(app):
+    with app.app_context():
+        _, principal = _principal()
+        execution = create_execution(
+            1, "doc_processor", "document", "reoffer-document", {}, mode="passive"
+        )
+        first = _page_batch_work(execution.id, "pages 1-6")
+        claimed = _claim(principal, execution.id)
+        assert claimed is not None
+        assert "prior_attempts" not in claimed.to_dict()
+        record = db.session.get(McpWorkItem, first.work_item_id)
+        assert record is not None
+        record.state = "completed"
+        db.session.commit()
+
+        second = _page_batch_work(execution.id, "pages 1-6, request changed")
+        reoffer = _claim(principal, execution.id, request_id="claim-2")
+        assert reoffer is not None
+        assert reoffer.work_item_id == second.work_item_id
+        prior = reoffer.to_dict()["prior_attempts"]
+        assert prior["count"] == 1
+        assert prior["latest_work_item_id"] == first.work_item_id
+        assert prior["latest_state"] == "completed"
+        assert "validation_error" in prior["note"]
+        assert "validation_error" not in prior_attempt_note("cancelled")
+        assert prior_attempt_note("unknown") == (
+            "This unit was offered before. Answer this packet in full."
+        )

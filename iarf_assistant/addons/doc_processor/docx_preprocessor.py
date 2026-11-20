@@ -8,6 +8,7 @@ from urllib.parse import unquote, urlparse
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from carlina.core.diagram_rendering import project_diagrams_html
+from carlina.core.text_formats import flatten_ruby_for_text_formats
 
 from iarf_assistant.core.upload_paths import resolve_upload_reference
 
@@ -195,6 +196,8 @@ def preprocess_html_for_docx(
             relaxed=True,
         ).html
     soup = BeautifulSoup(html_content, "html.parser")
+    # Pandoc has no ruby model and would run base and reading together.
+    flatten_ruby_for_text_formats(soup)
 
     if str(doc_file_path or "").lower().endswith(".pdf"):
         from .parsers.pdf_utils import remove_source_toc_blocks

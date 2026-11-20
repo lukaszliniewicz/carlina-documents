@@ -111,3 +111,128 @@ def normalize_language_tag(value: str | None) -> str | None:
 
 
 __all__ = ["normalize_language_tag"]
+
+
+# --- Joining text that a physical page or column break split ---------------
+#
+# A page or column break in the source is not a word boundary. Scripts that
+# separate words with spaces need one restored when two fragments are joined;
+# scripts that do not (Han, kana, Thai and similar) must be joined directly, or
+# assembly invents a space inside a word. The decision uses only the characters
+# on either side of the seam and the word touching it, so it needs no
+# document-level language setting. Where only one side is written without
+# spaces, the word at the seam decides: a Latin word set off by spaces in an
+# English sentence keeps its space before a cited 漢字, while a Latin word run
+# into Japanese text (``…はIARF`` + ``の会議``) joins directly.
+
+# Code point ranges whose text is written without spaces between words. Hangul
+# is deliberately absent: Korean separates words with spaces.
+_UNSPACED_RANGES: tuple[tuple[int, int], ...] = (
+    (0x0E00, 0x0EFF),  # Thai, Lao
+    (0x0F00, 0x0FFF),  # Tibetan
+    (0x1000, 0x109F),  # Myanmar
+    (0x1780, 0x17FF),  # Khmer
+    (0x19E0, 0x19FF),  # Khmer symbols
+    (0x2E80, 0x2FDF),  # CJK radicals, Kangxi radicals
+    (0x2FF0, 0x2FFF),  # Ideographic description characters
+    (0x3000, 0x303F),  # CJK symbols and punctuation
+    (0x3040, 0x30FF),  # Hiragana, Katakana
+    (0x3100, 0x312F),  # Bopomofo
+    (0x3190, 0x31FF),  # Kanbun, Bopomofo extended, CJK strokes, Katakana ext.
+    (0x3200, 0x33FF),  # Enclosed CJK letters, CJK compatibility
+    (0x3400, 0x4DBF),  # CJK extension A
+    (0x4E00, 0x9FFF),  # CJK unified ideographs
+    (0xA000, 0xA4CF),  # Yi
+    (0xF900, 0xFAFF),  # CJK compatibility ideographs
+    (0xFE30, 0xFE4F),  # CJK compatibility forms
+    (0xFF00, 0xFF9F),  # Fullwidth forms, halfwidth katakana
+    (0xFFE0, 0xFFEF),  # Fullwidth signs
+    (0x1B000, 0x1B2FF),  # Kana supplement and extensions
+    (0x20000, 0x3134F),  # CJK extensions B-G
+)
+
+# Closing punctuation that attaches to the preceding word in spaced scripts.
+_ATTACHING_PUNCTUATION = frozenset({",", ".", ";", ":", ")", "]", "’", "'", "”"})
+
+# Sentence-final punctuation, including the ideographic and fullwidth forms.
+SENTENCE_FINAL_PUNCTUATION = frozenset(
+    {".", "!", "?", '"', "'", "”", "。", "！", "？", "．", "」", "』"}
+)
+
+
+def is_unspaced_character(character: str) -> bool:
+    """Return whether ``character`` belongs to a script written without spaces."""
+
+    if len(character) != 1:
+        return False
+    codepoint = ord(character)
+    return any(start <= codepoint <= end for start, end in _UNSPACED_RANGES)
+
+
+_SEAM_SCAN_LIMIT = 64
+
+
+def _seam_word_spaced(text: str, *, from_end: bool) -> bool:
+    """Whether the word touching the seam is set off by a space on its far side.
+
+    The word is the run of characters of one kind (written with or without
+    spaces) that touches the seam. It counts as spaced when whitespace ends it
+    within the scan limit, rather than the fragment edge or the other kind.
+    """
+
+    characters = reversed(text) if from_end else iter(text)
+    first = next(characters, "")
+    unspaced = is_unspaced_character(first)
+    for count, character in enumerate(characters):
+        if count >= _SEAM_SCAN_LIMIT:
+            return False
+        if character.isspace():
+            return True
+        if is_unspaced_character(character) != unspaced:
+            return False
+    return False
+
+
+def _joins_without_space(left_text: str, right_text: str) -> bool:
+    left_unspaced = is_unspaced_character(left_text[-1])
+    right_unspaced = is_unspaced_character(right_text[0])
+    if left_unspaced and right_unspaced:
+        return True
+    if not left_unspaced and not right_unspaced:
+        return False
+    # Mixed scripts at the seam: keep a space when either word is itself set
+    # off by spaces, as in a spaced sentence that cites a CJK word.
+    return not (
+        _seam_word_spaced(left_text, from_end=True)
+        or _seam_word_spaced(right_text, from_end=False)
+    )
+
+
+def join_separator(left: str, right: str) -> str:
+    """Return the text to put between two fragments split by a physical break.
+
+    Whitespace already present at the seam is the caller's to keep or strip;
+    this function decides only what a clean join needs.
+    """
+
+    left_text = left.rstrip()
+    right_text = right.lstrip()
+    if not left_text or not right_text:
+        return ""
+    if right_text[0] in _ATTACHING_PUNCTUATION:
+        return ""
+    return "" if _joins_without_space(left_text, right_text) else " "
+
+
+def seam_whitespace_is_spurious(left: str, right: str) -> bool:
+    """Return whether whitespace at a seam is one a clean join would not have."""
+
+    left_text = left.rstrip()
+    right_text = right.lstrip()
+    has_whitespace = len(left_text) != len(left) or len(right_text) != len(right)
+    return bool(
+        has_whitespace
+        and left_text
+        and right_text
+        and _joins_without_space(left_text, right_text)
+    )

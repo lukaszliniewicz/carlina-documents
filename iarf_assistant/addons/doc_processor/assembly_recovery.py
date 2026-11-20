@@ -539,8 +539,10 @@ class AssemblyRecoveryService:
                 settings = semantic_settings(dict(document.settings or {}),
                     canonicalize_document_html(candidate, user_id=document.user_id,
                                                source_file_path=document.file_path), mode="completed")
+                # The assembly report described the earlier output, not this one.
                 for field in ("pdf_state", "active_job_id", "mcp_execution_id", "mcp_execution_mode",
-                              "mcp_recovery", "progress", "progress_msg", "extraction_issues_checkpoint"):
+                              "mcp_recovery", "progress", "progress_msg", "extraction_issues_checkpoint",
+                              "assembly_report"):
                     settings.pop(field, None)
                 settings["mcp_last_execution_id"] = new_execution_id
                 receipt = {"key_hash": key_hash, "request_hash": request_hash,

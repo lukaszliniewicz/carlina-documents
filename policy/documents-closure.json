@@ -4,15 +4,15 @@
     "groups": {
       "carlina": {
         "member_count": 66,
-        "bytes": 760500
+        "bytes": 768000
       },
       "iarf_assistant.host": {
         "member_count": 247,
         "bytes": 4200000
       },
       "iarf_assistant.addons.doc_processor": {
-        "member_count": 85,
-        "bytes": 2310000
+        "member_count": 87,
+        "bytes": 2350000
       },
       "iarf_assistant.addons.sentence_segmenter": {
         "member_count": 16,

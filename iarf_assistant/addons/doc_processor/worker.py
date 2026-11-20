@@ -68,6 +68,7 @@ from iarf_assistant.core.worker_runtime import build_worker_node, run_worker_nod
 from iarf_assistant.extensions import db
 from iarf_assistant.llm_service import LLMService
 from .page_batch_response import PageBatchValidationError
+from .parsers.assembly_report import ASSEMBLY_REPORT_SETTING, finish_assembly_report
 from .performance_metrics import safe_preparation_timings
 
 logger = logging.getLogger("DocProcessorWorker")
@@ -780,6 +781,7 @@ def _store_semantic_output(
     *,
     completed: bool,
     image_crop_sources: dict | None = None,
+    assembly_inputs: object = None,
 ) -> None:
     """Establish canonical output before Markdown/knowledge synchronization."""
 
@@ -800,6 +802,14 @@ def _store_semantic_output(
     )
     if completed and image_crop_sources is not None:
         doc.settings["image_crops"] = dict(image_crop_sources)
+    if completed:
+        # A completed run either records its own assembly check or none; a
+        # report left by an earlier run must not describe this output.
+        assembly_report = finish_assembly_report(assembly_inputs, result.html)
+        if assembly_report is None:
+            doc.settings.pop(ASSEMBLY_REPORT_SETTING, None)
+        else:
+            doc.settings[ASSEMBLY_REPORT_SETTING] = assembly_report
     try:
         doc.output_markdown = html_to_markdown_on_the_fly(result.html)
     except Exception:
@@ -1169,6 +1179,7 @@ def _process_with_native_parser(
         "html": final_html,
         "markdown": final_markdown,
         "image_crop_sources": getattr(parser, "image_crop_sources", {}),
+        "assembly_inputs": getattr(parser, "assembly_inputs", None),
     }
     if (doc.settings or {}).get("mcp_extraction_issues_policy") == _EXTRACTION_ISSUES_POLICY:
         result["extraction_issues"] = extraction_issue_pages
@@ -2360,6 +2371,7 @@ def process_document(payload: dict, task_queue, job_id: str):
             result.get("html", ""),
             completed=True,
             image_crop_sources=result.get("image_crop_sources", {}),
+            assembly_inputs=result.get("assembly_inputs"),
         )
         if (doc.settings or {}).get("mcp_extraction_issues_policy") == _EXTRACTION_ISSUES_POLICY:
             _import_extraction_issues(doc, result.get("extraction_issues", []))
@@ -2485,6 +2497,7 @@ def resume_pdf_parsing(payload: dict, task_queue, job_id: str):
             html_content or "",
             completed=True,
             image_crop_sources=getattr(parser, "image_crop_sources", {}),
+            assembly_inputs=getattr(parser, "assembly_inputs", None),
         )
         if (doc.settings or {}).get("mcp_extraction_issues_policy") == _EXTRACTION_ISSUES_POLICY:
             _import_extraction_issues(doc, extraction_issue_pages)

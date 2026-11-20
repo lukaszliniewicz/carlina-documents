@@ -24,8 +24,8 @@ be resolved. Ledger status changes do not apply text corrections.
   physical provenance. Filters restrict hits, not context. `include_html=true`
   adds complete bounded markup or `html_omitted=true`. Results include heading
   ancestry. Use the returned IDs to fetch exact editable HTML.
-- `carlina_document_review_fetch`: complete HTML/text for selected IDs or a page
-  of elements. Follow `next_offset`. HTML is bounded to 64,000 characters per
+- `carlina_document_review_fetch`: complete HTML for selected IDs or a page
+  of elements; `include_text=true` adds visible text. Follow `next_offset`. HTML is bounded to 64,000 characters per
   main response and never silently truncated for editing; fetch smaller descendants
   if a container exceeds the budget. `before`/`after` add up to three neighbors
   with separately bounded HTML. The same scope/page filters are available.
@@ -44,6 +44,10 @@ be resolved. Ledger status changes do not apply text corrections.
   tags/classes, retained page markers, and whether a marker is inside one joined
   element. Sharing a quotation/container does not establish a paragraph join;
   punctuation and `continued` classes are evidence, not conclusive decisions.
+  `space_inside_unspaced_text` marks a space left inside Japanese, Chinese or
+  Thai text at a page join; `carlina_document_repair_boundaries` removes such
+  spaces with `remove_space`, or all of them at once with
+  `accept_suggested=["remove_space"]` after a dry-run preview.
   Cover/flap text marked continued may refer to a distant flap, not the next page.
 - For an ambiguous boundary, request its optional images using `page_number`;
   with `include_images=true`; this attaches the physical predecessor and current

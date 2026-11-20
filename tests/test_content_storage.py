@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import string
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -96,6 +97,16 @@ def _database(paths: AppPaths) -> tuple[Engine, Table]:
     engine = create_engine("sqlite:///" + str(paths.database_file))
     metadata.create_all(engine)
     return engine, table
+
+
+def _flip_last_base64_character(stored: str) -> str:
+    # The low bits of a final base64 character can be padding that decoders
+    # ignore; its top two bits never are, so move it to another group of 16.
+    body = stored.rstrip("=")
+    alphabet = string.ascii_uppercase + string.ascii_lowercase + string.digits
+    index = (alphabet + "-_").find(body[-1])
+    group = 3 if index < 0 else index // 16
+    return body[:-1] + "AQgw"[(group + 2) % 4] + stored[len(body) :]
 
 
 def _seed(app: Flask, engine: Engine, table: Table) -> None:
@@ -347,7 +358,7 @@ def test_plaintext_json_and_encrypted_authentication_fail_closed(tmp_path: Path)
         stored = connection.exec_driver_sql(
             "SELECT text FROM content_acceptance"
         ).scalar_one()
-        damaged = stored[:-2] + ("A" if stored[-2] != "A" else "B") + stored[-1]
+        damaged = _flip_last_base64_character(stored)
         connection.exec_driver_sql("UPDATE content_acceptance SET text = ?", (damaged,))
     with (
         encrypted_app.app_context(),

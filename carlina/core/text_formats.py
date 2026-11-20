@@ -4,10 +4,16 @@ import logging
 import sys
 
 import mistune
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
+from bs4.element import Comment, NavigableString
 from markdownify import markdownify
 
+from .language import is_unspaced_character
+
 logger = logging.getLogger(__name__)
+
+# Ruby readings (rt) and their bracket fallbacks (rp) annotate base text.
+RUBY_ANNOTATION_TAGS = frozenset({"rp", "rt"})
 
 _markdown_parser = mistune.create_markdown(
     escape=False,
@@ -31,6 +37,76 @@ def markdown_to_html_on_the_fly(markdown_text: str) -> str:
         return markdown_text
 
 
+
+def _is_reading_text(node: NavigableString) -> bool:
+    return any(
+        isinstance(parent, Tag) and parent.name in RUBY_ANNOTATION_TAGS
+        for parent in node.parents
+    )
+
+
+def text_without_readings(tag: Tag, separator: str = "", *, strip: bool = False) -> str:
+    """``get_text`` for running text: ruby readings and fallbacks are skipped."""
+
+    texts = [
+        str(node)
+        for node in tag.find_all(string=True)
+        if isinstance(node, NavigableString)
+        and not isinstance(node, Comment)
+        and not _is_reading_text(node)
+    ]
+    if strip:
+        texts = [text.strip() for text in texts if text.strip()]
+    return separator.join(texts)
+
+
+def _ruby_parts(ruby: Tag) -> tuple[str, str]:
+    bases: list[str] = []
+    readings: list[str] = []
+    for child in ruby.children:
+        if isinstance(child, Tag) and child.name == "rt":
+            readings.append(child.get_text())
+        elif isinstance(child, Tag) and child.name == "rp":
+            continue
+        elif isinstance(child, Tag):
+            bases.append(text_without_readings(child))
+        elif isinstance(child, NavigableString) and not isinstance(child, Comment):
+            bases.append(str(child))
+    return "".join(bases).strip(), "".join(readings).strip()
+
+
+def ruby_brackets(ruby: Tag) -> tuple[str, str]:
+    """Fullwidth brackets after unspaced base text, ASCII ones otherwise."""
+
+    base, _reading = _ruby_parts(ruby)
+    if base and is_unspaced_character(base[-1]):
+        return "\uff08", "\uff09"
+    return "(", ")"
+
+
+def ruby_fallback_text(ruby: Tag) -> str:
+    """Render one ruby as ``base (reading)``, with fullwidth brackets after CJK."""
+
+    base, reading = _ruby_parts(ruby)
+    if not reading:
+        return base
+    opening, closing = ruby_brackets(ruby)
+    separator = " " if opening == "(" and base else ""
+    return f"{base}{separator}{opening}{reading}{closing}"
+
+
+def flatten_ruby_for_text_formats(soup: BeautifulSoup | Tag) -> int:
+    """Replace ruby with its text fallback where a format cannot show ruby."""
+
+    count = 0
+    for ruby in list(soup.find_all("ruby")):
+        if ruby.parent is None or ruby.find_parent("ruby") is not None:
+            continue
+        ruby.replace_with(NavigableString(ruby_fallback_text(ruby)))
+        count += 1
+    return count
+
+
 def html_to_markdown_on_the_fly(html_text: str) -> str:
     """Convert HTML into semantic Markdown with safe, deterministic fallbacks."""
 
@@ -41,6 +117,7 @@ def html_to_markdown_on_the_fly(html_text: str) -> str:
         soup = BeautifulSoup(html_text, "html.parser")
         for tag in soup(["script", "style", "head", "meta", "title"]):
             tag.decompose()
+        flatten_ruby_for_text_formats(soup)
 
         clean_html = str(soup)
         try:

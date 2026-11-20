@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 import uuid
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -33,6 +35,10 @@ MAX_RECEIPTS = 32
 MAX_DOCUMENT_ISSUES = 10_000
 MAX_PAGE_SIZE = 100
 MAX_NOTE_CHARS = 2_000
+MAX_QUERY_CHARS = 200
+MAX_GROUP_MEMBERS = 50
+MAX_GROUP_READINGS = 10
+GROUP_BY_VALUES = frozenset({"excerpt"})
 _REVISION_RE = re.compile(r"[0-9a-f]{64}\Z")
 _IDEMPOTENCY_RE = re.compile(r"[A-Za-z0-9_.:-]{1,128}\Z")
 
@@ -141,6 +147,67 @@ def _extraction_source_key(
     return "extraction:" + hashlib.sha256(seed).hexdigest()
 
 
+def _folded(value: str) -> str:
+    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+
+def _stored_report(issue: DocProcessorIssue) -> dict[str, Any] | None:
+    payload = issue.payload
+    if not isinstance(payload, dict):
+        return None
+    report = payload.get("report")
+    return report if isinstance(report, dict) else None
+
+
+def _report_search_text(report: dict[str, Any]) -> str:
+    readings = report.get("suggested_readings")
+    parts = [report.get("excerpt"), report.get("reason")]
+    if isinstance(readings, list):
+        parts.extend(readings)
+    return _folded(" \n ".join(part for part in parts if isinstance(part, str)))
+
+
+def _excerpt_groups(issues: list[DocProcessorIssue]) -> list[dict[str, Any]]:
+    """Group issues that report the same printed reading, most frequent first."""
+
+    grouped: dict[str, list[tuple[DocProcessorIssue, dict[str, Any]]]] = {}
+    for issue in issues:
+        report = _stored_report(issue)
+        excerpt = report.get("excerpt") if report is not None else None
+        if report is None or not isinstance(excerpt, str) or not excerpt.strip():
+            continue
+        key = " ".join(unicodedata.normalize("NFKC", excerpt).split())
+        grouped.setdefault(key, []).append((issue, report))
+    groups: list[dict[str, Any]] = []
+    for excerpt, members in grouped.items():
+        readings: list[str] = []
+        for _, report in members:
+            for reading in report.get("suggested_readings") or []:
+                if isinstance(reading, str) and reading not in readings:
+                    readings.append(reading)
+        groups.append(
+            {
+                "excerpt": excerpt,
+                "count": len(members),
+                "kinds": sorted({str(report.get("kind")) for _, report in members}),
+                "statuses": dict(
+                    sorted(Counter(issue.status for issue, _ in members).items())
+                ),
+                "pages": sorted(
+                    {
+                        issue.page_number
+                        for issue, _ in members
+                        if issue.page_number is not None
+                    }
+                )[:MAX_GROUP_MEMBERS],
+                "suggested_readings": readings[:MAX_GROUP_READINGS],
+                "issue_ids": [issue.id for issue, _ in members][:MAX_GROUP_MEMBERS],
+            }
+        )
+    groups.sort(key=lambda group: (-group["count"], group["excerpt"]))
+    return groups
+
+
 class IssueLedgerService:
     """Read and mutate issue records through an owner-scoped document service."""
 
@@ -205,8 +272,25 @@ class IssueLedgerService:
         page_number: int | None = None,
         offset: int = 0,
         limit: int = 50,
+        query: str | None = None,
+        group_by: str | None = None,
+        include_history: bool = True,
     ) -> dict[str, Any]:
         document = self._document(document_id)
+        if type(include_history) is not bool:
+            raise _error(
+                "include_history must be a boolean.", "invalid_include_history"
+            )
+        if query is not None and (
+            not isinstance(query, str)
+            or not query.strip()
+            or len(query) > MAX_QUERY_CHARS
+        ):
+            raise _error(
+                f"query must be 1-{MAX_QUERY_CHARS} characters.", "invalid_query"
+            )
+        if group_by is not None and group_by not in GROUP_BY_VALUES:
+            raise _error("group_by must be excerpt.", "invalid_group_by")
         if status is not None and (
             not isinstance(status, str) or status not in STATUSES
         ):
@@ -233,36 +317,57 @@ class IssueLedgerService:
             )
             for value in sorted(STATUSES)
         }
-        query = base
+        filtered = base
         if status is not None:
-            query = query.filter_by(status=status)
+            filtered = filtered.filter_by(status=status)
         if page_number is not None:
-            query = query.filter_by(page_number=page_number)
-        if kind is not None:
-            # Report data is encrypted, so kind filtering happens after a bounded SQL page.
-            # The SQL scan remains owner/document scoped and fails closed on pathological ledgers.
+            filtered = filtered.filter_by(page_number=page_number)
+        if kind is not None or query is not None or group_by is not None:
+            # Report data is encrypted, so these filters run after a bounded SQL scan.
+            # The scan remains owner/document scoped and fails closed on pathological ledgers.
             issue_count = int(base.with_entities(func.count(DocProcessorIssue.id)).scalar() or 0)
             if issue_count > MAX_DOCUMENT_ISSUES:
                 raise _error("Issue ledger exceeds its configured limit.", "issue_limit")
-            all_items = query.order_by(DocProcessorIssue.created_at, DocProcessorIssue.id).all()
+            needle = _folded(query) if query is not None else None
             matching = [
-                issue for issue in all_items
-                if isinstance(issue.payload, dict)
-                and isinstance(issue.payload.get("report"), dict)
-                and issue.payload["report"].get("kind") == kind
+                issue
+                for issue in filtered.order_by(
+                    DocProcessorIssue.created_at, DocProcessorIssue.id
+                ).all()
+                if (report := _stored_report(issue)) is not None
+                and (kind is None or report.get("kind") == kind)
+                and (needle is None or needle in _report_search_text(report))
             ]
+            if group_by is not None:
+                groups = _excerpt_groups(matching)
+                return {
+                    "document_id": document.id,
+                    "current_revision": _revision_for(document),
+                    "group_by": group_by,
+                    "groups": groups[offset : offset + limit],
+                    "total_groups": len(groups),
+                    "total": len(matching),
+                    "counts": counts,
+                }
             total = len(matching)
             selected = matching[offset : offset + limit]
         else:
-            total = int(query.with_entities(func.count(DocProcessorIssue.id)).scalar() or 0)
+            total = int(filtered.with_entities(func.count(DocProcessorIssue.id)).scalar() or 0)
             selected = (
-                query.order_by(DocProcessorIssue.created_at, DocProcessorIssue.id)
+                filtered.order_by(DocProcessorIssue.created_at, DocProcessorIssue.id)
                 .offset(offset)
                 .limit(limit)
                 .all()
             )
         revision = _revision_for(document)
         items = [self._detail(document, issue, current_revision=revision) for issue in selected]
+        if not include_history:
+            # Summary items: the document and revision are stated once above,
+            # and each issue's review history is one issue_get away.
+            for item in items:
+                item.pop("document_id", None)
+                item.pop("current_revision", None)
+                item["history_count"] = len(item.pop("history", []))
         return {
             "document_id": document.id,
             "current_revision": revision,

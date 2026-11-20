@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from itertools import islice
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import rfc8785
 from flask import current_app, has_app_context
@@ -285,9 +285,10 @@ class McpWorkClaim:
     expected_output_format: str = "text"
     response_schema: dict[str, Any] | None = None
     batch_id: str | None = None
+    prior_attempts: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "work_item_id": self.work_item_id,
             "execution_id": self.execution_id,
             "owner_user_id": self.owner_user_id,
@@ -311,6 +312,9 @@ class McpWorkClaim:
             "batch_id": self.batch_id,
             "request": copy.deepcopy(self.request),
         }
+        if self.prior_attempts is not None:
+            payload["prior_attempts"] = copy.deepcopy(self.prior_attempts)
+        return payload
 
     def __getitem__(self, key: str) -> Any:
         return self.to_dict()[key]
@@ -2117,7 +2121,61 @@ def _claim_payload(
         expected_output_format=fmt,
         response_schema=schema,
         batch_id=batch_id,
+        prior_attempts=_prior_attempts(work),
     )
+
+
+_PRIOR_ATTEMPT_OUTCOMES = {
+    "completed": (
+        "The latest earlier response passed the response contract but was not "
+        "committed: product validation rejected it (carlina_job_get shows "
+        "validation_error) or the request changed."
+    ),
+    "cancelled": (
+        "The latest earlier offer was withdrawn before a response was committed, "
+        "for example after a resume or a changed request."
+    ),
+}
+
+
+def prior_attempt_note(latest_state: str) -> str:
+    """Explain a re-offer without claiming more than the earlier state shows."""
+
+    outcome = _PRIOR_ATTEMPT_OUTCOMES.get(latest_state)
+    parts = ["This unit was offered before.", outcome, "Answer this packet in full."]
+    return " ".join(part for part in parts if part)
+
+
+def _prior_attempts(work: McpWorkItem) -> dict[str, Any] | None:
+    """Say when a claimed unit was offered before, so a re-offer is never silent."""
+
+    if work.batch_id is None or work.unit_index is None:
+        return None
+    phase = (
+        McpWorkItem.dispatch_phase.is_(None)
+        if work.dispatch_phase is None
+        else McpWorkItem.dispatch_phase == work.dispatch_phase
+    )
+    earlier = db.session.query(McpWorkItem.id, McpWorkItem.state).filter(
+        McpWorkItem.execution_id == work.execution_id,
+        McpWorkItem.id != work.id,
+        McpWorkItem.batch_id == work.batch_id,
+        McpWorkItem.unit_index == work.unit_index,
+        phase,
+        McpWorkItem.created_at <= work.created_at,
+    )
+    latest = earlier.order_by(
+        McpWorkItem.created_at.desc(), McpWorkItem.id.desc()
+    ).first()
+    if latest is None:
+        return None
+    latest_id, latest_state = latest
+    return {
+        "count": earlier.count(),
+        "latest_work_item_id": str(latest_id),
+        "latest_state": str(latest_state),
+        "note": prior_attempt_note(str(latest_state)),
+    }
 
 
 def _recover_claim_receipt(
@@ -2676,8 +2734,9 @@ def _validate_usage(value: Any) -> dict[str, int]:
 _SAFE_JSON_TYPES = frozenset(
     {"array", "boolean", "integer", "null", "number", "object", "string"}
 )
-_SAFE_VALIDATION_KEYWORDS = frozenset({"enum", "json_parse", "required", "schema", "type"})
+_SAFE_VALIDATION_KEYWORDS = frozenset({"count", "enum", "json_parse", "required", "schema", "type"})
 _FIXED_VALIDATION_MESSAGES = {
+    "count": "The array has the wrong number of items.",
     "enum": "The value is not an allowed choice.",
     "json_parse": "Content is not valid JSON.",
     "required": "Missing required property.",
@@ -2964,6 +3023,9 @@ def _bound_validation_errors(errors: Iterable[Mapping[str, Any]] | None) -> list
         for key in ("line", "column"):
             if isinstance(raw.get(key), int) and not isinstance(raw.get(key), bool) and raw[key] >= 1:
                 entry[key] = min(raw[key], 1_000_000)
+        for key in ("expected_min_items", "expected_max_items", "received_items"):
+            if type(raw.get(key)) is int and 0 <= raw[key] <= 1_000_000:
+                entry[key] = raw[key]
         code = raw.get("code")
         if isinstance(code, str) and re.fullmatch(r"[a-z][a-z0-9_-]{0,127}", code):
             entry["code"] = code
@@ -2977,6 +3039,8 @@ def _bound_validation_errors(errors: Iterable[Mapping[str, Any]] | None) -> list
 def _schema_validation_diagnostic(error: ValidationError, *, allowed_names: frozenset[str]) -> list[dict[str, Any]]:
     raw_keyword = error.validator
     keyword = raw_keyword if raw_keyword in {"enum", "required", "type"} else "schema"
+    if raw_keyword in {"minItems", "maxItems"} and isinstance(error.instance, list):
+        keyword = "count"
     base = {
         "path": _safe_validation_path(error.path, allowed_names),
         "keyword": keyword,
@@ -3004,6 +3068,15 @@ def _schema_validation_diagnostic(error: ValidationError, *, allowed_names: froz
         expected_enum = _safe_expected_enum(error.validator_value)
         if expected_enum is not None:
             base["expected_enum"] = expected_enum
+    elif keyword == "count":
+        # Counts only: a short page batch should say how many rows are
+        # missing, for example when one leased image was never fetched.
+        instance: object = error.instance
+        limit: object = error.validator_value
+        if type(limit) is int and isinstance(instance, list):
+            bound = "expected_min_items" if raw_keyword == "minItems" else "expected_max_items"
+            base[bound] = limit
+            base["received_items"] = len(cast("list[object]", instance))
     return [base]
 
 

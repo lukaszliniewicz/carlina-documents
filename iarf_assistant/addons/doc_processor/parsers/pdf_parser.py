@@ -18,6 +18,7 @@ import pymupdf as fitz
 from bs4 import BeautifulSoup
 from flask import current_app
 
+from carlina.core.language import SENTENCE_FINAL_PUNCTUATION
 from carlina.core.utc import utc_iso
 from iarf_assistant.addons.doc_processor.prompts import (
     DEFAULT_PDF_BOUNDARY_PROMPT,
@@ -96,6 +97,7 @@ from ..prompting import (
     note_contract_instruction,
     normalize_prompt_cache_scope,
     render_prompt_template,
+    extraction_contract_instruction,
     semantic_structure_instruction,
     effective_prompt_value,
     image_accessibility_instruction,
@@ -104,9 +106,11 @@ from ..reasoning_snapshot import (
     REASONING_SNAPSHOT_KEY,
     thinking_config_for_call,
 )
+from .assembly_report import AssemblyReport
 from .pdf_render_pool import RenderCancelled, RenderError, prepared_pages
 from .pdf_rendering import MAX_CROP_GUARD_EXPANSIONS, PdfImageRenderer
 from .pdf_utils import (
+    LEGACY_SENTENCE_FINAL_PUNCTUATION,
     ListContinuationError,
     clean_markdown_artifacts,
     concatenate_html_pages,
@@ -122,8 +126,12 @@ from .pdf_utils import (
 from .semantic_validation import (
     EXTRACTION_NOTE_INPUT_POLICY_SETTING,
     EXTRACTION_NOTE_INPUT_POLICY_VERSION,
+    MARKUP_VOCABULARY_POLICY_SETTING,
+    MARKUP_VOCABULARY_POLICY_VERSION,
     extraction_note_input_contract,
     extraction_note_input_enabled,
+    markup_vocabulary_enabled,
+    page_join_policy_enabled,
     validate_evaluator_replacement,
     validate_extraction_grounding,
     validate_extraction_note_input,
@@ -465,6 +473,7 @@ class PdfParser(PdfImageRenderer):
         self.state = state or {}
         self.extraction_issues_by_page: dict[int, list[dict]] = {}
         self.image_crop_sources: dict[str, dict] = {}
+        self.assembly_inputs: dict[str, object] | None = None
 
         self.base_uploads_dir = uploads_root()
 
@@ -1624,6 +1633,21 @@ class PdfParser(PdfImageRenderer):
             )
         return None
 
+    def _reloaded_document_metadata(self, metadata: dict) -> dict:
+        """Return metadata exactly as a resumed worker will load it.
+
+        Each suspension stores the metadata through the metadata service
+        (which collapses whitespace, for example in contents titles), and the
+        resumed parser normalises it again. The result is a fixed point.
+        """
+
+        from ..metadata_service import normalize_document_metadata_payload
+
+        stored = normalize_document_metadata_payload(
+            json.loads(json.dumps(metadata, ensure_ascii=False))
+        )
+        return self._normalize_document_metadata(stored) if stored else {}
+
     def _normalize_document_metadata(
         self, metadata: dict, doc=None, source_pages: list[int] | None = None
     ) -> dict:
@@ -1901,7 +1925,7 @@ class PdfParser(PdfImageRenderer):
             metadata_prepass=pdf_opts.get("metadata_prepass", True),
             include_previous_context=include_previous_context,
             toc_handling="omit",
-        ) + semantic_structure_instruction(self.settings, extract_images=extract_images) + image_accessibility_instruction(self.settings, extract_images=extract_images)
+        ) + semantic_structure_instruction(self.settings, extract_images=extract_images) + image_accessibility_instruction(self.settings, extract_images=extract_images) + extraction_contract_instruction(self.settings)
 
     def _build_prompt_with_context(self, page_number: int) -> dict:
         append_previous = self.settings.get("pdf_options", {}).get(
@@ -3264,6 +3288,11 @@ class PdfParser(PdfImageRenderer):
                     best_metadata = self._provisional_metadata(
                         best_metadata, "toc_follow_up_incomplete"
                     )
+                # Page prompts embed this metadata, and every resumed worker
+                # reloads it through the same normaliser. Dispatch the reloaded
+                # form from the start, or the first page batch changes its
+                # request fingerprint after suspension and is offered again.
+                best_metadata = self._reloaded_document_metadata(best_metadata)
                 self.document_metadata = best_metadata
                 self.settings["document_metadata"] = best_metadata
                 if budgeted:
@@ -3365,9 +3394,17 @@ class PdfParser(PdfImageRenderer):
         if is_structural_boundary_block(prev_tag):
             return "separate", False, "previous page ends with a structural block"
 
+        # Retained passive runs keep the punctuation their boundary review
+        # started with, because these decisions select passive work items.
+        script_aware = page_join_policy_enabled(self.settings)
         if has_boundary_continuation(prev_tag, next_tag):
             prev_text = prev_tag.get_text(" ", strip=True)
-            if re.search(r"[.!?…][\"'”’»\)\]\}]*$", prev_text):
+            sentence_end = (
+                r"[.!?…。！？．][\"'”’»」』）\)\]\}]*$"
+                if script_aware
+                else r"[.!?…][\"'”’»\)\]\}]*$"
+            )
+            if re.search(sentence_end, prev_text):
                 return (
                     "auto",
                     True,
@@ -3388,7 +3425,15 @@ class PdfParser(PdfImageRenderer):
         if prev_tag.name != next_tag.name:
             return "auto", False, "different tag types"
 
-        if text_heuristic_match(prev_tag, next_tag):
+        if text_heuristic_match(
+            prev_tag,
+            next_tag,
+            sentence_final=(
+                SENTENCE_FINAL_PUNCTUATION
+                if script_aware
+                else LEGACY_SENTENCE_FINAL_PUNCTUATION
+            ),
+        ):
             return "auto", False, "text heuristic can handle likely continuation"
 
         prev_text = prev_tag.get_text(" ", strip=True)
@@ -3396,7 +3441,8 @@ class PdfParser(PdfImageRenderer):
         if not prev_text or not next_text:
             return "separate", False, "empty boundary text"
 
-        if prev_text[-1] in ".!?\"'”’)]}":
+        clean_end = ".!?\"'”’)]}。！？．」』）" if script_aware else ".!?\"'”’)]}"
+        if prev_text[-1] in clean_end:
             return "separate", False, "previous block ends cleanly"
 
         if prev_tag.name in ["ul", "ol", "table", "blockquote", "div"]:
@@ -3966,12 +4012,14 @@ class PdfParser(PdfImageRenderer):
         declared_blank: bool = False,
     ) -> str:
         strict_note_input = extraction_note_input_enabled(self.settings)
+        strict_vocabulary = markup_vocabulary_enabled(self.settings)
         if allow_blank:
             declaration = validate_page_declaration(
                 content,
                 declared_blank=declared_blank,
                 finish_reason=finish_reason,
                 strict_note_input=strict_note_input,
+                strict_vocabulary=strict_vocabulary,
             )
             if not declaration.valid:
                 model_response_failure = bool(
@@ -4305,6 +4353,10 @@ class PdfParser(PdfImageRenderer):
                     EXTRACTION_NOTE_INPUT_POLICY_VERSION
                 ):
                     dispatch["extraction_contract"] = extraction_note_input_contract()
+                if self.settings.get(MARKUP_VOCABULARY_POLICY_SETTING) == (
+                    MARKUP_VOCABULARY_POLICY_VERSION
+                ):
+                    dispatch["markup_vocabulary"] = MARKUP_VOCABULARY_POLICY_VERSION
                 if boundary_input:
                     dispatch["boundary_input"] = boundary_input
                 try:
@@ -4501,6 +4553,10 @@ class PdfParser(PdfImageRenderer):
                     EXTRACTION_NOTE_INPUT_POLICY_VERSION
                 ):
                     dispatch["extraction_contract"] = extraction_note_input_contract()
+                if self.settings.get(MARKUP_VOCABULARY_POLICY_SETTING) == (
+                    MARKUP_VOCABULARY_POLICY_VERSION
+                ):
+                    dispatch["markup_vocabulary"] = MARKUP_VOCABULARY_POLICY_VERSION
                 if page_num == page_indexes[0] and boundary_input is not None:
                     dispatch["boundary_input"] = boundary_input
                 try:
@@ -5522,12 +5578,15 @@ class PdfParser(PdfImageRenderer):
                         crop_sources=self.image_crop_sources,
                     )
 
+            assembly_report = AssemblyReport()
             full_html = concatenate_html_pages(
                 html_parts,
                 boundary_flags,
                 toc_handling=pdf_opts.get("toc_handling", "omit"),
                 preserve_note_labels=note_arrangement_enabled(self.settings),
+                assembly_report=assembly_report,
             )
+            self.assembly_inputs = assembly_report.to_inputs()
             self._report_progress(
                 progress_callback, 99, "Finalizing document output..."
             )
@@ -5667,12 +5726,15 @@ class PdfParser(PdfImageRenderer):
                 boundary_flags = self._build_boundary_flags(
                     html_parts, png_paths, model
                 )
+            assembly_report = AssemblyReport()
             full_html = concatenate_html_pages(
                 html_parts,
                 boundary_flags,
                 toc_handling=pdf_opts.get("toc_handling", "omit"),
                 preserve_note_labels=note_arrangement_enabled(self.settings),
+                assembly_report=assembly_report,
             )
+            self.assembly_inputs = assembly_report.to_inputs()
             return "COMPLETED", full_html
         finally:
             if locals().get("source_doc") is not None:

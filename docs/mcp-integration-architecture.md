@@ -354,8 +354,9 @@ Discovery also exposes:
 - `carlina_passive_worker`, a prompt for a generic harness agent.
 
 Tools return bounded structured results. `carlina_document_get` can optionally
-return the complete semantic output. The review tools return bounded text and
-elements, so they do not send the whole book or the embedded images each time.
+return the complete semantic output, as HTML by default (`output_format=markdown`
+or `both` on request). The review tools return bounded text and elements, so they
+do not send the whole book or the embedded images each time.
 
 Ordinary orchestration uses compact projections. Document start acknowledges the
 execution and batch count without echoing the plan or settings. Work claims keep
@@ -462,14 +463,17 @@ words or headings are errors.
    from the surrounding text and the source, not from visual prominence or
    punctuation alone.
 2. Use `review_search` with strict boolean `case_sensitive` and optional
-   `whole_word`. Results echo `search_options` and the actual `matched_text`.
+   `whole_word`. Results give the actual `matched_text`; the request is not
+   echoed back.
    `total_matches` counts matching elements, not occurrences. Nearby context is
    not filtered and may contain other capitalisation. Search folds case only when
    requested, and it does not normalise spelling. Word boundaries use Unicode
    letters, combining marks, numbers and connector punctuation, so inflected and
    compound forms do not match a shorter whole-word query. `review_fetch` gives
-   bounded, complete, editable HTML. Search normalises whitespace, but edit
-   matching does not.
+   bounded, complete, editable HTML; `include_text=true` adds each element's
+   visible text. Search normalises whitespace, but edit matching does not.
+   Review tools publish their numeric limits in the tool schema, and a value
+   outside a range names the range in the error.
 3. Follow all `review_notes` pages and inspect individual note bodies and their
    reference diagnostics. Check `review_boundaries`, including joins inside one
    paragraph. Omitted page markers alone do not establish a missing source page.

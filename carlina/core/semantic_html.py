@@ -20,10 +20,10 @@ SEMANTIC_DOCUMENT_TAGS = frozenset(
         "br", "caption", "cite", "code", "col", "colgroup", "dd", "del", "div",
         "dl", "dt", "em", "figcaption", "figure", "footer", "h1", "h2", "h3",
         "h4", "h5", "h6", "head", "header", "html", "hr", "i", "img", "ins",
-        "kbd", "li", "main", "mark", "meta", "nav", "ol", "p", "pre", "q", "s",
-        "samp", "section", "small", "span", "strong", "sub", "sup", "table",
-        "tbody", "td", "tfoot", "th", "thead", "time", "title", "tr", "u", "ul",
-        "var", "wbr",
+        "kbd", "li", "main", "mark", "meta", "nav", "ol", "p", "pre", "q", "rp",
+        "rt", "ruby", "s", "samp", "section", "small", "span", "strong", "sub",
+        "sup", "table", "tbody", "td", "tfoot", "th", "thead", "time", "title",
+        "tr", "u", "ul", "var", "wbr",
     }
 )
 

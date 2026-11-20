@@ -440,3 +440,41 @@ def test_issue_migration_up_downgrade_and_reapply_uses_temp_database(tmp_path):
         assert "doc_processor_issue" in sa.inspect(engine).get_table_names()
     finally:
         engine.dispose()
+
+
+def test_recurring_readings_group_side_by_side_and_query_filters(issue_app):
+    with issue_app.app_context():
+        api = _service(issue_app)
+        revision = _revision(db.session.get(ProcessedDocument, "doc").output_html)
+        reports = [
+            (339, "a", "按手礼", ["接手礼"]),
+            (441, "b", "按手礼", ["按手禮"]),
+            (460, "c", "按　手礼", ["接手礼"]),
+            (84, "d", "神れな", ["神なれ"]),
+        ]
+        for page, key, excerpt, readings in reports:
+            report = _report(key=key, excerpt=excerpt, kind="ambiguous_text")
+            report["suggested_readings"] = readings
+            api.report(
+                "doc",
+                expected_revision=revision,
+                idempotency_key=f"group-{key}",
+                page_number=page,
+                report=report,
+            )
+
+        grouped = api.list("doc", group_by="excerpt")
+        assert grouped["total_groups"] == 3
+        assert grouped["total"] == 4
+        first = grouped["groups"][0]
+        assert first["excerpt"] == "按手礼"
+        assert first["count"] == 2
+        assert first["pages"] == [339, 441]
+        assert first["suggested_readings"] == ["接手礼", "按手禮"]
+        assert first["statuses"] == {"open": 2}
+
+        found = api.list("doc", query="神なれ")
+        assert [item["page_number"] for item in found["items"]] == [84]
+        with pytest.raises(DocProcessorMcpServiceError) as invalid:
+            api.list("doc", group_by="page")
+        assert invalid.value.code == "invalid_group_by"

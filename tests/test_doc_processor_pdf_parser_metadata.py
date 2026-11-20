@@ -53,6 +53,39 @@ def test_cover_suggestion_requires_an_observed_physical_pdf_page():
     assert "cover_candidate" not in parser._normalize_document_metadata({"title": "Book", "cover_candidate": candidate}, doc=[None, None])
 
 
+def test_first_dispatch_uses_the_metadata_a_resumed_worker_reloads():
+    from iarf_assistant.addons.doc_processor.metadata_service import (
+        normalize_document_metadata_payload,
+    )
+
+    parser = _make_parser_with_settings()
+    space = "\u3000"  # ideographic space, collapsed when metadata is stored
+    prepared = parser._normalize_document_metadata(
+        {
+            "title": "人生百年",
+            "language": "ja",
+            "table_of_contents": [{"title": f"一{space}縲絏", "level": 1, "page": "5"}],
+        },
+        source_pages=[1, 2],
+    )
+
+    def suspend_and_resume(metadata):
+        stored = normalize_document_metadata_payload(json.loads(json.dumps(metadata)))
+        return parser._normalize_document_metadata(stored)
+
+    def context(metadata):
+        return pdf_parser_module.format_document_metadata_context(
+            metadata, page_number=1
+        )
+
+    # Before the fix the first batch saw the raw contents title and the
+    # resumed worker a collapsed one, so the batch was offered again.
+    assert context(prepared) != context(suspend_and_resume(prepared))
+    dispatched = parser._reloaded_document_metadata(prepared)
+    assert suspend_and_resume(dispatched) == dispatched
+    assert dispatched["table_of_contents"][0]["title"] == "一 縲絏"
+
+
 def _batch_call_parser(settings, content, *, source_text=""):
     parser = _make_parser_with_settings(settings)
     parser.metrics = {}
@@ -506,6 +539,27 @@ def test_boundary_review_does_not_infer_a_forward_join_from_a_backward_marker():
     decision, uncertain, _ = parser._boundary_heuristic_decision(previous, following, "main_content")
     assert decision == "separate"
     assert uncertain is False
+
+
+@pytest.mark.parametrize(
+    ("settings", "expected"),
+    [
+        (
+            {"mcp_execution_mode": "passive"},
+            ("auto", True, "same text block type with ambiguous punctuation"),
+        ),
+        (
+            {"mcp_execution_mode": "passive", "mcp_page_join_policy": "script-aware-v1"},
+            ("separate", False, "previous block ends cleanly"),
+        ),
+        ({}, ("separate", False, "previous block ends cleanly")),
+    ],
+)
+def test_retained_passive_runs_keep_their_boundary_punctuation(settings, expected):
+    parser = _make_parser_with_settings(settings)
+    previous = BeautifulSoup("<p>今日の会議はこれで終わりです。</p>", "html.parser").p
+    following = BeautifulSoup("<p>次の議題に移ります。</p>", "html.parser").p
+    assert parser._boundary_heuristic_decision(previous, following, "main_content") == expected
 
 
 @pytest.mark.parametrize("options", [{}, {"llm_boundary_merge": False}])
@@ -1894,7 +1948,9 @@ def test_extract_document_metadata_expands_start_window_for_partial_toc():
     def normalize(metadata, doc=None, source_pages=None):
         return {
             "table_of_contents": metadata["table_of_contents"],
-            "source_pages": source_pages,
+            "source_pages": (
+                metadata.get("source_pages") if source_pages is None else source_pages
+            ),
         }
 
     mock_completion = MagicMock()
@@ -2000,7 +2056,11 @@ def test_extract_document_metadata_expands_configured_end_window_for_partial_toc
             parser,
             "_normalize_document_metadata",
             side_effect=lambda metadata, doc=None, source_pages=None: {
-                "source_pages": source_pages
+                "source_pages": (
+                    metadata.get("source_pages")
+                    if source_pages is None
+                    else source_pages
+                )
             },
         ),
         patch.object(

@@ -133,7 +133,6 @@ def test_boundaries_distinguish_joined_split_new_page_source_gap_and_unknown_not
         == joined["right_element_id"]
     )
     assert joined["previous_retained_page_number"] == 1
-    assert joined["nonconsecutive_page_markers"] is True
     assert "nonconsecutive_page_markers" in joined["warnings"]
     assert unjoined["joined_within_element"] is False
     assert unjoined["containing_element_id"] == unjoined["right_element_id"]
@@ -169,7 +168,7 @@ def test_shared_container_does_not_report_a_paragraph_join():
     )
     boundary = review.boundaries()["items"][0]
     assert not boundary["joined_within_element"]
-    assert not boundary["punctuation_at_join"]
+    assert "punctuation_at_join" not in boundary["warnings"]
     assert boundary["left_element_id"] != boundary["right_element_id"]
 
 
@@ -850,7 +849,7 @@ def test_unicode_word_search_has_exact_boundaries(find, text, expected):
     assert len(matches) == expected
     result = review.search(find, whole_word=True)
     assert result["total_matches"] == int(expected > 0)
-    assert result["search_options"]["whole_word"] is True
+    assert "search_options" not in result  # the request is not echoed
 
 
 def test_case_sensitive_search_identifies_hit_not_merely_uppercase_context():
@@ -861,7 +860,6 @@ def test_case_sensitive_search_identifies_hit_not_merely_uppercase_context():
     assert result["total_matches"] == 1
     assert result["items"][0]["matched_text"] == "vernunft"
     assert result["items"][0]["nearby"]["before"][0]["text"] == "Vernunft alone."
-    assert result["search_options"]["case_sensitive"] is True
     with pytest.raises(ValueError):
         review.search("vernunft", case_sensitive="false")
 

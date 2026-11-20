@@ -11,7 +11,13 @@ from urllib.parse import unquote
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from .pdf_rendering import get_optimal_scale_factor as get_optimal_scale_factor
-from .table_assembly import merge_continued_table
+from .table_assembly import merge_continued_table, merge_split_row
+from .assembly_report import AssemblyReport, collecting, record_join, set_boundary
+from carlina.core.language import (
+    SENTENCE_FINAL_PUNCTUATION,
+    is_unspaced_character,
+    join_separator,
+)
 from ..image_crops import process_extracted_images as _process_extracted_images
 
 logger = logging.getLogger(__name__)
@@ -1025,7 +1031,18 @@ def normalize_footnote_links(
         tagged.attrs.pop(_SOURCE_PAGE_ATTR, None)
 
 
-def text_heuristic_match(tag1: Tag, tag2: Tag, force_merge: bool = False) -> bool:
+# Sentence-final punctuation before script-aware joins; retained passive runs
+# keep it for boundary review (see semantic_validation.page_join_policy_enabled).
+LEGACY_SENTENCE_FINAL_PUNCTUATION = frozenset(".!?\"'”")
+
+
+def text_heuristic_match(
+    tag1: Tag,
+    tag2: Tag,
+    force_merge: bool = False,
+    *,
+    sentence_final: frozenset[str] = SENTENCE_FINAL_PUNCTUATION,
+) -> bool:
     """Secondary check to see if text flows across a boundary."""
     if force_merge:
         return True
@@ -1036,7 +1053,7 @@ def text_heuristic_match(tag1: Tag, tag2: Tag, force_merge: bool = False) -> boo
         return False
 
     # If tag1 ends with strong sentence-ending punctuation, it's likely NOT cut
-    if text1[-1] in ".!?\"'”":
+    if text1[-1] in sentence_final:
         return False
 
     # If tag2 starts with a lowercase letter, VERY strong signal it IS cut
@@ -1234,21 +1251,15 @@ def merge_nodes(node1: Tag, node2: Tag, force_text_merge: bool = False) -> None:
         node2.decompose()
         return
 
-    # 3. TABLE ROW (Unconditional Container Merge)
+    # 3. TABLE ROW: column-aligned; an ambiguous row stays a separate row.
     elif node1.name == "tr":
-        cells1 = node1.find_all(["td", "th"], recursive=False)
-        cells2 = node2.find_all(["td", "th"], recursive=False)
-
-        if cells1 and cells2:
-            last_c1 = cells1[-1]
-            first_c2 = cells2[0]
-            if has_boundary_continuation(last_c1, first_c2):
-                merge_nodes(last_c1, first_c2)
-                cells2 = cells2[1:]
-
-        for cell in cells2:
-            node1.append(cell)
-        node2.decompose()
+        if not merge_split_row(
+            node1,
+            node2,
+            cell_continues=has_boundary_continuation,
+            join_cells=merge_nodes,
+        ):
+            node1.insert_after(node2.extract())
         return
 
     # 4. BLOCK CONTAINERS (blockquote, div, article, section)
@@ -1276,12 +1287,8 @@ def merge_nodes(node1: Tag, node2: Tag, force_text_merge: bool = False) -> None:
     html1 = "".join(str(c) for c in node1.contents).rstrip()
     html2 = "".join(str(c) for c in node2.contents).lstrip()
 
-    sep = " "
-    text2 = node2.get_text(strip=True)
-    if text2 and text2[0] in (",", ".", ";", ":", ")", "]", "’", "'", "”"):
-        sep = ""
-
     text1 = node1.get_text(strip=False).rstrip()
+    sep = join_separator(text1, node2.get_text(strip=False))
     _merge_continued_child_list(node1, node2)
     html1 = "".join(str(c) for c in node1.contents).rstrip()
     html2 = "".join(str(c) for c in node2.contents).lstrip()
@@ -1291,6 +1298,15 @@ def merge_nodes(node1: Tag, node2: Tag, force_text_merge: bool = False) -> None:
             html1 = html1[:-1]
         else:
             html1 = re.sub(r"-\s*(</[^>]+>)$", r"\1", html1)
+        record_join("dehyphenated")
+    elif sep:
+        record_join("space")
+    elif is_unspaced_character(text1[-1:]) or is_unspaced_character(
+        node2.get_text(strip=True)[:1]
+    ):
+        record_join("unspaced")
+    else:
+        record_join("punctuation")
 
     node1.clear()
     node1.append(BeautifulSoup(html1 + sep + html2, "html.parser"))
@@ -1355,12 +1371,35 @@ def concatenate_html_pages(
     page_numbers: Sequence[int] | None = None,
     *,
     preserve_note_labels: bool = True,
+    assembly_report: AssemblyReport | None = None,
 ) -> str:
     """
     boundary_flags maps a zero-based previous page index to section decisions:
     {0: {"main_content": "merge", "footnotes": "separate"}}.
     Legacy bool values are still accepted, where True means force merge.
+    An ``assembly_report`` collects join decisions and submitted-page facts
+    for the completion check; assembly output is the same with or without it.
     """
+    with collecting(assembly_report):
+        return _concatenate_html_pages(
+            html_parts,
+            boundary_flags,
+            toc_handling,
+            page_numbers,
+            preserve_note_labels=preserve_note_labels,
+            assembly_report=assembly_report,
+        )
+
+
+def _concatenate_html_pages(
+    html_parts: list[str],
+    boundary_flags: dict | None,
+    toc_handling: str,
+    page_numbers: Sequence[int] | None,
+    *,
+    preserve_note_labels: bool,
+    assembly_report: AssemblyReport | None,
+) -> str:
     if boundary_flags is None:
         boundary_flags = {}
 
@@ -1378,9 +1417,15 @@ def concatenate_html_pages(
     main_content_parts = []
     footnotes_parts = []
 
+    omit_source_toc = str(toc_handling or "omit").strip().lower() != "preserve"
     for page_index, html in zip(page_indexes, html_parts):
         if not html or html.strip().lower() == "blank":
             continue
+        if assembly_report is not None:
+            assembly_report.observe_page(
+                html,
+                remove_source_toc=remove_source_toc_blocks if omit_source_toc else None,
+            )
         soup = BeautifulSoup(html, "html.parser")
 
         main_tag = soup.find("main_content")
@@ -1461,6 +1506,7 @@ def concatenate_html_pages(
             merged_boundary = False
 
             if page_index == prev_page_index + 1 and top_tags_1 and top_tags_2:
+                set_boundary(prev_page_index + 1, page_index + 1)
                 last_t1 = top_tags_1[-1]
                 first_t2 = top_tags_2[0]
 
@@ -1642,7 +1688,10 @@ def convert_html_to_clean_markdown(html_content: str) -> str:
 
     from markdownify import markdownify as html_to_markdown
 
+    from carlina.core.text_formats import flatten_ruby_for_text_formats
+
     soup = BeautifulSoup(html_content, "html.parser")
+    flatten_ruby_for_text_formats(soup)
 
     for figcaption in soup.find_all("figcaption"):
         replacement = soup.new_tag("p")

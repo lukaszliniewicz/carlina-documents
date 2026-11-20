@@ -38,8 +38,8 @@ def register_review_tools(
     )
     async def document_review_outline(
         document_id: str,
-        offset: int = 0,
-        limit: int = 100,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=200)] = 100,
         expected_revision: str | None = None,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.doc_processor")
@@ -62,8 +62,8 @@ def register_review_tools(
     )
     async def document_review_inventory(
         document_id: str,
-        offset: int = 0,
-        limit: int = 100,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=200)] = 100,
         scope: Literal["all", "body", "headings", "notes"] = "all",
         query: str = "",
         case_sensitive: Annotated[bool, Field(strict=True)] = False,
@@ -97,8 +97,8 @@ def register_review_tools(
         whole_word: Annotated[bool, Field(strict=True)] = False,
         before: int = 0,
         after: int = 0,
-        offset: int = 0,
-        limit: int = 20,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 20,
         expected_revision: str | None = None,
         scope: Literal["all", "body", "headings", "notes"] = "all",
         page_number: int | None = None,
@@ -128,18 +128,19 @@ def register_review_tools(
 
     @server.tool(
         name="carlina_document_review_fetch",
-        description="Fetch full editable HTML/text by revision-scoped element IDs or paginated document order, with scope/page filters, heading ancestry and up to three neighbors before/after. At most 20 main elements and 64k main HTML characters; use smaller descendants for oversized containers. Context HTML is separately bounded and explicitly omitted, never silently truncated.",
+        description="Fetch full editable HTML by revision-scoped element IDs or paginated document order, with scope/page filters, heading ancestry and up to three neighbors before/after. include_text adds each element's visible text (derivable from html). At most 20 main elements and 64k main HTML characters; use smaller descendants for oversized containers. Context HTML is separately bounded and explicitly omitted, never silently truncated.",
     )
     async def document_review_fetch(
         document_id: str,
         element_ids: list[str] | None = None,
-        offset: int = 0,
-        limit: int = 20,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=20)] = 20,
         expected_revision: str | None = None,
         scope: Literal["all", "body", "headings", "notes"] = "all",
         page_number: int | None = None,
         before: int = 0,
         after: int = 0,
+        include_text: Annotated[bool, Field(strict=True)] = False,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.doc_processor")
         try:
@@ -155,6 +156,7 @@ def register_review_tools(
                     after=after,
                     offset=offset,
                     limit=limit,
+                    include_text=include_text,
                 ),
             )
         except BaseException as exc:
@@ -166,8 +168,8 @@ def register_review_tools(
     )
     async def document_review_notes(
         document_id: str,
-        offset: int = 0,
-        limit: int = 20,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 20,
         include_html: bool = False,
         expected_revision: str | None = None,
     ) -> dict[str, Any]:
@@ -193,9 +195,9 @@ def register_review_tools(
     async def document_review_boundaries(
         document_id: str,
         page_number: int | None = None,
-        offset: int = 0,
-        limit: int = 20,
-        context_chars: int = 500,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 20,
+        context_chars: Annotated[int, Field(ge=100, le=2000)] = 500,
         include_images: bool = False,
         expected_revision: str | None = None,
     ) -> CallToolResult:
@@ -265,7 +267,13 @@ def register_review_tools(
             "Preview physical-page continuation candidates before creating a Translator project. "
             "Defaults to dry_run=true: inspect boundary_repair.candidates with stable IDs, page numbers "
             "and suggested actions. Nothing is auto-joined. Pass 1-50 decisions [{id, action}], where "
-            "action is join_with_space, dehyphenate or keep_hyphen; printed hyphens may be intentional. "
+            "action is join_with_space, join_without_space (scripts written without spaces), "
+            "dehyphenate, keep_hyphen, or remove_space for a space wrongly left inside joined "
+            "Japanese, Chinese or Thai text at a page anchor; printed hyphens may be intentional. "
+            'For a repeated repair, pass accept_suggested (for example ["remove_space"]) instead '
+            "of decisions to accept every matching join or remove_space suggestion, up to 1000, "
+            "optionally within page_numbers; boundary_repair.accepted counts them. Hyphen "
+            "decisions stay individual. "
             "Saving requires expected_revision from preview and a stable idempotency_key. "
             "Page anchors and references survive; headings, notes, lists and other protected contexts "
             "are not crossed. One batch is one encrypted undo record. Existing Translator snapshots "
@@ -276,11 +284,16 @@ def register_review_tools(
         document_id: str,
         decisions: list[dict[str, str]] | None = None,
         page_numbers: list[int] | None = None,
-        offset: int = 0,
-        limit: int = 50,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 50,
         expected_revision: str | None = None,
         idempotency_key: str | None = None,
         dry_run: bool = True,
+        accept_suggested: Annotated[
+            list[Literal["join_with_space", "join_without_space", "remove_space"]],
+            Field(min_length=1, max_length=3),
+        ]
+        | None = None,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.doc_processor")
         try:
@@ -294,6 +307,9 @@ def register_review_tools(
                     expected_revision=expected_revision,
                     idempotency_key=idempotency_key,
                     dry_run=dry_run,
+                    accept_suggested=(
+                        list(accept_suggested) if accept_suggested is not None else None
+                    ),
                 ),
             )
         except BaseException as exc:
@@ -349,8 +365,8 @@ def register_review_tools(
     )
     async def document_review_note_references(
         document_id: str,
-        offset: int = 0,
-        limit: int = 50,
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=50)] = 50,
         expected_revision: str | None = None,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.doc_processor")

@@ -39,6 +39,7 @@ from ...core.executor_profile import (
     require_executor_profile,
 )
 from .api_client import DocProcessorClient
+from .parsers.assembly_report import ASSEMBLY_REPORT_SETTING, assembly_check_projection
 from .intake import (
     PROFILE_BOOK_QUALITY,
     build_document_settings,
@@ -52,6 +53,12 @@ from .models import ProcessedDocument
 from .parsers.semantic_validation import (
     EXTRACTION_NOTE_INPUT_POLICY_SETTING,
     EXTRACTION_NOTE_INPUT_POLICY_VERSION,
+    MARKUP_VOCABULARY_POLICY_SETTING,
+    MARKUP_VOCABULARY_POLICY_VERSION,
+    PAGE_JOIN_POLICY_SETTING,
+    PAGE_JOIN_POLICY_VERSION,
+    TABLE_CONTINUATION_POLICY_SETTING,
+    TABLE_CONTINUATION_POLICY_VERSION,
 )
 from .performance_metrics import safe_preparation_timings
 
@@ -1214,6 +1221,9 @@ class DocProcessorMcpService:
                 settings["mcp_note_arrangement_policy"] = "source-arrangement-v1"
                 settings["mcp_cover_candidate_policy"] = "pdf-page-v1"
                 settings["mcp_extraction_issues_policy"] = "issues-v1"
+                settings[MARKUP_VOCABULARY_POLICY_SETTING] = MARKUP_VOCABULARY_POLICY_VERSION
+                settings[TABLE_CONTINUATION_POLICY_SETTING] = TABLE_CONTINUATION_POLICY_VERSION
+                settings[PAGE_JOIN_POLICY_SETTING] = PAGE_JOIN_POLICY_VERSION
                 settings[EXTRACTION_NOTE_INPUT_POLICY_SETTING] = (
                     EXTRACTION_NOTE_INPUT_POLICY_VERSION
                 )
@@ -1239,6 +1249,9 @@ class DocProcessorMcpService:
             settings.pop("mcp_note_arrangement_policy", None)
             settings.pop("mcp_cover_candidate_policy", None)
             settings.pop("mcp_extraction_issues_policy", None)
+            settings.pop(MARKUP_VOCABULARY_POLICY_SETTING, None)
+            settings.pop(TABLE_CONTINUATION_POLICY_SETTING, None)
+            settings.pop(PAGE_JOIN_POLICY_SETTING, None)
             settings.pop(EXTRACTION_NOTE_INPUT_POLICY_SETTING, None)
             settings.pop("mcp_metadata_complete", None)
             settings.pop("mcp_document_context", None)
@@ -1478,9 +1491,14 @@ class DocProcessorMcpService:
         document_id: str,
         include_output: bool = False,
         expected_revision: str | None = None,
+        output_format: str = "html",
     ) -> dict[str, Any]:
         from .mcp_review import REVIEW_SCHEMA, _revision
 
+        if output_format not in {"html", "markdown", "both"}:
+            raise DocProcessorMcpServiceError(
+                "output_format must be html, markdown or both.", code="invalid_output_format"
+            )
         document = self._document(document_id, fresh=True)
         revision = (
             _revision(str(document.output_html))
@@ -1497,6 +1515,9 @@ class DocProcessorMcpService:
                 document_id, include_output=include_output, document_record=document
             )
         )
+        if include_output and output_format != "both":
+            # One book-sized representation per call unless both are requested.
+            payload.pop("output_markdown" if output_format == "html" else "output_html", None)
         if revision is not None:
             payload.update({"revision": revision, "review_schema": REVIEW_SCHEMA})
             if include_output:
@@ -1696,6 +1717,11 @@ class DocProcessorMcpService:
                     "execution_id": projection["execution_id"], "operation": "inspect"
                 }},
             }
+        assembly_report = settings.get(ASSEMBLY_REPORT_SETTING)
+        if document.status == "completed" and isinstance(assembly_report, Mapping):
+            # Completion means every batch passed; this says whether joining
+            # them preserved the submitted markup and text.
+            projection["assembly_check"] = assembly_check_projection(assembly_report)
         receipt = settings.get("mcp_assembly_recovery_receipt")
         if isinstance(receipt, Mapping):
             projection["assembly_recovery_receipt"] = deepcopy(dict(receipt))

@@ -2737,14 +2737,22 @@ def document_issues(document_id, issue_id=None):
             allowed = {"status", "kind", "page_number", "offset", "limit"}
             if set(request.args) - allowed:
                 return jsonify({"error": "Invalid issue filters."}), 400
-            filters = dict(request.args)
-            for key in ("page_number", "offset", "limit"):
-                if key in filters:
-                    try:
-                        filters[key] = int(filters[key])
-                    except (ValueError, TypeError):
-                        return jsonify({"error": "Invalid issue pagination or page."}), 400
-            return jsonify(service.list(document_id, **filters))
+            try:
+                page_number = (
+                    int(request.args["page_number"]) if "page_number" in request.args else None
+                )
+                offset = int(request.args.get("offset", 0))
+                limit = int(request.args.get("limit", 50))
+            except (ValueError, TypeError):
+                return jsonify({"error": "Invalid issue pagination or page."}), 400
+            return jsonify(service.list(
+                document_id,
+                status=request.args.get("status"),
+                kind=request.args.get("kind"),
+                page_number=page_number,
+                offset=offset,
+                limit=limit,
+            ))
         data = request.get_json(silent=True)
         required = {"expected_revision", "idempotency_key"}
         required |= {"expected_version", "status", "note"} if issue_id else {"page_number", "report"}

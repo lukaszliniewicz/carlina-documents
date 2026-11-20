@@ -231,8 +231,8 @@ Completed extraction review and correction:
   context controls, scope (all/body/headings/notes) and physical page filters.
   include_html adds bounded complete markup or an explicit html_omitted flag.
   whole_word=true uses Unicode boundaries; matched_text identifies the actual hit,
-  which is distinct from unfiltered surrounding context. Check search_options to
-  verify the effective query and flags. Use real booleans, not quoted strings.
+  which is distinct from unfiltered surrounding context. Use real booleans, not
+  quoted strings.
   Use review_fetch for full bounded HTML of matching element IDs and neighbors.
   All review results carry a revision; pass expected_revision while paging or
   fetching evidence. Element IDs are valid only for that revision.
@@ -681,6 +681,98 @@ async def _in_app[Result](app: Flask, function: Callable[[], Result]) -> Result:
                 db.session.remove()
 
     return await anyio.to_thread.run_sync(invoke)
+
+
+# JSON Schema keywords whose values are data, not schemas, and keywords whose
+# values map names to schemas. Neither kind of key is a schema "title".
+_SCHEMA_DATA_KEYWORDS = frozenset({"const", "default", "enum", "examples"})
+_SCHEMA_MAP_KEYWORDS = frozenset(
+    {"$defs", "definitions", "dependentSchemas", "patternProperties", "properties"}
+)
+_PLACEHOLDER_OUTPUT_SCHEMA = {"additionalProperties": True, "type": "object"}
+
+
+def _lean_schema(node: Any) -> Any:
+    """Drop generated bookkeeping (titles, null defaults) from one JSON schema."""
+    if isinstance(node, list):
+        return [_lean_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    lean: dict[str, Any] = {}
+    for key, value in node.items():
+        if key == "title" and isinstance(value, str):
+            continue
+        if key == "default" and value is None:
+            continue
+        if key in _SCHEMA_DATA_KEYWORDS:
+            lean[key] = value
+        elif key in _SCHEMA_MAP_KEYWORDS and isinstance(value, dict):
+            lean[key] = {name: _lean_schema(schema) for name, schema in value.items()}
+        else:
+            lean[key] = _lean_schema(value)
+    return lean
+
+
+def _lean_tool_listing(result: Any) -> Any:
+    tools = result.get("tools") if isinstance(result, dict) else None
+    if not isinstance(tools, list):
+        return result
+    lean_tools = []
+    for tool in tools:
+        if not isinstance(tool, dict):
+            lean_tools.append(tool)
+            continue
+        lean = dict(tool)
+        if isinstance(lean.get("inputSchema"), dict):
+            lean["inputSchema"] = _lean_schema(lean["inputSchema"])
+        if isinstance(lean.get("outputSchema"), dict):
+            output_schema = _lean_schema(lean["outputSchema"])
+            if output_schema == _PLACEHOLDER_OUTPUT_SCHEMA:
+                lean.pop("outputSchema")
+            else:
+                lean["outputSchema"] = output_schema
+        lean_tools.append(lean)
+    return {**result, "tools": lean_tools}
+
+
+def _compact_tool_result(result: Any) -> Any:
+    """Keep one text block for older clients, but not a pretty-printed copy."""
+    if not isinstance(result, dict) or result.get("isError"):
+        return result
+    structured = result.get("structuredContent")
+    content = result.get("content")
+    if structured is None or not isinstance(content, list):
+        return result
+    text_indexes = [
+        index for index, block in enumerate(content)
+        if isinstance(block, dict) and block.get("type") == "text"
+    ]
+    if len(text_indexes) != 1:
+        return result
+    block = content[text_indexes[0]]
+    text = block.get("text")
+    try:
+        if not isinstance(text, str) or json.loads(text) != structured:
+            return result
+    except ValueError:
+        return result
+    compact = json.dumps(structured, ensure_ascii=False, separators=(",", ":"))
+    if len(compact) >= len(text):
+        return result
+    replaced = list(content)
+    replaced[text_indexes[0]] = {**block, "text": compact}
+    return {**result, "content": replaced}
+
+
+async def _lean_payload_middleware(ctx: Any, call_next: Any) -> Any:
+    """Trim transport bloat without changing any field a client reads."""
+    result = await call_next(ctx)
+    method = getattr(ctx, "method", None)
+    if method == "tools/list":
+        return _lean_tool_listing(result)
+    if method == "tools/call":
+        return _compact_tool_result(result)
+    return result
 
 
 def _tool_failure(exc: BaseException) -> Exception:
@@ -1520,17 +1612,21 @@ def _register_job_tools(server, app: Flask) -> None:
 
         principal = _principal_from_request(required_scope="mcp.work")
         try:
-            validate_projection(response_mode, omit_fields)
             from .mcp_retained_context import validate_context_acknowledgements
+            from .mcp_work_projection import WorkRequestError
 
-            validate_context_acknowledgements(known_context, known_target_revisions)
+            validate_projection(response_mode, omit_fields)
+            try:
+                validate_context_acknowledgements(known_context, known_target_revisions)
+            except ValueError as exc:
+                raise WorkRequestError(str(exc)) from None
             if (path is not None or image_offset is not None) and (known_context or known_target_revisions):
-                raise ValueError("Context acknowledgements cannot be combined with path or image recovery.")
+                raise WorkRequestError("Context acknowledgements cannot be combined with path or image recovery.")
             max_response_bytes = _connection_response_budget(principal, max_response_bytes)
             if image_offset is not None and (path is not None or offset != 0 or omit_fields or response_mode != "standard"):
-                raise ValueError("image_offset cannot be combined with path, offset, omit_fields or a nonstandard response_mode.")
+                raise WorkRequestError("image_offset cannot be combined with path, offset, omit_fields or a nonstandard response_mode.")
             if image_offset is None and image_limit != 1:
-                raise ValueError("image_limit requires image_offset.")
+                raise WorkRequestError("image_limit requires image_offset.")
             packet = await _in_app(app, lambda: get_leased_work(principal, work_item_id, lease_token))
             wire_packet = _work_wire_payload(packet)
             if image_offset is not None:
@@ -1747,7 +1843,7 @@ def _work_claim_result(
         compact = {
             key: payload[key] for key in (
                 "work_item_id", "execution_id", "lease_token", "lease_expires_at",
-                "workload_role", "expected_output_format", "batch_id",
+                "workload_role", "expected_output_format", "batch_id", "prior_attempts",
             ) if key in payload
         }
         compact["request"] = {
@@ -1879,7 +1975,7 @@ def _bounded_work_result(
 
 def _work_image_batch_result(payload: dict[str, Any], offset: int, limit: int, budget: int):
     from .mcp_jobs import McpWorkError
-    from .mcp_work_projection import request_images
+    from .mcp_work_projection import image_caption, request_images
 
     validate_response_budget(budget)
     images = request_images(payload.get("request", {}))
@@ -1903,7 +1999,11 @@ def _work_image_batch_result(payload: dict[str, Any], offset: int, limit: int, b
     accepted = response()
     for index in range(offset, min(offset + limit, len(images))):
         path, block = images[index]
-        selected.append({"index": index, "path": path, "image": block})
+        item = {"index": index, "path": path, "image": block}
+        caption = image_caption(payload.get("request", {}), path)
+        if caption is not None:
+            item["caption"] = caption
+        selected.append(item)
         encoded_bytes = sum(len(item["image"]["image_url"].get("url", "")) for item in selected)
         candidate = None if encoded_bytes > budget else response()
         size = encoded_bytes if candidate is None else _work_result_size(candidate)
@@ -2071,6 +2171,7 @@ def create_mcp_application(app: Flask, *, host: str, port: int):
             resource_server_url=endpoint,
             required_scopes=[MCP_ACCESS_SCOPE],
         ),
+        middleware=[_lean_payload_middleware],
     )
     _register_product_tools(server, app, composition)
     if any(addon_id == "news_pipeline" for addon_id, _scope in selected_products):

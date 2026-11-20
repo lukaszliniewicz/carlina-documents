@@ -20,7 +20,10 @@ from itertools import pairwise
 from bs4 import BeautifulSoup, Tag
 
 from carlina.core.semantic_diagrams import diagnose_mermaid_diagrams
-from carlina.core.semantic_html import SAFE_INTEGER_RE
+from carlina.core.semantic_html import (
+    SAFE_INTEGER_RE,
+    SEMANTIC_DOCUMENT_TAGS,
+)
 
 _SEMANTIC_TAGS = frozenset(
     {
@@ -116,6 +119,76 @@ def extraction_note_input_contract() -> dict[str, str]:
         "version": EXTRACTION_NOTE_INPUT_POLICY_VERSION,
         "instructions": EXTRACTION_NOTE_INPUT_INSTRUCTIONS,
     }
+
+
+MARKUP_VOCABULARY_POLICY_SETTING = "mcp_markup_vocabulary_policy"
+MARKUP_VOCABULARY_POLICY_VERSION = "ruby-vocabulary-v1"
+TABLE_CONTINUATION_POLICY_SETTING = "mcp_table_continuation_policy"
+TABLE_CONTINUATION_POLICY_VERSION = "column-aligned-v1"
+PAGE_JOIN_POLICY_SETTING = "mcp_page_join_policy"
+PAGE_JOIN_POLICY_VERSION = "script-aware-v1"
+_EXTRACTION_ROOT_TAGS = frozenset({"main_content", "footnotes"})
+# Pure presentation: unwrapping these loses no meaning, so they stay tolerated.
+_PRESENTATIONAL_TAGS = frozenset({"big", "center", "font", "nobr"})
+
+
+def _passive_policy_enabled(
+    settings: Mapping[str, object] | None, setting: str, version: str
+) -> bool:
+    values = settings or {}
+    if values.get("mcp_execution_mode") == "passive":
+        return values.get(setting) == version
+    return True
+
+
+def markup_vocabulary_enabled(settings: Mapping[str, object] | None = None) -> bool:
+    """Whether page input must stay inside the document vocabulary."""
+
+    return _passive_policy_enabled(
+        settings, MARKUP_VOCABULARY_POLICY_SETTING, MARKUP_VOCABULARY_POLICY_VERSION
+    )
+
+
+def table_continuation_enabled(settings: Mapping[str, object] | None = None) -> bool:
+    """Whether the column-aligned table continuation contract applies."""
+
+    return _passive_policy_enabled(
+        settings, TABLE_CONTINUATION_POLICY_SETTING, TABLE_CONTINUATION_POLICY_VERSION
+    )
+
+
+def page_join_policy_enabled(settings: Mapping[str, object] | None = None) -> bool:
+    """Whether boundary review recognises CJK sentence punctuation.
+
+    The boundary heuristic decides which page joins become passive work items,
+    so a retained run keeps the punctuation it started with.
+    """
+
+    return _passive_policy_enabled(
+        settings, PAGE_JOIN_POLICY_SETTING, PAGE_JOIN_POLICY_VERSION
+    )
+
+
+def validate_markup_vocabulary(content: str) -> SemanticValidationResult:
+    """Reject elements that canonicalisation would silently unwrap or drop.
+
+    Validation runs while the batch is still leased, so the author can choose
+    a supported element instead of discovering the loss after assembly.
+    """
+
+    soup = BeautifulSoup(content or "", "html.parser")
+    for tag in soup.find_all(True):
+        name = str(tag.name or "").casefold()
+        if (
+            name in SEMANTIC_DOCUMENT_TAGS
+            or name in _EXTRACTION_ROOT_TAGS
+            or name in _PRESENTATIONAL_TAGS
+        ):
+            continue
+        return SemanticValidationResult(
+            False, diagnostics=(f"unsupported element <{name[:32]}>",)
+        )
+    return SemanticValidationResult(True)
 
 
 def extraction_note_input_enabled(settings: Mapping[str, object] | None = None) -> bool:

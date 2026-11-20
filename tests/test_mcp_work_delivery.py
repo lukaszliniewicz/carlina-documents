@@ -17,9 +17,10 @@ from test_mcp_gateway import (
 )
 
 from iarf_assistant.core import mcp_gateway
-from iarf_assistant.core.mcp_jobs import McpWorkError
+from iarf_assistant.core.mcp_jobs import McpWorkError, validate_response
 from iarf_assistant.core.mcp_work_projection import (
     DEFAULT_RESPONSE_BYTES,
+    WorkRequestError,
     request_images,
     request_slice,
 )
@@ -175,7 +176,7 @@ def test_book_sized_metadata_defers_then_delivers_every_original_byte_in_order()
     assert state["request"]["response_format"] == original["request"]["response_format"]
     assert state["request"]["messages"][0] == original["request"]["messages"][0]
     assert "data:image" not in receipt.model_dump_json()
-    delivered, paths, offset = [], [], 0
+    delivered, paths, captions, offset = [], [], [], 0
     while offset is not None:
         result = mcp_gateway._work_image_batch_result(original, offset, 4, DEFAULT_RESPONSE_BYTES)
         assert wire_size(result) <= DEFAULT_RESPONSE_BYTES
@@ -183,9 +184,11 @@ def test_book_sized_metadata_defers_then_delivers_every_original_byte_in_order()
         assert 1 <= batch["delivery"]["returned_count"] < 4  # byte budget, not requested count, governs
         delivered.extend(block.data for block in result.content if block.type == "image")
         paths.extend(entry["path"] for entry in batch["images"])
+        captions.extend(entry["caption"] for entry in batch["images"])
         offset = batch["delivery"]["next_offset"]
     expected = request_images(original["request"])
     assert paths == [path for path, _ in expected]
+    assert captions == [f"Physical page {number}" for number in range(1, 11)]
     assert delivered == [image["image_url"]["url"].split(",", 1)[1] for _, image in expected]
     assert original == frozen
 
@@ -339,3 +342,43 @@ def test_image_fetching_is_read_only_and_survives_lost_claim_response(gateway):
     asyncio.run(exercise())
     with gateway.app.app_context():
         assert db.session.execute(text("SELECT attempt_count, version, state FROM mcp_work_item WHERE execution_id=:id"), {"id": execution_id}).one() == (1, 1, "leased")
+
+
+def test_a_missing_path_is_a_typed_error_that_names_what_exists():
+    original = packet(1, 100)
+    with pytest.raises(WorkRequestError) as error:
+        request_slice(original, "/request/messages/3/content")
+    assert error.value.code == "invalid_work_request"
+    assert "/request/messages is a list of 2 item(s)" in error.value.detail
+    with pytest.raises(WorkRequestError, match="holds: messages, parameters, response_format"):
+        request_slice(original, "/request/instructions")
+    failure = mcp_gateway._work_delivery_failure(error.value, "synthetic-work")
+    assert str(failure).startswith("invalid_work_request: /request/messages/3/content")
+
+
+def test_a_short_page_batch_names_the_expected_count():
+    from iarf_assistant.addons.doc_processor.page_batch_response import (
+        page_batch_response_schema,
+    )
+    request = {
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "pages",
+                "strict": True,
+                "schema": page_batch_response_schema(range(1, 7), allow_blank=True),
+            },
+        }
+    }
+    pages = [{"page_number": n, "html": "<p>x</p>", "blank": False} for n in range(1, 6)]
+    with pytest.raises(McpWorkError) as error:
+        validate_response({"content": {"pages": pages}}, request)
+    assert error.value.validation_errors == [
+        {
+            "path": "/pages",
+            "keyword": "count",
+            "message": "The array has the wrong number of items.",
+            "expected_min_items": 6,
+            "received_items": 5,
+        }
+    ]

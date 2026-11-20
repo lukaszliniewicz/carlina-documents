@@ -30,7 +30,7 @@ def register_issue_tools(
 
     @server.tool(
         name="carlina_document_issues_list",
-        description="List extraction uncertainties and confirmed problems for focused review. Filter by status, kind or physical page; paginate to finish. context_stale means the document changed since the report. An empty ledger is not proof of error-free extraction.",
+        description="List extraction uncertainties and confirmed problems for focused review. Filter by status, kind, physical page or query (text in the excerpt, reason or suggested readings); paginate to finish. group_by=excerpt returns one group per recurring printed reading with its pages, statuses, suggested readings and issue_ids, so variants can be compared side by side. Items omit review history (history_count; include_history=true or issue_get for it). context_stale means the document changed since the report. An empty ledger is not proof of error-free extraction.",
     )
     async def document_issues_list(
         document_id: str,
@@ -47,6 +47,9 @@ def register_issue_tools(
         page_number: Annotated[int, Field(strict=True, ge=1)] | None = None,
         offset: Annotated[int, Field(strict=True, ge=0)] = 0,
         limit: Annotated[int, Field(strict=True, ge=1, le=100)] = 50,
+        query: Annotated[str, Field(min_length=1, max_length=200)] | None = None,
+        group_by: Literal["excerpt"] | None = None,
+        include_history: Annotated[bool, Field(strict=True)] = False,
     ) -> dict[str, Any]:
         principal = runtime.authorize("mcp.doc_processor")
         try:
@@ -58,6 +61,9 @@ def register_issue_tools(
                     page_number=page_number,
                     offset=offset,
                     limit=limit,
+                    query=query,
+                    group_by=group_by,
+                    include_history=include_history,
                 )
             )
         except BaseException as exc:

@@ -1171,7 +1171,9 @@ def test_final_worker_imports_issues_after_canonical_output_and_clears_checkpoin
         pages = [{"page_number": 1, "issues": [_extraction_issue_report()]}]
         order = []
 
-        def store_output(doc, _html, *, completed, image_crop_sources):
+        def store_output(
+            doc, _html, *, completed, image_crop_sources, assembly_inputs=None
+        ):
             assert completed is True
             assert image_crop_sources == {}
             doc.output_html = "<main_content><p>canonical</p></main_content><footnotes></footnotes>"

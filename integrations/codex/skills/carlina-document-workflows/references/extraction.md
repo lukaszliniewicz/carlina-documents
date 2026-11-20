@@ -259,6 +259,17 @@ If a split item's ordinal is absent and cannot be established from supplied
 evidence, do not invent it. Preserve intentional jumps/restarts and compound
 printed labels using the packet's supported representation.
 
+When the packet advertises `ruby-vocabulary-v1`, keep printed readings
+(furigana and similar) as `<ruby>base<rt>reading</rt></ruby>` rather than
+flattening them into the text or into brackets. Review search and
+`replace_text` see only the base text, so fix a wrong reading with
+`replacement_html`. When it advertises
+`column-aligned-v1`, a table row continued from the previous page keeps one cell
+per column, with empty cells where a column has nothing on this page, so each
+parallel stream stays in its own column. Do not add spaces between characters of
+Japanese, Chinese or Thai text to mark a page join; assembly chooses the
+separator.
+
 Use editable Mermaid diagrams only when the leased instructions advertise
 `mermaid-diagram-v1`. Follow that packet's exact grammar and limits: the literal
 template contains stable node IDs and label placeholders, while source-language
@@ -286,9 +297,11 @@ Report provisional heading preparation when present. Use bounded source checks
 to investigate consequential heading uncertainty; do not present limited
 optional evidence as a complete heading review.
 
-Use the bounded [review workflow](review.md) for quality checks. Retrieve whole
-HTML/Markdown with `carlina_document_get(include_output=true)` only when the full
-artifact is needed. Successful processing does not certify transcription or
+Use the bounded [review workflow](review.md) for quality checks. Retrieve the whole
+HTML with `carlina_document_get(include_output=true)` only when the full artifact
+is needed (`output_format="markdown"` for Markdown). After completion, read
+`assembly_check` in `carlina_job_get`: advisories name lost inline markup,
+ambiguous table continuations and page-join spaces to check against the scans. Successful processing does not certify transcription or
 export quality.
 
 ## Recover the existing execution

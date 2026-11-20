@@ -19,6 +19,7 @@ from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 from lxml import etree
 from carlina.core.diagram_rendering import project_diagrams_html, validate_svg
 from carlina.core.export_notes import normalize_export_note_roles
+from carlina.core.text_formats import flatten_ruby_for_text_formats
 
 from .semantic_document import validate_semantic_export
 
@@ -261,6 +262,8 @@ def render_pdf_export(
         raise RuntimeError("document-export-pdf-unavailable")
     soup = BeautifulSoup(html, "html.parser")
     validate_semantic_export(soup, export_name="PDF export input")
+    # MuPDF Story lays ruby out inline, running base and reading together.
+    flatten_ruby_for_text_formats(soup)
     normalize_export_note_roles(soup)
     if metadata.get("bilingual-layout") == "parallel":
         _soft_wrap_parallel_pdf_tokens(soup)

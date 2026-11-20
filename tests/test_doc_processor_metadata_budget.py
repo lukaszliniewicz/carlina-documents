@@ -94,7 +94,13 @@ def prepared_parser(monkeypatch):
         "_normalize_document_metadata",
         lambda value, **kwargs: {
             "title": value["title"],
-            "source_pages": kwargs["source_pages"],
+            "source_pages": kwargs.get("source_pages", value.get("source_pages")),
+            # Like the real normaliser, keep a structure that is already set.
+            **{
+                key: value[key]
+                for key in ("heading_structure",)
+                if key in value
+            },
         },
     )
     return parser

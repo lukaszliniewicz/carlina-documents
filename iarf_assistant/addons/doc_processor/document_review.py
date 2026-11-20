@@ -12,7 +12,7 @@ import copy
 import json
 import re
 import unicodedata
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 from collections import Counter
 from dataclasses import dataclass, replace
 from typing import Any
@@ -20,6 +20,8 @@ from urllib.parse import unquote, urlsplit
 
 from bs4 import BeautifulSoup, Comment, Tag
 from bs4.element import NavigableString, PageElement
+
+from carlina.core.language import seam_whitespace_is_spurious
 
 CANDIDATE_TAGS = frozenset(
     {
@@ -86,7 +88,9 @@ def _heading_enumerator_shape(text: str) -> str | None:
 _PAGE_ID_RE = re.compile(r"^doc-page-(\d{1,9})$", re.IGNORECASE)
 _PAGE_TITLE_RE = re.compile(r"^\d{1,9}$")
 _WHITESPACE_RE = re.compile(r"\s+")
-_HIDDEN_TAGS = frozenset({"head", "script", "style", "noscript", "template"})
+# Ruby readings (rt) and their fallbacks (rp) annotate the base text; they are
+# not running text for search, outlines or excerpts.
+_HIDDEN_TAGS = frozenset({"head", "script", "style", "noscript", "template", "rt", "rp"})
 _WRAPPER_TAGS = frozenset({"html", "head", "body", "main"})
 _BLOCK_TAGS = CANDIDATE_TAGS | {"body", "main"}
 _PUNCTUATION = frozenset(".,;:!?)]}»”'\"、。，；：！？）］｝»”")
@@ -135,7 +139,7 @@ def _pagination(offset: Any, limit: Any, maximum: int) -> tuple[int, int]:
     if offset_value < 0:
         raise _error("offset must be non-negative")
     if not 1 <= limit_value <= maximum:
-        raise _error("limit is outside the allowed range")
+        raise _error(f"limit must be between 1 and {maximum}")
     return offset_value, limit_value
 
 
@@ -737,28 +741,30 @@ class DocumentReview:
             item = {
                 "token": token[:256],
                 "token_length": len(token),
-                "token_truncated": len(token) > 256,
                 "occurrences": counts[token],
                 "examples": examples[token],
             }
+            if len(token) > 256:
+                item["token_truncated"] = True
             size = len(json.dumps(item, ensure_ascii=False))
             if items and budget + size > 64_000:
                 break
             items.append(item)
             budget += size
         consumed = offset + len(items)
-        return {
+        result: dict[str, Any] = {
             "items": items,
             "next_offset": consumed if consumed < len(tokens) else None,
             "total_matching_tokens": len(tokens),
             "total_distinct_tokens": len(counts),
             "total_occurrences": sum(counts.values()),
             "overlong_distinct_tokens": sum(len(token) > 256 for token in counts),
-            "inventory_options": {
-                "scope": scope,
-                "query": query,
-                "case_sensitive": case_sensitive,
-            },
+        }
+        if offset:
+            # Coverage and guidance describe the whole inventory; the first
+            # page carries them, later pages carry only their tokens.
+            return result
+        result.update({
             "coverage": {
                 "selected_text_elements": len(selected_nodes),
                 "heading_levels": dict(
@@ -773,7 +779,8 @@ class DocumentReview:
             },
             "review_completion": "not_tracked",
             "guidance": "Inventory and dictionary flags are candidates, not errors. Inspect source pages; rerun on the final revision. Fetch truncated tokens via their element IDs.",
-        }
+        })
+        return result
 
     @staticmethod
     def _bounded_attribute(tag: Tag, name: str) -> str | None:
@@ -1487,18 +1494,10 @@ class DocumentReview:
             if offset_value + len(page) < len(matches)
             else None
         )
+        # The request is not echoed back: the caller already holds it.
         return {
             "items": items,
             "total_matches": len(matches),
-            "search_options": {
-                "query": query,
-                "case_sensitive": case_sensitive,
-                "whole_word": whole_word,
-                "scope": scope,
-                "page_number": page_number,
-                "offset": offset_value,
-                "limit": limit_value,
-            },
             "next_offset": next_offset,
         }
 
@@ -1543,8 +1542,11 @@ class DocumentReview:
         page_number: int | None = None,
         before: int = 0,
         after: int = 0,
+        include_text: bool = True,
     ) -> dict[str, Any]:
         offset_value, limit_value = _pagination(offset, limit, MAX_FETCH_LIMIT)
+        if type(include_text) is not bool:
+            raise _error("include_text must be a boolean")
         if not isinstance(scope, str) or scope not in {
             "all",
             "body",
@@ -1612,7 +1614,8 @@ class DocumentReview:
                 raise _error("first element is too large; fetch smaller descendants")
             if used_html + len(serialized) > MAX_FETCH_HTML_CHARS:
                 break
-            text = _walk_all_visible_text(node.tag)
+            # The visible text is derivable from html; send it only on request.
+            text = _walk_all_visible_text(node.tag) if include_text else ""
             searchable_index = next(
                 (
                     index
@@ -1652,7 +1655,6 @@ class DocumentReview:
                     "classes": _bounded_classes_for_output(node.tag),
                     "page_numbers": self._page_list(node),
                     "html": serialized,
-                    "text": text,
                     "heading_path": heading_paths.get(node.element_id, []),
                     "nearby": {
                         "before": [
@@ -1675,6 +1677,8 @@ class DocumentReview:
                         ],
                     },
                 }
+            if include_text:
+                entry["text"] = text
             entry.update(self._note_context_fields(node, note_metadata))
             entries.append(entry)
             used_html += len(serialized)
@@ -1745,19 +1749,19 @@ class DocumentReview:
             current = current.parent
         return ancestors
 
-    def _boundary_text(self, marker: _Marker, context_chars: int) -> dict[str, Any]:
+    def _boundary_text(
+        self,
+        marker: _Marker,
+        context_chars: int,
+        text_nodes: list[NavigableString],
+        node_positions: list[int],
+    ) -> dict[str, Any]:
         marker_position = marker.position
-        text_nodes = self._visible_text_nodes()
-        left_nodes = [
-            node
-            for node in text_nodes
-            if self._positions.get(id(node), -1) < marker_position
-        ]
-        right_nodes = [
-            node
-            for node in text_nodes
-            if self._positions.get(id(node), -1) > marker_position
-        ]
+        split = bisect_left(node_positions, marker_position)
+        # Only the text near the marker is shown, so join a bounded window
+        # instead of the whole document on each side.
+        left_nodes = self._context_window(text_nodes[:split], context_chars, from_end=True)
+        right_nodes = self._context_window(text_nodes[split:], context_chars, from_end=False)
         left = self._joined_text(left_nodes)
         right = self._joined_text(right_nodes)
         left_excerpt = left[-context_chars:]
@@ -1784,36 +1788,24 @@ class DocumentReview:
             for tag in candidate_ancestors
             if self._tag_id.get(id(tag)) == left_id == right_id
         ]
+        seam_before = ""
+        seam_after = ""
         for candidate in candidates:
             candidate_position = self._positions.get(id(candidate), -1)
-            candidate_end = max(
-                (
-                    self._positions.get(id(descendant), candidate_position)
-                    for descendant in candidate.descendants
-                ),
-                default=candidate_position,
-            )
-            inside_before = _normalized_text(
-                "".join(
-                    str(node)
-                    for node in text_nodes
-                    if candidate_position
-                    < self._positions.get(id(node), -1)
-                    < marker_position
-                )
-            )
-            inside_after = _normalized_text(
-                "".join(
-                    str(node)
-                    for node in text_nodes
-                    if marker_position
-                    < self._positions.get(id(node), -1)
-                    <= candidate_end
-                )
-            )
+            candidate_end = self._subtree_end.get(id(candidate), candidate_position)
+            before_nodes = text_nodes[
+                bisect_right(node_positions, candidate_position) : split
+            ]
+            after_nodes = text_nodes[
+                split : bisect_right(node_positions, candidate_end)
+            ]
+            inside_before = _normalized_text("".join(map(str, before_nodes)))
+            inside_after = _normalized_text("".join(map(str, after_nodes)))
             if inside_before and inside_after:
                 joined = True
                 joined_id = self._tag_id.get(id(candidate))
+                seam_before = "".join(map(str, before_nodes))
+                seam_after = "".join(map(str, after_nodes))
                 break
         previous_page: int | None = None
         for prior in self._markers:
@@ -1840,9 +1832,13 @@ class DocumentReview:
             warnings.append("nonconsecutive_page_markers")
         if punctuation and joined:
             warnings.append("punctuation_at_join")
+        spurious_space = joined and seam_whitespace_is_spurious(seam_before, seam_after)
+        if spurious_space:
+            # Normalised excerpts hide whitespace, so name the defect directly.
+            warnings.append("space_inside_unspaced_text")
         left_element = self._id_to_node.get(left_id) if left_id else None
         right_element = self._id_to_node.get(right_id) if right_id else None
-        return {
+        item: dict[str, Any] = {
             "page_number": marker.page_number,
             "previous_retained_page_number": previous_page,
             "left_text": left_excerpt,
@@ -1851,20 +1847,36 @@ class DocumentReview:
             "right_element_id": right_id,
             "left_tag": str(left_element.tag.name) if left_element else None,
             "right_tag": str(right_element.tag.name) if right_element else None,
-            "left_classes": _bounded_classes_for_output(left_element.tag)
-            if left_element
-            else [],
-            "right_classes": _bounded_classes_for_output(right_element.tag)
-            if right_element
-            else [],
             "containing_element_id": containing,
             "joined_within_element": joined,
             "joined_element_id": joined_id,
+            # Each condition is named once, here, rather than also as a flag.
             "warnings": warnings,
-            "inside_heading": inside_heading,
-            "nonconsecutive_page_markers": nonconsecutive,
-            "punctuation_at_join": punctuation and joined,
         }
+        for side, element in (("left", left_element), ("right", right_element)):
+            classes = _bounded_classes_for_output(element.tag) if element else []
+            if classes:
+                item[f"{side}_classes"] = classes
+        return item
+
+    @staticmethod
+    def _context_window(
+        nodes: list[NavigableString], context_chars: int, *, from_end: bool
+    ) -> list[NavigableString]:
+        """Return the fewest nodes nearest the marker that fill the excerpt."""
+
+        needed = context_chars * 2 + 8
+        total = 0
+        ordered = reversed(nodes) if from_end else iter(nodes)
+        window: list[NavigableString] = []
+        for node in ordered:
+            window.append(node)
+            total += len(str(node).strip())
+            if total >= needed:
+                break
+        if from_end:
+            window.reverse()
+        return window
 
     def _joined_text(self, nodes: list[NavigableString]) -> str:
         parts: list[str] = []
@@ -1895,7 +1907,7 @@ class DocumentReview:
                 raise _error("page_number must be positive")
         context_value = _strict_int(context_chars, "context_chars")
         if not 100 <= context_value <= 2000:
-            raise _error("context_chars is outside the allowed range")
+            raise _error("context_chars must be between 100 and 2000")
         markers = [
             marker
             for marker in self._markers
@@ -1903,8 +1915,10 @@ class DocumentReview:
             and marker.page_number > 1
             and (page_number is None or marker.page_number == page_number)
         ]
+        text_nodes = self._visible_text_nodes()
+        node_positions = [self._positions.get(id(node), -1) for node in text_nodes]
         page = [
-            self._boundary_text(marker, context_value)
+            self._boundary_text(marker, context_value, text_nodes, node_positions)
             for marker in markers[offset_value : offset_value + limit_value]
         ]
         next_offset = (
@@ -2048,7 +2062,7 @@ class DocumentReview:
         if not isinstance(replacement, str) or len(replacement) > 10000:
             raise _error("replace_text replacement is too long")
         if not 1 <= expected <= 1000:
-            raise _error("expected_matches is outside the allowed range")
+            raise _error("expected_matches must be between 1 and 1000")
         if type(whole_word) is not bool:
             raise _error("whole_word must be a boolean")
         node = self._require_node(element_id)

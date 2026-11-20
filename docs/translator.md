@@ -108,7 +108,9 @@ applied.
 For JSON tools, clients consume MCP `structuredContent` once, using the text
 content only as a compatibility fallback. Passing both representations back to
 a model duplicates the same evidence. The wire keeps the protocol's text
-representation for clients that require it.
+representation for clients that require it, as compact JSON rather than an
+indented copy. `tools/list` omits generated schema titles, null defaults and
+placeholder output schemas; parameter names, bounds and descriptions are kept.
 
 MCP QA defaults to repeated-token groups and omits excerpts. Counts and
 capability limitations stay scan-wide. Group drill-down paginates every
@@ -217,9 +219,14 @@ Before creating a translation, Document Processor can inspect physical-page
 continuations with `carlina_document_repair_boundaries` or **Repair page
 continuations…** in the document preview. A scan is read-only and returns
 bounded, revision-scoped candidates. Select up to 50 `{id, action}` decisions,
-where the action is `join_with_space`, `dehyphenate` or `keep_hyphen`. Saving
-requires the preview's `expected_revision`, a stable `idempotency_key` and
-`dry_run=false`. The HTTP equivalent is
+where the action is `join_with_space`, `join_without_space` (for scripts written
+without spaces), `dehyphenate`, `keep_hyphen` or `remove_space` (a space left
+inside joined Japanese, Chinese or Thai text at a page anchor). For a repeated
+repair, `accept_suggested` (for example `["remove_space"]`) accepts every
+candidate with that suggested join or `remove_space` action, up to 1,000 per
+save, optionally within `page_numbers`. Hyphen decisions are always made one by
+one. Saving requires the preview's `expected_revision`, a stable
+`idempotency_key` and `dry_run=false`. The HTTP equivalent is
 `POST /api/documents/<id>/repair-boundaries`. Pagination uses physical page
 numbers and shows at most 50 candidates at a time.
 

@@ -23,7 +23,9 @@ from .parsers.pdf_utils import (
 )
 from .parsers.semantic_validation import (
     EXTRACTION_NOTE_INPUT_POLICY_VERSION,
+    MARKUP_VOCABULARY_POLICY_VERSION,
     validate_extraction_note_input,
+    validate_markup_vocabulary,
     validate_model_response_content,
     validate_normalized_page_output,
 )
@@ -87,6 +89,7 @@ def validate_page_declaration(
     declared_blank: bool,
     finish_reason: object = "",
     strict_note_input: bool = False,
+    strict_vocabulary: bool = False,
 ) -> PageDeclarationValidation:
     """Validate a page's HTML and explicit visual blank declaration.
 
@@ -108,6 +111,11 @@ def validate_page_declaration(
             return PageDeclarationValidation(
                 False, diagnostics=note_input.diagnostics
             )
+
+    if strict_vocabulary:
+        vocabulary = validate_markup_vocabulary(clean_markdown_artifacts(content))
+        if not vocabulary.valid:
+            return PageDeclarationValidation(False, diagnostics=vocabulary.diagnostics)
 
     source_toc_omitted = has_source_toc_omission_marker(content)
     normalized = normalize_extracted_page_html(content, toc_handling="omit")
@@ -249,6 +257,8 @@ def _diagnostic_code(diagnostics: tuple[str, ...]) -> tuple[str, str]:
         return "/html", "source-toc-contract"
     if detail.startswith("duplicate id="):
         return "/html", "duplicate-id"
+    if detail.startswith("unsupported element"):
+        return "/html", "unsupported-element"
     if detail.startswith("terminal failure"):
         return "/html", "terminal-model-response"
     return "/html", "page-semantic-contract"
@@ -286,6 +296,10 @@ def preflight_completion(
         and extraction_contract.get("version")
         == EXTRACTION_NOTE_INPUT_POLICY_VERSION
     )
+    strict_vocabulary = (
+        isinstance(dispatch, Mapping)
+        and dispatch.get("markup_vocabulary") == MARKUP_VOCABULARY_POLICY_VERSION
+    )
     if not isinstance(response, Mapping):
         return _response_error("/content/pages", "page-response-contract")
     content = response.get("content")
@@ -321,10 +335,15 @@ def preflight_completion(
             page.html,
             declared_blank=page.blank,
             strict_note_input=strict_note_input,
+            strict_vocabulary=strict_vocabulary,
         )
         if not validation.valid:
             suffix, code = _diagnostic_code(validation.diagnostics)
-            errors.append({"path": f"/content/pages/{index}{suffix}", "code": code})
+            error: dict[str, str] = {"path": f"/content/pages/{index}{suffix}", "code": code}
+            if code == "unsupported-element":
+                # An element name is markup, not extracted text.
+                error["element"] = validation.diagnostics[0].split("<", 1)[-1].rstrip(">")
+            errors.append(error)
         elif validation.normalized_html is not None:
             validated_pages.append((index, page_number, validation.normalized_html))
         if len(errors) >= _MAX_DIAGNOSTICS:

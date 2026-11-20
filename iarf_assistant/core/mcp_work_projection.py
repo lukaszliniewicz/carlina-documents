@@ -28,6 +28,22 @@ OMIT_FIELDS = frozenset(
 # A transport budget, independent of the executor's token/context capacity.
 DEFAULT_RESPONSE_BYTES = 8 * 1024 * 1024
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
+
+
+class WorkRequestError(ValueError):
+    """A work request argument does not fit the leased packet.
+
+    The lease and its packet are unaffected; the caller can correct the
+    argument and retry under the same lease.
+    """
+
+    code = "invalid_work_request"
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
 LEASE_REFRESH_GUIDANCE = (
     "Read the exact leased instructions and schema before authoring. Matching hashes or a wrapper/JavaScript cache alone do not "
     "prove the executing model retained them. After compaction, transfer, restart, hash change or uncertainty, call "
@@ -60,7 +76,7 @@ def resolve_response_budget(
     budget = default_bytes if requested is None else requested
     validate_response_budget(budget)
     if budget > max_bytes:
-        raise ValueError(
+        raise WorkRequestError(
             f"max_response_bytes exceeds this connection's configured maximum ({max_bytes})."
         )
     return budget
@@ -87,6 +103,39 @@ def request_images(request: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
     return images
 
 
+MAX_IMAGE_CAPTION_CHARS = 120
+
+
+def image_caption(request: dict[str, Any], path: str) -> str | None:
+    """Return the short text block that introduces one request image.
+
+    Page packets precede each image with a caption such as its physical page
+    number, which lets a worker track which pages it has actually seen.
+    """
+    tokens = path.split("/")[2:]
+    if not tokens or not tokens[-1].isdigit():
+        return None
+    parent: Any = request
+    for raw in tokens[:-1]:
+        token = raw.replace("~1", "/").replace("~0", "~")
+        if isinstance(parent, list) and token.isdigit() and int(token) < len(parent):
+            parent = parent[int(token)]
+        elif isinstance(parent, dict) and token in parent:
+            parent = parent[token]
+        else:
+            return None
+    index = int(tokens[-1])
+    if not isinstance(parent, list) or not 0 < index < len(parent):
+        return None
+    previous = parent[index - 1]
+    if not isinstance(previous, dict) or previous.get("type") != "text":
+        return None
+    text = previous.get("text")
+    if not isinstance(text, str) or len(text.strip()) > MAX_IMAGE_CAPTION_CHARS:
+        return None
+    return text.strip() or None
+
+
 def deferred_request(payload: dict[str, Any]) -> dict[str, Any]:
     """Last-resort small receipt; every omitted field remains retrievable."""
     result = {
@@ -99,6 +148,7 @@ def deferred_request(payload: dict[str, Any]) -> dict[str, Any]:
             "workload_role",
             "expected_output_format",
             "batch_id",
+            "prior_attempts",
         )
         if key in payload
     }
@@ -117,7 +167,9 @@ def deferred_request(payload: dict[str, Any]) -> dict[str, Any]:
 
 def validate_projection(mode: str, omit_fields: list[str] | None) -> None:
     if mode not in MODES:
-        raise ValueError("response_mode must be standard, compact, minimal or full.")
+        raise WorkRequestError(
+            "response_mode must be standard, compact, minimal or full."
+        )
     if omit_fields is not None and (
         not isinstance(omit_fields, list)
         or len(omit_fields) > len(OMIT_FIELDS)
@@ -125,7 +177,7 @@ def validate_projection(mode: str, omit_fields: list[str] | None) -> None:
             not isinstance(key, str) or key not in OMIT_FIELDS for key in omit_fields
         )
     ):
-        raise ValueError(
+        raise WorkRequestError(
             "Unsupported omit_fields. Use system_prompt, messages, images, response_format, parameters, tools or submission_contract."
         )
 
@@ -224,6 +276,19 @@ def project_claim(
     return result
 
 
+def _missing_path_detail(path: str, parent: str, value: Any) -> str:
+    """Name the nearest existing parent and what it holds, never its content."""
+
+    detail = f"{path} does not exist in this packet. {parent or '/'}"
+    if isinstance(value, dict):
+        keys = sorted(str(key) for key in value)
+        listed = ", ".join(keys[:16]) + (", ..." if len(keys) > 16 else "")
+        return f"{detail} holds: {listed or 'nothing'}."
+    if isinstance(value, list):
+        return f"{detail} is a list of {len(value)} item(s), indexed from 0."
+    return f"{detail} is a value with no children."
+
+
 def request_slice(
     payload: dict[str, Any], path: str, offset: int = 0, max_chars: int = 12000
 ) -> dict[str, Any]:
@@ -233,26 +298,27 @@ def request_slice(
         or len(path) > 512
         or not (path == "/request" or path.startswith("/request/"))
     ):
-        raise ValueError("path must be a JSON pointer inside /request.")
+        raise WorkRequestError("path must be a JSON pointer inside /request.")
     if (
         type(offset) is not int
         or offset < 0
         or type(max_chars) is not int
         or not 256 <= max_chars <= 64000
     ):
-        raise ValueError("offset must be nonnegative; max_chars must be 256-64000.")
+        raise WorkRequestError(
+            "offset must be nonnegative; max_chars must be 256-64000."
+        )
     value: Any = payload
-    try:
-        for token in path[1:].split("/"):
-            token = token.replace("~1", "/").replace("~0", "~")
-            if isinstance(value, list):
-                if not token.isdigit():
-                    raise KeyError(token)
-                value = value[int(token)]
-            else:
-                value = value[token]
-    except KeyError, IndexError, TypeError, ValueError:
-        raise ValueError("Requested path does not exist in this packet.") from None
+    resolved = ""
+    for raw_token in path[1:].split("/"):
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        if isinstance(value, list) and token.isdigit() and int(token) < len(value):
+            value = value[int(token)]
+        elif isinstance(value, dict) and token in value:
+            value = value[token]
+        else:
+            raise WorkRequestError(_missing_path_detail(path, resolved, value))
+        resolved += "/" + raw_token
     result = {
         key: payload[key]
         for key in ("work_item_id", "execution_id", "lease_expires_at")
@@ -261,12 +327,12 @@ def request_slice(
     result["path"] = path
     if isinstance(value, dict) and value.get("type") == "image_url":
         if offset:
-            raise ValueError("Images cannot be sliced as text.")
+            raise WorkRequestError("Images cannot be sliced as text.")
         result["value"] = value
         return result
     reference = _reference(value, path)
     if isinstance(value, str) and value.startswith("data:") and ";base64," in value:
-        raise ValueError(
+        raise WorkRequestError(
             "Fetch the parent image content block for native image transport, not its raw data URL."
         )
 

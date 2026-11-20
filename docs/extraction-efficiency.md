@@ -25,6 +25,52 @@ need before you deliberately reload the current version. This protects the
 current editing session only. It is not permanent draft storage or a document
 version history.
 
+## Page assembly, ruby and continued tables
+
+Assembly joins the accepted pages into one document. Where a paragraph continues
+across a page break, the separator comes from the characters on each side of the
+join. Scripts written without spaces between words (Japanese, Chinese, Thai, Lao,
+Khmer, Myanmar, Tibetan and Yi, and fullwidth forms) join directly. No space goes
+before closing punctuation. Other text, including Korean, joins with one space,
+and a hyphenated word split across pages is still rejoined. Boundary review names
+a space found inside such text as `space_inside_unspaced_text`, and
+`carlina_document_repair_boundaries` can remove it with `remove_space`.
+
+A table row split across a page break is merged column by column when both halves
+have the same columns, counting `colspan`. A cell marked as continued joins the
+upper half of its own column. Other cells add their content as a new paragraph in
+the same column, so two parallel streams in one row stay apart. A lone continued
+cell still joins the last column, as before. When the columns do not line up,
+the halves stay as separate rows and the boundary is reported for review rather
+than guessed. New passive runs freeze `mcp_table_continuation_policy=column-aligned-v1`,
+whose prompt asks for one cell per column, empty cells kept, and a continued
+parallel stream in the same row.
+
+New passive runs also freeze `mcp_markup_vocabulary_policy=ruby-vocabulary-v1`.
+Pages may then carry ruby (furigana and similar readings) as
+`<ruby>base<rt>reading</rt></ruby>`, one `rt` after each base segment. Packet
+preflight checks every element against the document vocabulary while the lease
+is still open, and a rejection names the element (`unsupported-element`). The
+canonical document keeps ruby without `rp` fallbacks. A reading outside a ruby
+container, or a ruby without a reading, is unwrapped so its text stays visible,
+with a warning. Readings are not part of the running text: search, the outline,
+heading identifiers and Translator see the base text only, and translations do
+not carry ruby. Text search and `replace_text` therefore cannot find or change a
+reading; correct one with `replacement_html` on the element that holds it. HTML export keeps native ruby, EPUB adds bracket fallbacks for
+readers without ruby support, and DOCX, PDF and Markdown show `base (reading)`,
+with fullwidth brackets after CJK. Retained executions without these markers
+keep their original prompts, schemas and fingerprints.
+
+When a PDF extraction completes, `carlina_job_get` adds `assembly_check`. Its
+`status` is `consistent`, or `advisories` with a list of what changed between the
+submitted pages and the canonical document: `inline_elements_lost` (with
+`lost_elements` counts), `table_row_continuation_ambiguous` (with the page pairs
+in `ambiguous_table_boundaries`), `text_changed_during_assembly` (letters
+missing or added) and `space_inside_unspaced_text_at_page_join`. Every batch can
+pass validation while assembly still changes the document, so check any listed
+boundaries against the page images before export. The report holds counts, tag
+names and physical page numbers only, never extracted text.
+
 ## Extraction issue ledger
 
 New passive, issue-aware PDF batches carry a bounded `issues` array for each page,
@@ -44,6 +90,13 @@ reports support already-extracted documents. Managed extraction keeps its
 existing HTML completion protocol, and automatic issue capture is not enabled
 there in this slice. Its completed documents can still use the manual and MCP
 review ledger.
+
+Over MCP, `carlina_document_issues_list` returns summary items without review
+history (`history_count` instead; `include_history=true` or `issue_get` gives it).
+`query` matches text in the excerpt, reason or suggested readings, and
+`group_by=excerpt` returns one group per recurring printed reading with its pages,
+statuses, suggested readings and issue IDs, so variants can be compared side by
+side.
 
 Review states are open, confirmed, resolved and dismissed. Original reports are
 immutable. Updates append notes, with issue-version and current-source-revision
@@ -371,6 +424,18 @@ blocks with references instead of filling slices with base64. Fetch an individua
 image-block path to get its native image. Follow all required slices before
 submitting. Never treat a truncated slice as the whole prompt.
 
+An argument that does not fit the packet, such as a path that does not exist,
+returns `invalid_work_request` and leaves the lease unchanged. A missing path
+names its nearest existing parent and the keys or item count it holds. A claim
+for a unit that was offered before carries `prior_attempts`, with the count, the
+latest earlier work item and its state. `completed` means that response passed
+the response contract but was not committed, because product validation
+rejected it (`carlina_job_get` then shows `validation_error`) or the request
+changed; `cancelled` means the offer was withdrawn first, for example after a
+resume. The
+first page batch uses document metadata exactly as a resumed worker reloads it,
+so a suspension after the metadata stage no longer changes that batch's request.
+
 ## Scheduling and local work
 
 ### Delivery bytes and recoverable claims
@@ -395,8 +460,11 @@ For deferred images only, after reading the text and schema, call
 `carlina_work_get` with the receipt's work ID and lease token, `image_offset=0`
 and `image_limit=1` (up to four). The returned native image blocks keep their
 request order and original JSON Pointer paths. The server returns the largest
-contiguous prefix that fits the byte budget. Follow `delivery.next_offset` until
-it is null. An image that cannot fit alone returns `work_image_too_large` with the
+contiguous prefix that fits the byte budget. Each returned image carries the
+`caption` that introduces it in the packet, such as its physical page number.
+Follow `delivery.next_offset` until it is null. A page batch submitted with the
+wrong number of pages is rejected with `expected_min_items` and `received_items`,
+which usually means an image was not yet fetched. An image that cannot fit alone returns `work_image_too_large` with the
 needed byte size or a lower bound. It is never silently resized or skipped.
 Increase the budget only when the client can receive it and the key's configured
 maximum permits it. Do not refetch images already inline when no evidence is

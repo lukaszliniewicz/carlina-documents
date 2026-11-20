@@ -3206,38 +3206,6 @@
         }
       },
       {
-        "code": "reportArgumentType",
-        "range": {
-          "startColumn": 24,
-          "endColumn": 36,
-          "lineCount": 1
-        }
-      },
-      {
-        "code": "reportArgumentType",
-        "range": {
-          "startColumn": 55,
-          "endColumn": 62,
-          "lineCount": 1
-        }
-      },
-      {
-        "code": "reportArgumentType",
-        "range": {
-          "startColumn": 55,
-          "endColumn": 62,
-          "lineCount": 1
-        }
-      },
-      {
-        "code": "reportArgumentType",
-        "range": {
-          "startColumn": 55,
-          "endColumn": 62,
-          "lineCount": 1
-        }
-      },
-      {
         "code": "reportAttributeAccessIssue",
         "range": {
           "startColumn": 49,

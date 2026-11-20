@@ -77,6 +77,7 @@ from .metadata_service import (
     get_document_display_title,
     get_effective_identifier_entries,
 )
+from .ruby import add_ruby_fallback_brackets, text_without_readings
 from .semantic_document import (
     canonicalize_document_html,
     is_current_semantic_document,
@@ -1037,6 +1038,7 @@ class EPUBPackager:
                 else "ltr"
             )
             assign_review_anchors(soup)
+        add_ruby_fallback_brackets(soup)
         self._document_root_attrs = _safe_wrapper_attrs(soup.find("html"))
         self._document_body_attrs = _safe_wrapper_attrs(soup.find("body"))
         self._content_root_attrs = _safe_wrapper_attrs(soup.find("main"))
@@ -1336,7 +1338,7 @@ class EPUBPackager:
         ):
             if heading.get("id"):
                 continue
-            base = _safe_id(heading.get_text(" ", strip=True), f"heading-{index}")
+            base = _safe_id(text_without_readings(heading, " ", strip=True), f"heading-{index}")
             heading_id = base
             suffix = 2
             while heading_id in seen_normalized:
@@ -1751,7 +1753,7 @@ class EPUBPackager:
                 (
                     publication_heading_text(first_heading)
                     if self.options
-                    else first_heading.get_text(" ", strip=True)
+                    else text_without_readings(first_heading, " ", strip=True)
                 )
                 if first_heading
                 else current_unit_title
@@ -1762,7 +1764,7 @@ class EPUBPackager:
                 title = (
                     publication_heading_text(heading)
                     if self.options
-                    else heading.get_text(" ", strip=True)
+                    else text_without_readings(heading, " ", strip=True)
                 )
                 if title and not (
                     self.options

@@ -52,8 +52,12 @@ tools merely because this guidance exists.
 1. Use `carlina_document_issues_list(document_id, ...)`, following pagination.
    Review both `open` and `confirmed` issues: omit `status` to list all, or make
    separate paginated calls for each status; do not pass a status array.
-   Filters include kind and physical
-   page. The returned `current_revision` fences later mutations.
+   Filters include kind, physical page and `query` (text in the excerpt, reason
+   or suggested readings). `group_by="excerpt"` groups a recurring printed
+   reading with its pages, statuses and candidate readings, which suits
+   comparing variants before deciding them together. List items omit review
+   history; use `issue_get` or `include_history=true` for it. The returned
+   top-level `current_revision` fences later mutations.
 2. Read details with `carlina_document_issue_get(document_id, issue_id)`, using
    the issue's `id` from the list. Compare the report to the
    source page and current extraction using ordinary review tools. A

@@ -1005,9 +1005,13 @@ def test_grouped_replacements_preserve_one_atomic_revision_and_undo(review_app):
             api.documents.get_document("doc", include_output=True)["output_html"]
             == before["output_html"]
         )
+        assert "output_markdown" not in api.documents.get_document("doc", include_output=True)
         saved = api.apply("doc", **args)
         fresh = api.documents.get_document(
-            "doc", include_output=True, expected_revision=saved["revision"]
+            "doc",
+            include_output=True,
+            expected_revision=saved["revision"],
+            output_format="both",
         )
         assert fresh["revision"] == fresh["output_revision"] == saved["revision"]
         assert "dritte Überlegung" in fresh["output_html"]

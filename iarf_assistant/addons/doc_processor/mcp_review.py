@@ -352,7 +352,7 @@ class DocumentReviewService:
         self, document_id: str, *, decisions: list[dict[str, str]] | None = None,
         page_numbers: list[int] | None = None, offset: int = 0, limit: int = 50,
         expected_revision: str | None = None, idempotency_key: str | None = None,
-        dry_run: bool = True,
+        dry_run: bool = True, accept_suggested: list[str] | None = None,
     ) -> dict[str, Any]:
         """Review selected physical-page continuations through the shared undo path."""
         from .page_boundary_repair import repair_page_boundaries
@@ -361,12 +361,17 @@ class DocumentReviewService:
             raise _error("dry_run must be a boolean.")
         if not dry_run:
             self._validate_write_request(expected_revision, idempotency_key, dry_run)
-            if not decisions:
-                raise _error("Saving requires explicitly selected boundary decisions.")
-        request_hash = _digest(json.dumps({
+            if not decisions and not accept_suggested:
+                raise _error(
+                    "Saving requires explicitly selected boundary decisions or accept_suggested."
+                )
+        request = {
             "operation": "repair_page_boundaries", "revision": expected_revision,
             "decisions": decisions, "page_numbers": page_numbers,
-        }, sort_keys=True))
+        }
+        if accept_suggested is not None:
+            request["accept_suggested"] = accept_suggested
+        request_hash = _digest(json.dumps(request, sort_keys=True))
         document = self.documents._document(document_id)
         if not dry_run:
             duplicate = self._duplicate(
@@ -381,6 +386,7 @@ class DocumentReviewService:
         try:
             candidate, summary = repair_page_boundaries(
                 review, decisions=decisions, page_numbers=page_numbers, offset=offset, limit=limit,
+                accept_suggested=accept_suggested,
             )
         except ValueError as exc:
             raise _error(str(exc), "invalid_edit") from None

@@ -15,6 +15,8 @@ from .note_arrangement import note_arrangement_enabled
 from .parsers.semantic_validation import (
     extraction_note_input_contract,
     extraction_note_input_enabled,
+    markup_vocabulary_enabled,
+    table_continuation_enabled,
 )
 from .prompts import (
     PDF_COVER_CANDIDATE_INSTRUCTION,
@@ -55,6 +57,8 @@ from .prompts import (
     PDF_IMAGE_ACCESSIBILITY_INSTRUCTION,
     PDF_METADATA_HEADING_STRUCTURE_INSTRUCTION,
     PDF_LIST_STRUCTURE_INSTRUCTION,
+    PDF_MARKUP_VOCABULARY_INSTRUCTION,
+    PDF_TABLE_CONTINUATION_INSTRUCTION,
     PDF_MERMAID_DIAGRAM_INSTRUCTION,
     PDF_MERMAID_ACCESSIBLE_INSTRUCTION,
     PDF_NATIVE_VISION_AUTHORING_INSTRUCTION,
@@ -111,6 +115,17 @@ def semantic_structure_instruction(settings: Mapping, *, extract_images: bool) -
             else PDF_MERMAID_DIAGRAM_INSTRUCTION
         )
     return "\n\n" + "\n\n".join(parts)
+
+
+def extraction_contract_instruction(settings: Mapping) -> str:
+    """Append markup and table rules only for runs frozen with their markers."""
+
+    parts = []
+    if markup_vocabulary_enabled(settings):
+        parts.append(PDF_MARKUP_VOCABULARY_INSTRUCTION)
+    if table_continuation_enabled(settings):
+        parts.append(PDF_TABLE_CONTINUATION_INSTRUCTION)
+    return "".join("\n\n" + part for part in parts)
 
 
 def extraction_issues_instruction(settings: Mapping) -> str:
@@ -1535,7 +1550,7 @@ class DocProcessorPromptPreviewBuilder:
             metadata_prepass=pdf_options.get("metadata_prepass", True),
             include_previous_context=include_previous_context,
             toc_handling="omit",
-        ) + semantic_structure_instruction(self.settings, extract_images=extract_images) + image_accessibility_instruction(self.settings, extract_images=extract_images)
+        ) + semantic_structure_instruction(self.settings, extract_images=extract_images) + image_accessibility_instruction(self.settings, extract_images=extract_images) + extraction_contract_instruction(self.settings)
 
     def build_page_prompt_payload(self, page_number: int, include_previous_context: bool = True) -> dict[str, Any]:
         return compose_page_prompt_payload(

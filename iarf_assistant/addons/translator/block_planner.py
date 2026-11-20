@@ -131,6 +131,9 @@ _INLINE = frozenset(
 )
 _LITERAL_TAGS = frozenset({"code", "pre", "samp", "kbd", "var", "time", "template"})
 _EXCLUDED_TAGS = frozenset({"script", "style", "noscript", "svg", "math"})
+# A ruby reading glosses its base characters for readers of the source
+# language. It is never translated and does not belong in the target.
+_RUBY_READING_TAGS = frozenset({"rt", "rp"})
 _LEXICAL_ATTRIBUTES = frozenset({"alt", "title", "aria-label", "data-label"})
 _LEGACY_LEXICAL_ATTRIBUTES = _LEXICAL_ATTRIBUTES | {"data-footnote-label"}
 _REFERENCE_ATTRIBUTES = frozenset(
@@ -681,6 +684,8 @@ def _text_policy(text: _Text, *, decode_entities: bool = False) -> tuple[str, st
     parent = text.parent
     if _is_hidden(parent) or _has_ancestor(parent, _EXCLUDED_TAGS):
         return "excluded-with-reason", "hidden-or-nonprose"
+    if _has_ancestor(parent, _RUBY_READING_TAGS):
+        return "excluded-with-reason", "ruby-reading"
     if _has_class_ancestor(parent, _MARGINALIA_RE):
         return "excluded-with-reason", "running-marginalia"
     if _WS_RE.fullmatch(unescape(text.raw) if decode_entities else text.raw):

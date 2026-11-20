@@ -163,6 +163,7 @@ def publication_heading_text(heading: Tag) -> str:
             or "footnote-ref" in _tokens(tag, "class")
             or tag.has_attr("hidden")
             or str(tag.get("aria-hidden") or "").lower() == "true"
+            or tag.name in {"rt", "rp"}
         )
     ):
         marker.decompose()
